@@ -1,0 +1,5 @@
+lib/*
+src/**/*.a
+src/**/*.o
+src/**/*.elf
+src/**/*.map
