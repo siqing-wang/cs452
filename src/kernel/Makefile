@@ -1,31 +1,33 @@
 #
-# Makefile for busy-wait IO tests
+# Makefile for kernel
 #
 XCC	= gcc
 AS	= as
-LD	= ld
-CFLAGS  = -c -fPIC -Wall -I. -I../../include -mcpu=arm920t -msoft-float -fno-builtin 
+AR	= ar
+CFLAGS  = -c -fPIC -Wall -I. -I../../include -mcpu=arm920t -msoft-float -fno-builtin
 # -g: include hooks for gdb
 # -c: only compile
 # -mcpu=arm920t: generate code for the 920t architecture
 # -fpic: emit position-independent code
 # -Wall: report all warnings
+# -msoft-float: use software for floating point
 
 ASFLAGS	= -mcpu=arm920t -mapcs-32
-# -mapcs: always generate a complete stack frame
+# -mapcs-32: always create a complete stack frame
 
-LDFLAGS = -init main -Map kernel.map -N  -T orex.ld -L/u/wbcowan/gnuarm-4.0.2/lib/gcc/arm-elf/4.0.2 -L../../lib
+ARFLAGS = rcs
 
-all:  kernel.s kernel.elf
+all:  kernel.a
+	cp kernel.a ../../lib/libkernel.a
 
-kernel.s: kernel.c
+kernel.s: kernel.c 
 	$(XCC) -S $(CFLAGS) kernel.c
 
 kernel.o: kernel.s
 	$(AS) $(ASFLAGS) -o kernel.o kernel.s
 
-kernel.elf: kernel.o
-	$(LD) $(LDFLAGS) -o $@ kernel.o -lbwio -lgcc
+kernel.a: kernel.o
+	$(AR) $(ARFLAGS) $@ kernel.o
 
 clean:
-	-rm -f kernel.elf *.s *.o kernel.map
+	-rm -f *.s *.a *.o

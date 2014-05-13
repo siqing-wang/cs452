@@ -2,12 +2,26 @@
  * kernel.c
  */
 
-#include <bwio.h>
+#include <kernel.h>
 
-int main( int argc, char* argv[] ) {
-    bwsetfifo(COM2, OFF);
-    bwsetspeed(COM2, 115200);
-    bwprintf(COM2, "Hello world");
+int Create(int priority, void (*code)()) {
     return 0;
 }
+
+int MyTid() {
+    return 0;
+}
+
+int MyParentTid() {
+    return 0;
+}
+
+void Pass() {
+    
+}
+
+void Exit() {
+
+}
+
 

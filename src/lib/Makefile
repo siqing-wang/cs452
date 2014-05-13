@@ -18,8 +18,6 @@ ASFLAGS	= -mcpu=arm920t -mapcs-32
 ARFLAGS = rcs
 
 all:  bwio.a
-	rm -rf ../../lib
-	mkdir ../../lib
 	cp bwio.a ../../lib/libbwio.a
 
 bwio.s: bwio.c 
