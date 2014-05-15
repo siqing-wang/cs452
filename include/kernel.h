@@ -5,7 +5,7 @@
 #ifndef __KERNEL_H__
 #define __KERNEL_H__
 
-#include <bwio.h>
+#include <context_switch.h>
 
 int Create(int priority, void (*code)());
 int MyTid();
