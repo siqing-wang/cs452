@@ -23,7 +23,7 @@ OBJECTS = $(CSOURCES:.c=.o) $(ASMSOURCES:.asm=.o)
 MAIN = main
 
 
-all: $(ASMFILES) $(OBJECTS) $(MAIN).elf
+all: clean $(ASMFILES) $(OBJECTS) $(MAIN).elf
 
 $(MAIN).s: $(MAIN).c
 	$(XCC) -S $(CFLAGS) $(MAIN).c
