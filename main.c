@@ -8,14 +8,15 @@
 
 int main( int argc, char *argv[] ) {
     // declare kernel data structures
-    // initialize( tds ); // tds is an array of TDs
+
+    Task** ts;
+    initialize(ts);
     int i;
     for( i = 0; i < 4; i++ ) {
-
-        // active = schedule( tds );
-        TD* active;
+		// Task* active = schedule(ts);
+        Task* active;
         Request* req;
-        kerxit( active, req ); // req is a pointer to a Request
+        kerxit(active, req); // req is a pointer to a Request
         // handle( tds, req );
     }
     return 0;

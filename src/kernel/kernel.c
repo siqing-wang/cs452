@@ -4,6 +4,16 @@
 
 #include <kernel.h>
 
+
+void initialize(Task** ts) {
+	initTasks(ts);
+	createTask("first");
+}
+
+Task* schedule(Task** ts) {
+	return *ts;
+}
+
 int Create(int priority, void (*code)()) {
     return 0;
 }

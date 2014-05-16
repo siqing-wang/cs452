@@ -11,6 +11,6 @@
 
 void kerent();
 
-void kerxit(TD *active, Request *req);
+void kerxit(Task *active, Request *req);
 
 #endif
