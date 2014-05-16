@@ -6,6 +6,9 @@
 
 
 void initialize(Task** ts) {
+	int * y = (int *) 0x28;
+	*y = (int) &kerent;
+
 	initTasks(ts);
 	createTask("first");
 }
