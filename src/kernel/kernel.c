@@ -3,38 +3,26 @@
  */
 
 #include <kernel.h>
+#include <context_switch.h>
+#include <scheduler.h>
+#include <task.h>
+#include <request.h>
 
+void kernel_init() {
+    int * y = (int *) 0x28;
+    *y = (int) &kerent;
 
-void initialize(Task** ts) {
-	int * y = (int *) 0x28;
-	*y = (int) &kerent;
-
-	initTasks(ts);
-	createTask("first");
+    task_init();
+    // createTask("first");
+    scheduler_init();
 }
 
-Task* schedule(Task** ts) {
-	return *ts;
+void kernel_run() {
+    kernel_init();
+    int i;
+    for( i = 0; i < 4; i++ ) {
+        // Task* active = schedule(ts);
+        // kerxit(active, req); // req is a pointer to a Request
+        // handle( tds, req );
+    }
 }
-
-int Create(int priority, void (*code)()) {
-    return 0;
-}
-
-int MyTid() {
-    return 0;
-}
-
-int MyParentTid() {
-    return 0;
-}
-
-void Pass() {
-    
-}
-
-void Exit() {
-
-}
-
-

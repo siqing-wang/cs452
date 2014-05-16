@@ -5,8 +5,6 @@
 #ifndef __TASK_H__
 #define __TASK_H__
 
-#include <memory.h>
-
 typedef struct Task
 {
     unsigned int sp;
@@ -15,8 +13,8 @@ typedef struct Task
     char* name;
 } Task;
 
-void initTasks(Task** ts);
+void task_init();
 
-void createTask(char* name);
+Task* task_create(char* name);
 
 #endif

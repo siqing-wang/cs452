@@ -5,8 +5,6 @@
 #ifndef __BWIO_H__
 #define __BWIO_H__
 
-#include <ts7200.h>
-
 typedef char *va_list;
 
 #define __va_argsiz(t)	\

@@ -7,15 +7,16 @@
 static Task tasks[100];
 static int nextTaskId;
 
-void initTasks(Task** ts) {
+void task_init() {
     nextTaskId = 0;
     // *ts = tasks;
 }
 
-void createTask(char* name) {
+Task* task_create(char* name) {
     Task* task = &tasks[nextTaskId];
-    task->name = name;
-    task->sp = RAM_TOP;
-    task->spsr = 0x10;
+    // task->name = name;
+    // task->sp = RAM_TOP;
+    // task->spsr = 0x10;
     nextTaskId = nextTaskId + 1;
+    return task;
 }
