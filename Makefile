@@ -33,8 +33,7 @@ $(MAIN).o: $(MAIN).s
 
 $(MAIN).elf: $(MAIN).o $(OBJECTS)
 	$(LD) $(LDFLAGS) -o $@ main.o $(OBJECTS) -lgcc
-	cp $(MAIN).elf /u/cs452/tftp/ARM/sq3wang/$(MAIN).elf
-	chmod 777 /u/cs452/tftp/ARM/sq3wang/$(MAIN).elf
+	cp $(MAIN).elf /u/cs452/tftp/ARM/wsqzym/$(MAIN).elf
 
 src/%.o: src/%.s
 	$(AS) $(ASFLAGS) -o $@ $<
@@ -44,7 +43,7 @@ src/%.o: src/%.asm
 
 src/%.s: src/%.c
 	$(XCC) -S $(CFLAGS) -o $@ $<
-
+	
 clean:
 	-rm -f main.elf *.s *.o main.map
 	-rm -f $(OBJECTS)
