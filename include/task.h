@@ -23,6 +23,6 @@ typedef struct Task
 
 void task_init();
 
-Task* task_create(char* name, int pid, int p);
+Task* task_create(char* name, int parent_tid, int priority, void (*code));
 
 #endif

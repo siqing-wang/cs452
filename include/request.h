@@ -11,4 +11,6 @@ typedef struct Request
 	int id;
 } Request;
 
+void request_handle(Request *request);
+
 #endif

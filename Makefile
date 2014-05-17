@@ -16,7 +16,7 @@ ASFLAGS	= -mcpu=arm920t -mapcs-32
 
 LDFLAGS = -init main -Map main.map -N  -T orex.ld -L/u/wbcowan/gnuarm-4.0.2/lib/gcc/arm-elf/4.0.2 -Llib
 
-CSOURCES = $(wildcard src/lib/*.c) $(wildcard src/kernel/*.c)
+CSOURCES = $(wildcard src/lib/*.c) $(wildcard src/tasks/*.c)  $(wildcard src/kernel/*.c)
 ASMSOURCES = $(wildcard src/lib/*.asm) $(wildcard src/kernel/*.asm)
 ASMFILES = $(CSOURCES:.c=.s)
 OBJECTS = $(CSOURCES:.c=.o) $(ASMSOURCES:.asm=.o)

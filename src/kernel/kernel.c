@@ -5,10 +5,9 @@
 #include <kernel.h>
 #include <context_switch.h>
 #include <scheduler.h>
-#include <task.h>
-#include <request.h>
 #include <bwio.h>
 #include <utils.h>
+#include <user_tasks.h>
 
 void kernel_init() {
     int * addr = (int *) 0x28;
@@ -16,7 +15,7 @@ void kernel_init() {
 
     task_init();
     scheduler_init();
-    Task *firstTask = task_create("first", -1, PRIORITY_MAX);
+    Task *firstTask = task_create("first", -1, 7, &firstUserTask);
     scheduler_add(firstTask);
 }
 
@@ -28,11 +27,18 @@ void kernel_run() {
         bwprintf(COM2, "loop %d\n\r", i);
         // TODO: check if I can compare like this
         if (active == 0) {
-            debug("active == 0 return;");
             return;
         }
-        scheduler_add(active);
+        Request request;
+        activate(active, &request);
+        request_handle(&request);
         // kerxit(active, req); // req is a pointer to a Request
+        scheduler_add(active);
         // handle( tds, req );
     }
 }
+
+void activate(Task *active, Request *request) {
+    kerxit(active, request);
+}
+
