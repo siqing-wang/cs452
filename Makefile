@@ -4,7 +4,7 @@
 XCC	= gcc
 AS	= as
 LD	= ld
-CFLAGS  = -c -fPIC -Wall -I. -Iinclude -mcpu=arm920t -msoft-float -fno-builtin 
+CFLAGS  = -c -fPIC -Wall -I. -Iinclude -mcpu=arm920t -msoft-float
 # -g: include hooks for gdb
 # -c: only compile
 # -mcpu=arm920t: generate code for the 920t architecture
@@ -19,7 +19,7 @@ LDFLAGS = -init main -Map main.map -N  -T orex.ld -L/u/wbcowan/gnuarm-4.0.2/lib/
 CSOURCES = $(wildcard src/lib/*.c) $(wildcard src/kernel/*.c)
 ASMSOURCES = $(wildcard src/lib/*.asm) $(wildcard src/kernel/*.asm)
 ASMFILES = $(CSOURCES:.c=.s)
-OBJECTS = $(CSOURCES:.c=.o) $(ASMSOURCES:.asm=.o) 
+OBJECTS = $(CSOURCES:.c=.o) $(ASMSOURCES:.asm=.o)
 MAIN = main
 
 
@@ -43,7 +43,7 @@ src/%.o: src/%.asm
 
 src/%.s: src/%.c
 	$(XCC) -S $(CFLAGS) -o $@ $<
-	
+
 clean:
 	-rm -f main.elf *.s *.o main.map
 	-rm -f $(OBJECTS)

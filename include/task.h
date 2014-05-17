@@ -9,8 +9,8 @@ typedef struct Task
 {
     unsigned int sp;
     unsigned int spsr;
-
-    char* name;
+    char *name;
+    struct Task *nextTaskInQueue;
 } Task;
 
 void task_init();
