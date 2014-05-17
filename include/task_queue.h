@@ -16,7 +16,6 @@ typedef struct TaskQueue {
 	int size;
 } TaskQueue;
 
-
 void queue_init(TaskQueue *q);
 void queue_push(TaskQueue *q, Task *t);
 Task *queue_pop(TaskQueue *q);

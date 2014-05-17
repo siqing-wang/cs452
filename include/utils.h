@@ -8,5 +8,6 @@
 // Print msg if cond is not true
 void assert(int cond, char* msg);
 void assertEquals(int expected, int actual, char* msg);
+void debug(char *msg);
 
 #endif

@@ -4,6 +4,7 @@
 
 #include <task_queue.h>
 #include <utils.h>
+#include <bwio.h>
 
 void queue_init(TaskQueue *q) {
 	q->start = (Task*)0;
@@ -13,7 +14,12 @@ void queue_init(TaskQueue *q) {
 
 void queue_push(TaskQueue *q, Task *t) {
 	q->size++;
-	q->end->nextTaskInQueue = t;
+	if (q->end != 0) {
+		q->end->nextTaskInQueue = t;
+	} else {
+		q->start = t;
+	}
+	t->nextTaskInQueue = 0;
 	q->end = t;
 }
 
@@ -22,17 +28,15 @@ Task *queue_pop(TaskQueue *q) {
 		// TODO: queue do not handle -ve value. (currently pop(emptyQ) -> -1)
 		return (Task*)0;
 	}
-
-	q->size--;
 	Task *firstTask = q->start;
+	q->size--;
 	q->start = firstTask->nextTaskInQueue;
+	if (queue_empty(q)) {
+		q->end = 0;
+	}
 	return firstTask;
 }
 
 int queue_empty(TaskQueue *q) {
 	return q->size == 0;
 }
-
-
-
-
