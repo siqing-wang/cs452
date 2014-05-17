@@ -43,17 +43,17 @@ kerxit:
 	# 2. change to system state;
 	msr cpsr_c, #0xdf
 	# 3. get the sp, spsr and return value of the active task from its TD;
-	# ldr sp, [r0]
-	# ldr r1, [r0, #4]
-	# ldr r2, [r0, #8]
+	ldr sp, [r0]
+	ldr r1, [r0, #-4]
+	ldr r2, [r0, #-8]
 	# 4. pop the registers of the active task from its stack;
-	# ldmfd	sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, fp, ip, lr}
+	ldmfd	sp!, {r1, r2, r4, r5, r6, r7, r8, r9, r10, fp, ip, lr}
 	# 5. put the return value in r0;
 	mov r0, #1
 	# 6. return to svc state;
 	msr cpsr_c, #0xd3
 	# 7. install the spsr of the active task; and
-	# msr spsr, r1
+	msr spsr, r1
 	# 8. install the pc of the active task.
 	ldmfd	sp!, {pc}
 

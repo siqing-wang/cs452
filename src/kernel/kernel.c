@@ -32,13 +32,11 @@ void kernel_run() {
         Request request;
         activate(active, &request);
         request_handle(&request);
-        // kerxit(active, req); // req is a pointer to a Request
         scheduler_add(active);
-        // handle( tds, req );
     }
 }
 
 void activate(Task *active, Request *request) {
-    kerxit(active, request);
+    kerxit(active->sp, request);
 }
 

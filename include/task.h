@@ -11,7 +11,6 @@
 typedef struct Task
 {
     int *sp;
-    unsigned int spsr;
 
     int tid;
     int parent_tid;
