@@ -6,13 +6,14 @@
 #include <context_switch.h>
 #include <scheduler.h>
 #include <user_tasks.h>
+#include <syscall.h>
 
 void kernel_init() {
     int * addr = (int *) 0x28;
     *addr = (int) &kerent;
     task_init();
     scheduler_init();
-    Task *firstTask = task_create(-1, 7, &firstUserTask);
+    Task *firstTask = task_create(-1, PRIORITY_MED, &firstUserTask);
     scheduler_add(firstTask);
 }
 
