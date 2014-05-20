@@ -13,15 +13,16 @@ void task_init() {
     nextTaskId = 0;
 }
 
-Task* task_create(char* name, int parent_tid, int priority, void (*code)) {
+Task* task_create(int parent_tid, int priority, void (*code)) {
     Task* task = &tasks[nextTaskId];
     task->tid = nextTaskId;
     task->parent_tid = parent_tid;
     task->priority = priority;
-    task->name = name;
     task->sp = stack + (nextTaskId + 1) * STACK_SIZE -1;
-    *(task->sp - 11) = code;
-    *(task->sp - 12) = 0x10;
+    task->sp = task->sp - 11;
+    *(task->sp) = 1;
+    *(task->sp + 1 ) = USER_MODE;
+    *(task->sp + 2 ) = (int)code;
     task->nextTaskInQueue = 0;
     nextTaskId = nextTaskId + 1;
     return task;

@@ -4,15 +4,12 @@
 
 #include <scheduler.h>
 #include <task_queue.h>
-#include <bwio.h>
-#include <utils.h>
 
 static TaskQueue task_queues[PRIORITY_MAX + 1];
 static int highestOccupied;
 
 void scheduler_init() {
 	int i = 0;
-
 	for ( ; i <= PRIORITY_MAX; i++) {
 		queue_init(task_queues + i);
 	}

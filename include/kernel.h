@@ -10,6 +10,6 @@
 
 void kernel_init();
 void kernel_run();
-void activate(Task *active, Request *request);
+void activate(Task *active, Request **request);
 
 #endif

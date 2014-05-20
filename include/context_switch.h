@@ -10,6 +10,6 @@
 
 void kerent();
 
-void kerxit(Task *active, Request *req);
+void kerxit(int **sp, Request **req);
 
 #endif

@@ -3,9 +3,7 @@
  */
 
 #include <task_queue.h>
-#include <utils.h>
-#include <bwio.h>
-
+ 
 void queue_init(TaskQueue *q) {
 	q->start = (Task*)0;
 	q->end = (Task*)0;
