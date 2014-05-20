@@ -10,7 +10,7 @@ storeRequestInR0:
 	mov	ip, sp
 	stmfd	sp!, {fp, ip, lr, pc}
 
-	mov r0, r0
+	# mov r0, r0
 
 	sub	fp, ip, #4
 	ldmfd	sp, {fp, sp, pc}
