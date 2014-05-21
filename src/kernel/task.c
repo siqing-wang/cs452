@@ -17,6 +17,9 @@ Task* task_create(int parent_tid, int priority, void (*code)) {
     if (nextTaskId >= TASK_MAX_NUM) {
         return (Task*)0;
     }
+    if ((priority > PRIORITY_MAX) || (priority < PRIORITY_MIN)) {
+        return (Task*)0;
+    }
     Task* task = &tasks[nextTaskId];
     task->tid = nextTaskId;
     task->parent_tid = parent_tid;

@@ -7,6 +7,7 @@
 
 #include <task.h>
 
+#define PRIORITY_MIN 0
 #define PRIORITY_MAX 15
 
 void scheduler_init();
