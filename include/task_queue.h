@@ -16,6 +16,16 @@ typedef struct TaskQueue {
 	int size;
 } TaskQueue;
 
+/*
+ *	queue_init
+ *		Initialize a task queue
+ *	queue_push
+ *		Push to the back of the queue
+ *	queue_pop
+ *		Pop the first element of the queue
+ *	queue_empty
+ *		Return if queue is empty
+ */
 void queue_init(TaskQueue *q);
 void queue_push(TaskQueue *q, Task *t);
 Task *queue_pop(TaskQueue *q);

@@ -1,11 +1,20 @@
 /*
- *	util.h
-*/
+ * util.h - all utility helper functions
+ *
+ * assert
+ * 		Print msg if condition is not true
+ * assertEquals
+ *		Print msg if expected and actual is not equal
+ * debug
+ *		Print msg iff DEBUG_MODE is 1
+ */
 
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
-// Print msg if cond is not true
+#define DEBUG_MODE 1
+
+
 void assert(int cond, char* msg);
 void assertEquals(int expected, int actual, char* msg);
 void debug(char *msg);

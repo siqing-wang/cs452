@@ -1,12 +1,20 @@
 /*
- * kernel.h
+ * kernel.h - microkernel
+ *
+ * kernel_init
+ *		Initialize components in kernel (task, scheduler),
+ *		and create the first task
+ * kernel_run
+ *		Call kernel_init and start the kernel
+ * activate
+ *		Call kerxit and wait for the syscall request from the userspace
  */
 
 #ifndef __KERNEL_H__
 #define __KERNEL_H__
 
 #include "task.h"
-#include "request.h" 
+#include "request.h"
 
 void kernel_init();
 void kernel_run();

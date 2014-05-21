@@ -1,5 +1,10 @@
 /*
- * request.h
+ * request.h - called by kernel, handle syscall requests from user space
+ *
+ * request_handle
+ *		handle syscall request
+ * storeRetValue
+ *		push syscall return value onto stack
  */
 
 #ifndef __REQUEST_H__

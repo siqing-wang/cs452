@@ -11,17 +11,22 @@
 
 typedef struct Task
 {
-    int *sp;
+    int *sp;		// stack pointer of the task
 
-    int tid;
-    int parent_tid;
-    int priority;
+    int tid;		// task id
+    int parent_tid;	// parent task id
+    int priority;	// priority from 0 to PRIORITY_MAX
 
-    struct Task *nextTaskInQueue;
+    struct Task *nextTaskInQueue;	// next task in the same scheduler priority queue, 0 is NULL
 } Task;
 
+/*
+ * task_init
+ *		Initialize static variable for task class
+ * task_create
+ *		Get next available task pointer and initialize its fields
+ */
 void task_init();
-
 Task* task_create(int parent_tid, int priority, void (*code));
 
 #endif

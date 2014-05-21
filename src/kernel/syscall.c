@@ -7,13 +7,13 @@
 #include <asm_lib.h>
 
 int Create(int priority, void (*code)()) {
-    Request request;
+    Request request;                    // Create request structure and store required fields.
     request.syscall = SYS_CREATE;
     request.priority = priority;
     request.code = code;
-    storeRequestInR0(&request);
-    asm("swi");
-    register int retVal asm ("r0");
+    storeRequestInR0(&request);         // Store request's ptr in r0
+    asm("swi");                         // Call kerent with request
+    register int retVal asm ("r0");     // Return value from kernel at r0
     return retVal;
 }
 

@@ -10,6 +10,7 @@ storeRequestInR0:
 	mov	ip, sp
 	stmfd	sp!, {fp, ip, lr, pc}
 
+	# Puprose: store parameter into r0
 	# mov r0, r0
 
 	sub	fp, ip, #4
