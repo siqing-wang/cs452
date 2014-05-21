@@ -6,13 +6,16 @@
 #include <context_switch.h>
 #include <scheduler.h>
 #include <user_tasks.h>
+#include <test_tasks.h>
 #include <syscall.h>
+#include <bwio.h>
 
 void kernel_init() {
     int * addr = (int *) 0x28;
     *addr = (int) &kerent;
     task_init();
     scheduler_init();
+    // Task *firstTask = task_create(-1, PRIORITY_MED, &firstTestTask);    // For test only
     Task *firstTask = task_create(-1, PRIORITY_MED, &firstUserTask);
     scheduler_add(firstTask);
 }
