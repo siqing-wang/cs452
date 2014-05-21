@@ -24,8 +24,8 @@ Task* task_create(int parent_tid, int priority, void (*code)) {
     task->tid = nextTaskId;
     task->parent_tid = parent_tid;
     task->priority = priority;
-    task->sp = stack + (nextTaskId + 1) * STACK_SIZE -1;
-    task->sp = task->sp - 11;
+    task->sp = stack + (nextTaskId + 1) * STACK_SIZE;
+    task->sp = task->sp - 13;
     *(task->sp) = 1;
     *(task->sp + 1 ) = USER_MODE;
     *(task->sp + 2 ) = (int)code;
