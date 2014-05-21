@@ -5,8 +5,8 @@
 #include <scheduler.h>
 #include <task_queue.h>
 
-static TaskQueue task_queues[PRIORITY_MAX + 1];     // +1 because we want queues for  0~PRIORITY_MAX
-static int highestOccupied;
+TaskQueue task_queues[PRIORITY_MAX + 1] = {};   // +1 because we want queues for  0~PRIORITY_MAX
+int highestOccupied = -1;
 
 void scheduler_init() {
     int i = 0;

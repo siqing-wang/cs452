@@ -5,9 +5,9 @@
 #include <task.h>
 #include <scheduler.h>
 
-static Task tasks[TASK_MAX_NUM];                // pre-alloc spaces for all tasks
-static int stack[STACK_SIZE * TASK_MAX_NUM];    // pre-alloc spaces for all tasks' stacks
-static int nextTaskId;                          // keep track of next available task slot
+Task tasks[TASK_MAX_NUM] = {};                  // pre-alloc spaces for all tasks
+int stack[STACK_SIZE * TASK_MAX_NUM] = {};      // pre-alloc spaces for all tasks' stacks
+int nextTaskId = 0;                             // keep track of next available task slot
 
 void task_init() {
     nextTaskId = 0;
