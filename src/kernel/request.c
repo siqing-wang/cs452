@@ -10,8 +10,13 @@ void request_handle(Task* active, Request *request) {
         Task *task;
         case SYS_CREATE:
             task = task_create(active->tid, request->priority, request->code);
-            scheduler_add(task);
-            storeRetValue(active, task->tid);
+            if (task == 0) {
+                storeRetValue(active, ERR_CREATE_TASK_FAIL);
+            }
+            else {
+                scheduler_add(task);
+                storeRetValue(active, task->tid);
+            }
             break;
         case SYS_MYTID:
             storeRetValue(active, active->tid);

@@ -14,6 +14,7 @@
 #define SYS_EXIT 4
 
 #define ERR_UNKNOWN_SYSCALL -1
+#define ERR_CREATE_TASK_FAIL -2
 
 typedef struct Request
 {
