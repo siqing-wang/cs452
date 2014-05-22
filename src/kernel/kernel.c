@@ -27,7 +27,9 @@ void kernel_init(SharedVariables *sharedVariables) {
 }
 
 void kernel_run() {
-    // Initialization (Queue)
+    /* Memory allocation and build SharedVairables */
+
+    // Initialization (Scheduler)
     TaskQueue task_queues[PRIORITY_MAX + 1];    // +1 because we want queues for  0~PRIORITY_MAX
     int highestOccupiedQueue = -1;
 
@@ -35,7 +37,9 @@ void kernel_run() {
     Task tasks[TASK_MAX_NUM];                   // pre-alloc spaces for all tasks
     int nextTaskId = 0;                         // keep track of next available task slot
 
-    register int loadOffset asm ("sl");         // Return value at ls
+    // Initialization (Global)
+    register int loadOffset asm ("sl");         // Get stack base from register (normally 0x00218000)
+
     SharedVariables sharedVariables;
     sharedVariables.task_queues = task_queues;
     sharedVariables.highestOccupiedQueue = &highestOccupiedQueue;
@@ -43,6 +47,8 @@ void kernel_run() {
     sharedVariables.nextTaskId = &nextTaskId;
     sharedVariables.loadOffset = loadOffset;
 
+
+    /* Start Kernel */
     kernel_init(&sharedVariables);
 
     int i;

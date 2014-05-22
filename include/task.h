@@ -1,5 +1,10 @@
 /*
  * task.h
+ *
+ * task_init
+ *		Initialize static variable for task class
+ * task_create
+ *		Get next available task pointer and initialize its fields
  */
 
 #ifndef __TASK_H__
@@ -24,12 +29,7 @@ typedef struct Task
     struct Task *nextTaskInQueue;	// next task in the same scheduler priority queue, 0 is NULL
 } Task;
 
-/*
- * task_init
- *		Initialize static variable for task class
- * task_create
- *		Get next available task pointer and initialize its fields
- */
+
 void task_init(SharedVariables* sharedVariables);
 Task* task_create(SharedVariables* sharedVariables, int parent_tid, int priority, void (*code));
 

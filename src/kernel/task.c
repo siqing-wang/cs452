@@ -10,8 +10,10 @@ void task_init(SharedVariables* sharedVariables) {
 }
 
 Task* task_create(SharedVariables* sharedVariables, int parent_tid, int priority, void (*code)) {
+    /* Get nextTaskId and task table from shared variables. */
     int nextTaskId = *(sharedVariables->nextTaskId);
     Task* tasks = sharedVariables->tasks;
+
     if (nextTaskId >= TASK_MAX_NUM) {
         /* Created too many tasks. */
         return (Task*)0;
@@ -20,17 +22,17 @@ Task* task_create(SharedVariables* sharedVariables, int parent_tid, int priority
         /* Invalid priority. */
         return (Task*)0;
     }
-    Task* task = (Task *)(tasks + nextTaskId);        // Get next avaiable task ptr.
+    Task* task = (Task *)(tasks + nextTaskId);  // Get next avaiable task ptr.
     task->tid = nextTaskId;
     task->parent_tid = parent_tid;
     task->priority = priority;
-    int *addr = (int *)(USER_STACK_LOW + (nextTaskId + 1) * STACK_SIZE);  // Next task's beginning in stack
-    task->sp = addr;
-    task->sp = task->sp - 13;                           // Move up 13 to store 13 registers
-    *(task->sp) = 1;                        // return value = 1
-    *(task->sp + 1 ) = USER_MODE;           // spsr = USER_MODE
-    *(task->sp + 2 ) = (int)(sharedVariables->loadOffset) + (int)code;           // pc = code
-    task->nextTaskInQueue = 0;              // no task after it in scheduler queue because its currently the last
-    *(sharedVariables->nextTaskId) = nextTaskId + 1;
+    int *addr = (int *)(USER_STACK_LOW + (nextTaskId + 1) * STACK_SIZE);    // Next task's beginning in stack
+    task->sp = addr;                            // sp need to be a ptr to an address
+    task->sp = task->sp - 13;                   // Move up 13 to store 13 registers
+    *(task->sp) = 1;                            // return value = 1
+    *(task->sp + 1 ) = USER_MODE;               // spsr = USER_MODE
+    *(task->sp + 2 ) = (int)(sharedVariables->loadOffset) + (int)code;      // pc = code
+    task->nextTaskInQueue = 0;                  // no task after it in scheduler queue because its currently the last
+    *(sharedVariables->nextTaskId) = nextTaskId + 1;                        // update nextTaskId in shared variables
     return task;
 }

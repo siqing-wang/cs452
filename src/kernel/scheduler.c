@@ -11,7 +11,7 @@ void scheduler_init(SharedVariables* sharedVariables) {
     for ( ; i <= PRIORITY_MAX; i++) {
         queue_init(task_queues + i);
     }
-    *(sharedVariables->highestOccupiedQueue) = -1;              // indicates all priority queues empty
+    *(sharedVariables->highestOccupiedQueue) = -1;                      // indicates all priority queues empty
 }
 
 void scheduler_add(SharedVariables* sharedVariables, Task* task) {
@@ -23,11 +23,11 @@ void scheduler_add(SharedVariables* sharedVariables, Task* task) {
 }
 
 Task* scheduler_getNextTask(SharedVariables* sharedVariables) {
-    if (*(sharedVariables->highestOccupiedQueue) == -1) {       // all priority queues are empty
+    if (*(sharedVariables->highestOccupiedQueue) == -1) {               // all priority queues are empty
         return (Task*) 0;
     }
     TaskQueue* task_queues = sharedVariables->task_queues;
-    int highestOccupied = *(sharedVariables->highestOccupiedQueue);
+    int highestOccupied = *(sharedVariables->highestOccupiedQueue);     // to avoid repetitive read of memory
     Task *task = queue_pop((task_queues + highestOccupied));
     /*
      * Update highestOccupied priority. Loop breaks when found a occupied queue,
@@ -38,6 +38,6 @@ Task* scheduler_getNextTask(SharedVariables* sharedVariables) {
             break;
         }
     }
-    *(sharedVariables->highestOccupiedQueue) = highestOccupied;
+    *(sharedVariables->highestOccupiedQueue) = highestOccupied;         // update highestOccupiedQueue in shared variables
     return task;
 }
