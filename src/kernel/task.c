@@ -24,7 +24,8 @@ Task* task_create(SharedVariables* sharedVariables, int parent_tid, int priority
     task->tid = nextTaskId;
     task->parent_tid = parent_tid;
     task->priority = priority;
-    task->sp = sharedVariables->stack + (nextTaskId + 1) * STACK_SIZE;   // Next task's beginning in stack
+    int *addr = (int *)(USER_STACK_LOW + (nextTaskId + 1) * STACK_SIZE);  // Next task's beginning in stack
+    task->sp = addr;
     task->sp = task->sp - 13;                           // Move up 13 to store 13 registers
     *(task->sp) = 1;                        // return value = 1
     *(task->sp + 1 ) = USER_MODE;           // spsr = USER_MODE

@@ -8,7 +8,9 @@
 #include <shared_variable.h>
 
 #define TASK_MAX_NUM 128
-#define STACK_SIZE 2048
+#define USER_STACK_LOW 0x300000
+#define USER_STACK_HIGH 0x1300000
+#define STACK_SIZE ((USER_STACK_HIGH - USER_STACK_LOW) / TASK_MAX_NUM)
 #define USER_MODE 0x50
 
 typedef struct Task

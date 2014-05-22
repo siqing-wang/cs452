@@ -13,7 +13,6 @@ typedef struct SharedVariables
 	struct TaskQueue* task_queues;
     int* highestOccupiedQueue;
     struct Task* tasks;
-    int* stack;
     int* nextTaskId;
     int loadOffset;
 } SharedVariables;

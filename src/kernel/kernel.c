@@ -21,7 +21,7 @@ void kernel_init(SharedVariables *sharedVariables) {
     scheduler_init(sharedVariables);
 
     /* Create and add first task. */
-    // Task *firstTask = task_create(-1, PRIORITY_MED, &firstTestTask);    // For test only
+    // Task *firstTask = task_create(sharedVariables, -1, PRIORITY_MED, &firstTestTask);    // For test only
     Task *firstTask = task_create(sharedVariables, -1, PRIORITY_MED, &firstUserTask);
     scheduler_add(sharedVariables, firstTask);
 }
@@ -33,7 +33,6 @@ void kernel_run() {
 
     // Initialization (Task)
     Task tasks[TASK_MAX_NUM];                   // pre-alloc spaces for all tasks
-    int stack[STACK_SIZE * TASK_MAX_NUM];       // pre-alloc spaces for all tasks' stacks
     int nextTaskId = 0;                         // keep track of next available task slot
 
     register int loadOffset asm ("sl");         // Return value at ls
@@ -41,7 +40,6 @@ void kernel_run() {
     sharedVariables.task_queues = task_queues;
     sharedVariables.highestOccupiedQueue = &highestOccupiedQueue;
     sharedVariables.tasks = tasks;
-    sharedVariables.stack = stack;
     sharedVariables.nextTaskId = &nextTaskId;
     sharedVariables.loadOffset = loadOffset;
 
