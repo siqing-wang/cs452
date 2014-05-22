@@ -15,6 +15,7 @@ typedef struct SharedVariables
     struct Task* tasks;
     int* stack;
     int* nextTaskId;
+    int loadOffset;
 } SharedVariables;
 
 #endif

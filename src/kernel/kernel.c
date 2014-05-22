@@ -14,7 +14,7 @@
 void kernel_init(SharedVariables *sharedVariables) {
     /* Store kerent function's address in swi jump table. */
     int * addr = (int *) 0x28;
-    *addr = (int) &kerent;
+    *addr = (int)(sharedVariables->loadOffset) + (int)&kerent;
 
     /* Initialize kernel components. */
     task_init(sharedVariables);
@@ -36,13 +36,14 @@ void kernel_run() {
     int stack[STACK_SIZE * TASK_MAX_NUM];       // pre-alloc spaces for all tasks' stacks
     int nextTaskId = 0;                         // keep track of next available task slot
 
-
+    register int loadOffset asm ("sl");         // Return value at ls
     SharedVariables sharedVariables;
     sharedVariables.task_queues = task_queues;
     sharedVariables.highestOccupiedQueue = &highestOccupiedQueue;
     sharedVariables.tasks = tasks;
     sharedVariables.stack = stack;
     sharedVariables.nextTaskId = &nextTaskId;
+    sharedVariables.loadOffset = loadOffset;
 
     kernel_init(&sharedVariables);
 

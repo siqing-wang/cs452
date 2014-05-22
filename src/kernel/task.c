@@ -28,7 +28,7 @@ Task* task_create(SharedVariables* sharedVariables, int parent_tid, int priority
     task->sp = task->sp - 13;                           // Move up 13 to store 13 registers
     *(task->sp) = 1;                        // return value = 1
     *(task->sp + 1 ) = USER_MODE;           // spsr = USER_MODE
-    *(task->sp + 2 ) = (int)code;           // pc = code
+    *(task->sp + 2 ) = (int)(sharedVariables->loadOffset) + (int)code;           // pc = code
     task->nextTaskInQueue = 0;              // no task after it in scheduler queue because its currently the last
     *(sharedVariables->nextTaskId) = nextTaskId + 1;
     return task;
