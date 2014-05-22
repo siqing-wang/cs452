@@ -33,6 +33,7 @@ $(MAIN).o: $(MAIN).s
 
 $(MAIN).elf: $(MAIN).o $(OBJECTS)
 	$(LD) $(LDFLAGS) -o $@ main.o $(OBJECTS) -lgcc
+	chmod 777 $(MAIN).elf
 	cp $(MAIN).elf /u/cs452/tftp/ARM/wsqzym/$(MAIN).elf
 
 src/%.o: src/%.s
