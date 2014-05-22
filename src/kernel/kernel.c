@@ -11,19 +11,19 @@
 #include <syscall.h>
 #include <bwio.h>
 
-void kernel_init(TaskQueue* task_queues, int* highestOccupiedQueue, Task* tasks, int* stack, int* nextTaskId) {
+void kernel_init(SharedVariables *sharedVariables) {
     /* Store kerent function's address in swi jump table. */
     int * addr = (int *) 0x28;
     *addr = (int) &kerent;
 
     /* Initialize kernel components. */
-    task_init(tasks, stack, nextTaskId);
-    scheduler_init(task_queues, highestOccupiedQueue);
+    task_init(sharedVariables);
+    scheduler_init(sharedVariables);
 
     /* Create and add first task. */
     // Task *firstTask = task_create(-1, PRIORITY_MED, &firstTestTask);    // For test only
-    Task *firstTask = task_create(-1, PRIORITY_MED, &firstUserTask);
-    scheduler_add(firstTask);
+    Task *firstTask = task_create(sharedVariables, -1, PRIORITY_MED, &firstUserTask);
+    scheduler_add(sharedVariables, firstTask);
 }
 
 void kernel_run() {
@@ -36,11 +36,19 @@ void kernel_run() {
     int stack[STACK_SIZE * TASK_MAX_NUM];       // pre-alloc spaces for all tasks' stacks
     int nextTaskId = 0;                         // keep track of next available task slot
 
-    kernel_init(task_queues, &highestOccupiedQueue, tasks, stack, &nextTaskId);
+
+    SharedVariables sharedVariables;
+    sharedVariables.task_queues = task_queues;
+    sharedVariables.highestOccupiedQueue = &highestOccupiedQueue;
+    sharedVariables.tasks = tasks;
+    sharedVariables.stack = stack;
+    sharedVariables.nextTaskId = &nextTaskId;
+
+    kernel_init(&sharedVariables);
 
     int i;
     for( ;; i++) {
-        Task *active = scheduler_getNextTask();
+        Task *active = scheduler_getNextTask(&sharedVariables);
         if (active == 0) {
             /* No available tasks from scheduler. */
             return;
@@ -48,7 +56,7 @@ void kernel_run() {
         Request *request;
         /* Run user task and get user request in userspace. */
         activate(active, &request);
-        request_handle(active, request);
+        request_handle(&sharedVariables, active, request);
     }
 }
 

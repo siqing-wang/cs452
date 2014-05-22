@@ -5,8 +5,10 @@
 #ifndef __TASK_H__
 #define __TASK_H__
 
+#include <shared_variable.h>
+
 #define TASK_MAX_NUM 128
-#define STACK_SIZE 2048
+#define STACK_SIZE 30
 #define USER_MODE 0x50
 
 typedef struct Task
@@ -26,7 +28,7 @@ typedef struct Task
  * task_create
  *		Get next available task pointer and initialize its fields
  */
-void task_init(Task* t, int* s, int* n);
-Task* task_create(int parent_tid, int priority, void (*code));
+void task_init(SharedVariables* sharedVariables);
+Task* task_create(SharedVariables* sharedVariables, int parent_tid, int priority, void (*code));
 
 #endif

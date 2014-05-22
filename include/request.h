@@ -11,6 +11,7 @@
 #define __REQUEST_H__
 
 #include <task.h>
+#include <shared_variable.h>
 
 #define SYS_CREATE 0
 #define SYS_MYTID 1
@@ -28,7 +29,7 @@ typedef struct Request
 	void *code;
 } Request;
 
-void request_handle(Task* active, Request *request);
+void request_handle(SharedVariables* sharedVariables, Task* active, Request *request);
 void storeRetValue(Task* task, int retVal);
 
 #endif

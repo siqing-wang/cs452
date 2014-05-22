@@ -5,17 +5,17 @@
 #include <request.h>
 #include <scheduler.h>
 
-void request_handle(Task* active, Request *request) {
+void request_handle(SharedVariables* sharedVariables, Task* active, Request *request) {
     switch(request->syscall) {
         Task *task;
         case SYS_CREATE:
-            task = task_create(active->tid, request->priority, request->code);
+            task = task_create(sharedVariables, active->tid, request->priority, request->code);
             if (task == 0) {
                 /* Task creation failed. */
                 storeRetValue(active, ERR_CREATE_TASK_FAIL);
             }
             else {
-                scheduler_add(task);              // Add the created task to scheduler
+                scheduler_add(sharedVariables, task);       // Add the created task to scheduler
                 storeRetValue(active, task->tid);
             }
             break;
@@ -37,7 +37,7 @@ void request_handle(Task* active, Request *request) {
             break;
     }
     /* Add current task back to scheduler. */
-    scheduler_add(active);
+    scheduler_add(sharedVariables, active);
 }
 
 void storeRetValue(Task* task, int retVal) {

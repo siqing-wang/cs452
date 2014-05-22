@@ -16,8 +16,9 @@
 #include <task.h>
 #include <task_queue.h>
 #include <request.h>
+#include <shared_variable.h>
 
-void kernel_init(TaskQueue* task_queues, int* highestOccupiedQueue, Task* tasks, int* stack, int* nextTaskId);
+void kernel_init(SharedVariables* sharedVariables);
 void kernel_run();
 void activate(Task *active, Request **request);
 
