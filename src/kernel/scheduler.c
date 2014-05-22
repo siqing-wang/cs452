@@ -5,37 +5,41 @@
 #include <scheduler.h>
 #include <task_queue.h>
 
-TaskQueue task_queues[PRIORITY_MAX + 1] = {};   // +1 because we want queues for  0~PRIORITY_MAX
-int highestOccupied = -1;
+static TaskQueue* task_queues = 0;
+static int* highestOccupied = 0;
 
-void scheduler_init() {
+void scheduler_init(TaskQueue* t_queues, int* highestOccupiedQueue) {
+	task_queues = t_queues;
+	highestOccupied = highestOccupiedQueue;
     int i = 0;
     for ( ; i <= PRIORITY_MAX; i++) {
         queue_init(task_queues + i);
     }
-    highestOccupied = -1;                   // indicates all priority queues empty
+    *highestOccupied = -1;               	// indicates all priority queues empty
 }
 
 void scheduler_add(Task* task) {
     queue_push((task_queues + task->priority), task);
-    if (task->priority > highestOccupied) {
-        highestOccupied = task->priority;
+    if (task->priority > *highestOccupied) {
+        *highestOccupied = task->priority;
     }
 }
 
 Task* scheduler_getNextTask() {
-    if (highestOccupied == -1) {            // all priority queues are empty
+    if (*highestOccupied == -1) {         	// all priority queues are empty
         return (Task*) 0;
     }
-    Task *task = queue_pop((task_queues + highestOccupied));
+    int highestOccupiedQueue = *highestOccupied;
+    Task *task = queue_pop((task_queues + highestOccupiedQueue));
     /*
      * Update highestOccupied priority. Loop breaks when found a occupied queue,
      * or highestOccupied == -1 when for loop exits
      */
-    for( ; highestOccupied>=0; highestOccupied--) {
-        if (!queue_empty((task_queues+highestOccupied))){
+    for( ; highestOccupiedQueue>=0; highestOccupiedQueue--) {
+        if (!queue_empty((task_queues+highestOccupiedQueue))){
             break;
         }
     }
+    *highestOccupied = highestOccupiedQueue;
     return task;
 }

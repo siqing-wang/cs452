@@ -13,10 +13,11 @@
 #ifndef __KERNEL_H__
 #define __KERNEL_H__
 
-#include "task.h"
-#include "request.h"
+#include <task.h>
+#include <task_queue.h>
+#include <request.h>
 
-void kernel_init();
+void kernel_init(TaskQueue* task_queues, int* highestOccupiedQueue, Task* tasks, int* stack, int* nextTaskId);
 void kernel_run();
 void activate(Task *active, Request **request);
 

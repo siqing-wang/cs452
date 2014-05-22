@@ -26,7 +26,7 @@ typedef struct Task
  * task_create
  *		Get next available task pointer and initialize its fields
  */
-void task_init();
+void task_init(Task* t, int* s, int* n);
 Task* task_create(int parent_tid, int priority, void (*code));
 
 #endif
