@@ -72,11 +72,11 @@ kerxit:
 	# change to svc state;
 	msr cpsr_c, #0xd3
 
-	# install the spsr of the active task to cpsr
-	msr cpsr, r1
+	# install the spsr of the active task
+	msr spsr, r1
 
-	# install the pc of the active task.
-	mov pc, r2
+	# *!NOTE: install the pc of the active task (it will also copy spsr to cpsr atomically).
+	movs pc, r2
 
 	.size	kerxit, .-kerxit
 	.ident	"GCC: (GNU) 4.0.2"
