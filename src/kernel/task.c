@@ -4,35 +4,53 @@
 
 #include <task.h>
 #include <scheduler.h>
+#include <task_queue.h>
 
 void task_init(SharedVariables* sharedVariables) {
-    *(sharedVariables->nextTaskId) = 0;
+    Task *tasks = sharedVariables->tasks;
+    TaskQueue *free_list = sharedVariables->free_list;
+    queue_init(free_list);
+
+    int i = 0;
+    for (; i < TASK_MAX_NUM; i++) {
+        (tasks + i)->tid = i;                       // assign initial tid = posn in array
+        int *addr = (int *)(USER_STACK_LOW + (i + 1) * STACK_SIZE);     // One posn below beginning of task stack
+                                                                        // because it is full stack (i.e. point to next full spot)
+        (tasks + i)->sp = addr;                            // sp need to be a ptr to an address
+        queue_push(free_list, tasks + i);
+    }
 }
 
 Task* task_create(SharedVariables* sharedVariables, int parent_tid, int priority, void (*code)) {
-    /* Get nextTaskId and task table from shared variables. */
-    int nextTaskId = *(sharedVariables->nextTaskId);
-    Task* tasks = sharedVariables->tasks;
 
-    if (nextTaskId >= TASK_MAX_NUM) {
-        /* Created too many tasks. */
-        return (Task*)0;
-    }
+    /* Get free_list from shared variables. */
+    TaskQueue* free_list = sharedVariables->free_list;
+
     if ((priority > PRIORITY_MAX) || (priority < PRIORITY_MIN)) {
         /* Invalid priority. */
         return (Task*)0;
     }
-    Task* task = (Task *)(tasks + nextTaskId);  // Get next avaiable task ptr.
-    task->tid = nextTaskId;
+
+    if (queue_empty(free_list)) {
+        /* Currently no free task descriptor. */
+        return (Task*)0;
+    }
+
+
+    Task* task = queue_pop(free_list);          // Get next avaiable task ptr.
+
     task->parent_tid = parent_tid;
     task->priority = priority;
-    int *addr = (int *)(USER_STACK_LOW + (nextTaskId + 1) * STACK_SIZE);    // Next task's beginning in stack
-    task->sp = addr;                            // sp need to be a ptr to an address
     task->sp = task->sp - 13;                   // Move up 13 to store 13 registers
     *(task->sp) = 1;                            // return value = 1
     *(task->sp + 1 ) = USER_MODE;               // spsr = USER_MODE
     *(task->sp + 2 ) = (int)(sharedVariables->loadOffset) + (int)code;      // pc = code
-    task->nextTaskInQueue = 0;                  // no task after it in scheduler queue because its currently the last
-    *(sharedVariables->nextTaskId) = nextTaskId + 1;                        // update nextTaskId in shared variables
+    task->next = 0;                  // no task after it in scheduler queue because its currently the last
+
     return task;
+}
+
+void task_exit(SharedVariables* sharedVariables, Task* task) {
+    task->tid += TASK_MAX_NUM;                      // Update tid to avoid collision
+    queue_push(sharedVariables->free_list, task);   // Put task back to free_list
 }

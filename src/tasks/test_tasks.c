@@ -86,7 +86,7 @@ void testTask3() {
     Exit();
 }
 
-// A lot of tasks
+// A lot of tiny tasks
 void testTask4() {
     int i;
     int tid;
@@ -108,6 +108,17 @@ void testTask5() {
     bwprintf(COM2, "Task5 Created: %d.\n", tid);
     tid = Create(16, &tinyTask);
     bwprintf(COM2, "Task5 Created: %d.\n", tid);
+    Exit();
+}
+
+// A lot of tasks
+void testTask6() {
+    int i;
+    int tid;
+    for (i=0; i< 60; i++) {
+        tid = Create(8, &verySmallTask);
+        bwprintf(COM2, "Task6 Created: %d.\n", tid);
+    }
     Exit();
 }
 
@@ -145,6 +156,11 @@ void firstTestTask() {
     bwprintf(COM2, "-----Test5 Start-----\n", tid);
     tid = Create(9, &testTask5);
     bwprintf(COM2, "-----Test5 End-----\n", tid);
+
+    // Test 6
+    bwprintf(COM2, "-----Test6 Start-----\n", tid);
+    tid = Create(9, &testTask6);
+    bwprintf(COM2, "-----Test6 End-----\n", tid);
 
     // End
     bwprintf(COM2,"All Tests Finished...\n\r");

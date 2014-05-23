@@ -35,7 +35,7 @@ void kernel_run() {
 
     // Initialization (Task)
     Task tasks[TASK_MAX_NUM];                   // pre-alloc spaces for all tasks
-    int nextTaskId = 0;                         // keep track of next available task slot
+    TaskQueue free_list;
 
     // Initialization (Global)
     register int loadOffset asm ("sl");         // Get stack base from register (normally 0x00218000)
@@ -44,7 +44,7 @@ void kernel_run() {
     sharedVariables.task_queues = task_queues;
     sharedVariables.highestOccupiedQueue = &highestOccupiedQueue;
     sharedVariables.tasks = tasks;
-    sharedVariables.nextTaskId = &nextTaskId;
+    sharedVariables.free_list = &free_list;
     sharedVariables.loadOffset = loadOffset;
 
 

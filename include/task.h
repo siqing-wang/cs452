@@ -5,6 +5,8 @@
  *		Initialize static variable for task class
  * task_create
  *		Get next available task pointer and initialize its fields
+ * task_exit
+ *		Task has exited so recycle task descriptor for next use
  */
 
 #ifndef __TASK_H__
@@ -26,11 +28,12 @@ typedef struct Task
     int parent_tid;	// parent task id
     int priority;	// priority from 0 to PRIORITY_MAX
 
-    struct Task *nextTaskInQueue;	// next task in the same scheduler priority queue, 0 is NULL
+    struct Task *next;	// next task in the same scheduler priority queue or free list, 0 is NULL
 } Task;
 
 
 void task_init(SharedVariables* sharedVariables);
 Task* task_create(SharedVariables* sharedVariables, int parent_tid, int priority, void (*code));
+void task_exit(SharedVariables* sharedVariables, Task* task);
 
 #endif

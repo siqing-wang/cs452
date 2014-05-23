@@ -29,6 +29,7 @@ void request_handle(SharedVariables* sharedVariables, Task* active, Request *req
             storeRetValue(active, 0);
             break;
         case SYS_EXIT:
+            task_exit(sharedVariables, active);
             storeRetValue(active, 0);
             return;
         default:

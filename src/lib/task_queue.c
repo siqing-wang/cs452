@@ -13,12 +13,12 @@ void queue_init(TaskQueue *q) {
 void queue_push(TaskQueue *q, Task *t) {
 	q->size++;
 	if (q->end != 0) {
-		q->end->nextTaskInQueue = t;
+		q->end->next = t;
 	} else {
 		/* This is the first task in queue. */
 		q->start = t;
 	}
-	t->nextTaskInQueue = 0;
+	t->next = 0;
 	q->end = t;
 }
 
@@ -28,7 +28,7 @@ Task *queue_pop(TaskQueue *q) {
 	}
 	Task *firstTask = q->start;
 	q->size--;
-	q->start = firstTask->nextTaskInQueue;
+	q->start = firstTask->next;
 	if (queue_empty(q)) {
 		/* Poped last item in queue. */
 		q->end = 0;
