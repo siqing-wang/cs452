@@ -21,9 +21,9 @@ ASMSOURCES = $(wildcard src/lib/*.asm) $(wildcard src/kernel/*.asm)
 ASMFILES = $(CSOURCES:.c=.s)
 OBJECTS = $(CSOURCES:.c=.o) $(ASMSOURCES:.asm=.o)
 MAIN = main
+EXEC = kernel2
 
-
-all: clean $(ASMFILES) $(OBJECTS) $(MAIN).elf
+all: clean $(ASMFILES) $(OBJECTS) $(EXEC).elf
 
 $(MAIN).s: $(MAIN).c
 	$(XCC) -S $(CFLAGS) $(MAIN).c
@@ -31,10 +31,10 @@ $(MAIN).s: $(MAIN).c
 $(MAIN).o: $(MAIN).s
 	$(AS) $(ASFLAGS) -o $(MAIN).o $(MAIN).s
 
-$(MAIN).elf: $(MAIN).o $(OBJECTS)
+$(EXEC).elf: $(MAIN).o $(OBJECTS)
 	$(LD) $(LDFLAGS) -o $@ main.o $(OBJECTS) -lgcc
-	chmod 777 $(MAIN).elf
-	cp $(MAIN).elf /u/cs452/tftp/ARM/wsqzym/$(MAIN).elf
+	chmod 777 $(EXEC).elf
+	cp $(EXEC).elf /u/cs452/tftp/ARM/wsqzym/$(EXEC).elf
 
 src/%.o: src/%.s
 	$(AS) $(ASFLAGS) -o $@ $<
