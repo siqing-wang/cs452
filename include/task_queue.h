@@ -1,34 +1,32 @@
 /*
- *	queue.h
- *  	Implements a ring queue with fixed size.
+ *  task_queue.h
+ *      Implements a ring queue for tasks with fixed size.
  *
- *	queue_init
- *		Initialize a task queue
- *	queue_push
- *		Push to the back of the queue
- *	queue_pop
- *		Pop the first element of the queue
- *	queue_empty
- *		Return if queue is empty
+ *  taskQueue_init
+ *      Initialize a task queue
+ *  taskQueue_push
+ *      Push to the back of the queue
+ *  taskQueue_pop
+ *      Pop the first element of the queue
+ *  taskQueue_empty
+ *      Return if queue is empty
  */
 
-#ifndef __QUEUE_H__
-#define __QUEUE_H__
+#ifndef __TASK_QUEUE_H__
+#define __TASK_QUEUE_H__
 
 #include <task.h>
 
-#define QUEUE_MAX_SIZE 128
-
 typedef struct TaskQueue {
-	Task *start;
-	Task *end;
-	int size;
+    Task *start;
+    Task *end;
+    int size;
 } TaskQueue;
 
 
-void queue_init(TaskQueue *q);
-void queue_push(TaskQueue *q, Task *t);
-Task *queue_pop(TaskQueue *q);
-int queue_empty(TaskQueue *q);
+void taskQueue_init(TaskQueue *q);
+void taskQueue_push(TaskQueue *q, Task *t);
+Task *taskQueue_pop(TaskQueue *q);
+int taskQueue_empty(TaskQueue *q);
 
 #endif

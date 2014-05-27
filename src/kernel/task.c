@@ -9,7 +9,7 @@
 void task_init(SharedVariables* sharedVariables) {
     Task *tasks = sharedVariables->tasks;
     TaskQueue *free_list = sharedVariables->free_list;
-    queue_init(free_list);
+    taskQueue_init(free_list);
 
     int i = 0;
     for (; i < TASK_MAX_NUM; i++) {
@@ -17,7 +17,7 @@ void task_init(SharedVariables* sharedVariables) {
         int *addr = (int *)(USER_STACK_LOW + (i + 1) * STACK_SIZE);     // One posn below beginning of task stack
                                                                         // because it is full stack (i.e. point to next full spot)
         (tasks + i)->sp = addr;                            // sp need to be a ptr to an address
-        queue_push(free_list, tasks + i);
+        taskQueue_push(free_list, tasks + i);
     }
 }
 
@@ -31,13 +31,13 @@ Task* task_create(SharedVariables* sharedVariables, int parent_tid, int priority
         return (Task*)0;
     }
 
-    if (queue_empty(free_list)) {
+    if (taskQueue_empty(free_list)) {
         /* Currently no free task descriptor. */
         return (Task*)0;
     }
 
 
-    Task* task = queue_pop(free_list);          // Get next avaiable task ptr.
+    Task* task = taskQueue_pop(free_list);          // Get next avaiable task ptr.
 
     task->parent_tid = parent_tid;
     task->priority = priority;
@@ -52,5 +52,5 @@ Task* task_create(SharedVariables* sharedVariables, int parent_tid, int priority
 
 void task_exit(SharedVariables* sharedVariables, Task* task) {
     task->tid += TASK_MAX_NUM;                      // Update tid to avoid collision
-    queue_push(sharedVariables->free_list, task);   // Put task back to free_list
+    taskQueue_push(sharedVariables->free_list, task);   // Put task back to free_list
 }
