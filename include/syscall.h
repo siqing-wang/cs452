@@ -16,15 +16,31 @@
 #ifndef __SYSCALL_H__
 #define __SYSCALL_H__
 
+#include <request.h>
+
 #define PRIORITY_LOW 3
 #define PRIORITY_MED 7
 #define PRIORITY_HIGH 11
 
+#define NAMESERVER_TID 1
 
+// Task Creation
 int Create(int priority, void (*code)());
 int MyTid();
 int MyParentTid();
 void Pass();
 void Exit();
+
+// Inter-task Communication
+int Send(int Tid, void *msg, int msglen, void *reply, int replylen);
+int Receive(int *tid, void *msg, int msglen);
+int Reply(int tid, void *reply, int replylen);
+
+// Name Server
+int RegisterAs(char *name);
+int WhoIs(char *name);
+
+// Helper function
+int sendRequest(Request* request);
 
 #endif
