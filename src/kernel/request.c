@@ -8,6 +8,7 @@
 void request_handle(SharedVariables* sharedVariables, Task* active, Request *request) {
     switch(request->syscall) {
         Task *task;
+        int result;
         case SYS_CREATE:
             task = task_create(sharedVariables, active->tid, request->priority, request->code);
             if (task == 0) {
@@ -32,6 +33,13 @@ void request_handle(SharedVariables* sharedVariables, Task* active, Request *req
             task_exit(sharedVariables, active);
             storeRetValue(active, 0);
             return;
+        case SYS_SEND:
+            request->message->srcTid = active->tid;
+            result = sendMessage(sharedVariables, request->message);
+            storeRetValue(active, result);
+        case SYS_WAITREPLY:
+            result = readMessage(sharedVariables, request->message);
+            storeRetValue(active, result);
         default:
             /* Unrecognized syscall. */
             storeRetValue(active, ERR_UNKNOWN_SYSCALL);
@@ -45,4 +53,12 @@ void storeRetValue(Task* task, int retVal) {
     /* Push value on to task's stack, and update stack pointer in task's structure. */
     task->sp = task->sp - 1;
     *(task->sp) = retVal;
+}
+
+int sendMessage(SharedVariables* sharedVariables, Message *message) {
+    return 0;
+}
+
+int readMessage(SharedVariables* sharedVariables, Message *message) {
+    return NO_RECEIVED_MSG;
 }

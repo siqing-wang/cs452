@@ -12,6 +12,7 @@
 
 #include <task.h>
 #include <shared_variable.h>
+#include <message.h>
 
 #define SYS_CREATE 0
 #define SYS_MYTID 1
@@ -19,13 +20,12 @@
 #define SYS_PASS 3
 #define SYS_EXIT 4
 #define SYS_SEND 5
-#define SYS_RECV 6
-#define SYS_REPLY 7
-#define SYS_REGAS 8
-#define SYS_WHOIS 9
+#define SYS_WAITREPLY 6
 
 #define ERR_UNKNOWN_SYSCALL -1
 #define ERR_CREATE_TASK_FAIL -2
+
+#define ERR_INVALID_REPLY -4
 
 #define ERR_INVALID_TID -1
 #define ERR_NOEXIST_TID -2
@@ -34,17 +34,27 @@
 #define ERR_INSUFFICIENT_SPACE -4
 #define ERR_NOT_NAMESERVER -2
 
+#define NO_RECEIVED_MSG 0
+#define HAS_RECEIVED_MSG 1
+
 #define SUCC_REPLY 0
 #define SUCC_REGAS 0
 
 typedef struct Request
 {
-	int syscall;
-	int priority;
-	void *code;
+    int syscall;
+
+    // Task Creation
+    int priority;
+    void *code;
+
+    // Inter-task Communication
+    Message *message;
 } Request;
 
 void request_handle(SharedVariables* sharedVariables, Task* active, Request *request);
 void storeRetValue(Task* task, int retVal);
+int sendMessage(SharedVariables* sharedVariables, Message *message);
+int readMessage(SharedVariables* sharedVariables, Message *message);
 
 #endif

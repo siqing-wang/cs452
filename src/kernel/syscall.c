@@ -4,6 +4,8 @@
 
 #include <syscall.h>
 #include <request.h>
+#include <message.h>
+#include <utils.h>
 
 // Task Creation
 int Create(int priority, void (*code)()) {
@@ -39,35 +41,170 @@ void Exit() {
 }
 
 // Inter-task Communication
-int Send(int Tid, void *msg, int msglen, void *reply, int replylen) {
+int Send(int tid, void *msg, int msglen, void *reply, int replylen) {
+    Message message;
+    message.destTid = tid;
+    message.type = MSG_MSGONLY;
+    message.msglen = msglen;
+    memcopy(message.msg, msg, msglen);
+
     Request request;
     request.syscall = SYS_SEND;
-    return sendRequest(&request);
+    request.message = &message;
+    int result = sendRequest(&request);
+    if (result < 0) {
+        // Syscall failed
+        return result;
+    }
+
+    int received = NO_RECEIVED_MSG;
+    for(;;) {
+        Request request;
+        request.syscall = SYS_WAITREPLY;
+        request.message = &message;
+        received = sendRequest(&request);
+        if (received == HAS_RECEIVED_MSG) {
+            // Received reply
+            break;
+        }
+    }
+
+    if (message.msglen != replylen) {
+        return ERR_INVALID_REPLY;
+    }
+    if (message.type != MSG_MSGANDSTAT) {
+        return ERR_INVALID_REPLY;
+    }
+
+    memcopy(reply, message.msg, msglen);
+    return message.stat;
 }
 
 int Receive(int *tid, void *msg, int msglen) {
-    Request request;
-    request.syscall = SYS_RECV;
-    return sendRequest(&request);
+    Message message;
+    int received = NO_RECEIVED_MSG;
+    for(;;) {
+        Request request;
+        request.syscall = SYS_WAITREPLY;
+        request.message = &message;
+        received = sendRequest(&request);
+        if (received == HAS_RECEIVED_MSG) {
+            // Received reply
+            break;
+        }
+    }
+
+    if (message.type != MSG_MSGONLY) {
+        return ERR_INVALID_REPLY;
+    }
+
+    memcopy(msg, message.msg, msglen);
+    *tid = message.srcTid;
+    return message.msglen;
 }
 
 int Reply(int tid, void *reply, int replylen) {
+    Message message;
+    message.destTid = tid;
+    message.type = MSG_MSGONLY;
+    message.msglen = replylen;
+    memcopy(message.msg, reply, replylen);
+
     Request request;
-    request.syscall = SYS_REPLY;
-    return sendRequest(&request);
+    request.syscall = SYS_SEND;
+    request.message = &message;
+    int result = sendRequest(&request);
+    if (result < 0) {
+        // Syscall failed
+        return result;
+    }
+
+    int received = NO_RECEIVED_MSG;
+    for(;;) {
+        Request request;
+        request.syscall = SYS_WAITREPLY;
+        request.message = &message;
+        received = sendRequest(&request);
+        if (received == HAS_RECEIVED_MSG) {
+            // Received reply
+            break;
+        }
+    }
+
+    if (message.type != MSG_ERRNO) {
+        return ERR_INVALID_REPLY;
+    }
+
+    int *byteSent = message.msg;
+    return *byteSent;
 }
 
 // Name Server
 int RegisterAs(char *name) {
+    int msglen = 0;
+    while (*(name+msglen) != '\0') {
+        msglen++;
+    }
+
+    Message message;
+    message.destTid = NAMESERVER_TID;
+    message.type = MSG_REGAS;
+    message.msglen = msglen;
+    memcopy(message.msg, name, msglen);
+
     Request request;
-    request.syscall = SYS_REGAS;
-    return sendRequest(&request);
+    request.syscall = SYS_SEND;
+    request.message = &message;
+
+    int result = sendRequest(&request);
+    if (result < 0) {
+        // Syscall failed
+        return result;
+    }
+
+    return SUCC_REGAS;
 }
 
 int WhoIs(char *name) {
+    int msglen = 0;
+    while (*(name+msglen) != '\0') {
+        msglen++;
+    }
+
+    Message message;
+    message.destTid = NAMESERVER_TID;
+    message.type = MSG_WHOIS;
+    message.msglen = msglen;
+    memcopy(message.msg, name, msglen);
+
     Request request;
-    request.syscall = SYS_WHOIS;
-    return sendRequest(&request);
+    request.syscall = SYS_SEND;
+    request.message = &message;
+
+    int result = sendRequest(&request);
+    if (result < 0) {
+        // Syscall failed
+        return result;
+    }
+
+    int received = NO_RECEIVED_MSG;
+    for(;;) {
+        Request request;
+        request.syscall = SYS_WAITREPLY;
+        request.message = &message;
+        received = sendRequest(&request);
+        if (received == HAS_RECEIVED_MSG) {
+            // Received reply
+            break;
+        }
+    }
+
+    if (message.type != MSG_TID) {
+        return ERR_INVALID_REPLY;
+    }
+
+    int *tid = message.msg;
+    return *tid;
 }
 
 int sendRequest(Request* request) {
