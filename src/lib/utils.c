@@ -29,6 +29,12 @@ void debug(char *msg) {
     }
 }
 
+void warning(char *msg) {
+    bwputstr(COM2, "WARNING: ");
+    bwputstr(COM2, msg);
+    bwputstr(COM2, "\n\r");
+}
+
 void memcopy(char *dest, const char *src, int size) {
     int i = 0;
     for (; i < size ; i++) {

@@ -17,6 +17,7 @@
 void assert(int cond, char* msg);
 void assertEquals(int expected, int actual, char* msg);
 void debug(char *msg);
+void warning(char *msg);
 
 void memcopy(char *dest, const char *src, int size);
 
