@@ -31,6 +31,7 @@ typedef struct Task
 
     struct Task *next;  // next task in the same scheduler priority queue or free list, 0 is NULL
 
+    /* Message for communication. */
     struct SendQueue *send_queue;   // keep track of tasks that want to send message to this task
     Message* message;               // Store this task's own message
     struct Task *nextMessageTask;   // next task contains message which has the same dest as this task

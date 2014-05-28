@@ -23,7 +23,6 @@ void task_init(SharedVariables* sharedVariables) {
         (tasks + i)->send_queue = (SendQueue*)(send_queues + i);
         sendQueue_init((tasks + i)->send_queue);            // Initialize sendQueue
         (tasks + i)->message = 0;
-        (tasks + i)->nextMessageTask = 0;                   // no task contains message in messageQueue
 
         taskQueue_push(free_list, tasks + i);
     }
@@ -67,6 +66,7 @@ Task* task_find(SharedVariables* sharedVariables, int tid) {
     int index = tid % TASK_MAX_NUM;
     Task* task = (Task*)(sharedVariables->tasks + index);
     if (task->tid == tid) {
+        // TODO: if task is uninitialized, also return (Task*)0, need to implement state
         return task;
     }
     else {

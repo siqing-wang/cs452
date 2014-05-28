@@ -9,7 +9,6 @@
 #define MSG_REGAS 1
 #define MSG_WHOIS 2
 #define MSG_TID 3
-#define MSG_ERRNO 4
 
 typedef struct Message
 {

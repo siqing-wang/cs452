@@ -58,15 +58,14 @@ int Send(int tid, void *msg, int msglen, void *reply, int replylen) {
     request.message = &message;
     int result = sendRequest(&request);
     if (result < 0) {
-        // Syscall failed
+        // Send failed, do not wait for reply.
         return result;
     }
 
+    request.syscall = SYS_TRY_RECV;
     int received = NO_RECEIVED_MSG;
+    // TODO: fix busy waiting.
     for(;;) {
-        Request request;
-        request.syscall = SYS_TRY_RECV;
-        request.message = &message;
         received = sendRequest(&request);
         if (received == HAS_RECEIVED_MSG) {
             // Received reply
@@ -81,11 +80,12 @@ int Send(int tid, void *msg, int msglen, void *reply, int replylen) {
 int Receive(int *tid, void *msg, int msglen) {
     Message message;
 
+    Request request;
+    request.syscall = SYS_TRY_RECV;
+    request.message = &message;
+
     int received = NO_RECEIVED_MSG;
     for(;;) {
-        Request request;
-        request.syscall = SYS_TRY_RECV;
-        request.message = &message;
         received = sendRequest(&request);
         if (received == HAS_RECEIVED_MSG) {
             // Received reply
@@ -169,11 +169,9 @@ int WhoIs(char *name) {
         return result;
     }
 
+    request.syscall = SYS_TRY_RECV;
     int received = NO_RECEIVED_MSG;
     for(;;) {
-        Request request;
-        request.syscall = SYS_TRY_RECV;
-        request.message = &message;
         received = sendRequest(&request);
         if (received == HAS_RECEIVED_MSG) {
             // Received reply

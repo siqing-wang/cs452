@@ -65,7 +65,7 @@ int sendMessage(SharedVariables* sharedVariables, Task* active, Message *message
         return ERR_NOEXIST_TID;
     }
 
-    // If destTask is send-blcoked
+    // TODO: If destTask is send-blcoked
     // return ERR_INCOMPLETE_SRR_TRANS
 
     message->srcTid = active->tid;
@@ -89,7 +89,7 @@ int replyMessage(SharedVariables* sharedVariables, Task* active, Message *messag
         return ERR_NOEXIST_TID;
     }
 
-    // If destTask is not in reply block
+    // TODO: If destTask is not in reply block
     // return ERR_NOT_REPLY_BLK
 
     if (message->msglen > destTask->message->replylen) {
