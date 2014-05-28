@@ -38,8 +38,11 @@ void request_handle(SharedVariables* sharedVariables, Task* active, Request *req
         case SYS_SEND:
             result = sendMessage(sharedVariables, active, request->message);
             storeRetValue(active, result);
-        case SYS_WAITREPLY:
+        case SYS_TRY_RECV:
             result = readMessage(sharedVariables, active, request->message);
+            storeRetValue(active, result);
+        case SYS_REPLY:
+            result = replyMessage(sharedVariables, active, request->message);
             storeRetValue(active, result);
         default:
             /* Unrecognized syscall. */
@@ -62,6 +65,9 @@ int sendMessage(SharedVariables* sharedVariables, Task* active, Message *message
         return ERR_NOEXIST_TID;
     }
 
+    // If destTask is send-blcoked
+    // return ERR_INCOMPLETE_SRR_TRANS
+
     message->srcTid = active->tid;
     active->message = message;
     sendQueue_push(destTask->send_queue, active);
@@ -75,4 +81,23 @@ int readMessage(SharedVariables* sharedVariables, Task* active, Message *message
     Task* srcTask = sendQueue_pop(active->send_queue);
     memcopy((char*)message, (char*)(srcTask->message), sizeof(srcTask->message));
     return HAS_RECEIVED_MSG;
+}
+
+int replyMessage(SharedVariables* sharedVariables, Task* active, Message *message) {
+    Task* destTask = task_find(sharedVariables, message->destTid);
+    if (destTask == 0) {
+        return ERR_NOEXIST_TID;
+    }
+
+    // If destTask is not in reply block
+    // return ERR_NOT_REPLY_BLK
+
+    if (message->msglen > destTask->message->replylen) {
+        return ERR_INSUFFICIENT_SPACE;
+    }
+
+    message->srcTid = active->tid;
+    active->message = message;
+    sendQueue_push(destTask->send_queue, active);
+    return 0;
 }

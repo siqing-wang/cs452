@@ -48,8 +48,9 @@ int Send(int tid, void *msg, int msglen, void *reply, int replylen) {
 
     Message message;
     message.destTid = tid;
-    message.type = MSG_MSGONLY;
+    message.type = MSG_STRING;
     message.msglen = msglen;
+    message.replylen = replylen;
     memcopy(message.msg, msg, msglen);
 
     Request request;
@@ -64,7 +65,7 @@ int Send(int tid, void *msg, int msglen, void *reply, int replylen) {
     int received = NO_RECEIVED_MSG;
     for(;;) {
         Request request;
-        request.syscall = SYS_WAITREPLY;
+        request.syscall = SYS_TRY_RECV;
         request.message = &message;
         received = sendRequest(&request);
         if (received == HAS_RECEIVED_MSG) {
@@ -73,33 +74,23 @@ int Send(int tid, void *msg, int msglen, void *reply, int replylen) {
         }
     }
 
-    if (message.msglen != replylen) {
-        return ERR_INVALID_REPLY;
-    }
-    if (message.type != MSG_MSGANDSTAT) {
-        return ERR_INVALID_REPLY;
-    }
-
-    memcopy(reply, message.msg, msglen);
-    return message.stat;
+    memcopy(reply, message.msg, replylen);
+    return message.msglen;
 }
 
 int Receive(int *tid, void *msg, int msglen) {
     Message message;
+
     int received = NO_RECEIVED_MSG;
     for(;;) {
         Request request;
-        request.syscall = SYS_WAITREPLY;
+        request.syscall = SYS_TRY_RECV;
         request.message = &message;
         received = sendRequest(&request);
         if (received == HAS_RECEIVED_MSG) {
             // Received reply
             break;
         }
-    }
-
-    if (message.type != MSG_MSGONLY) {
-        return ERR_INVALID_REPLY;
     }
 
     memcopy(msg, message.msg, msglen);
@@ -114,12 +105,12 @@ int Reply(int tid, void *reply, int replylen) {
 
     Message message;
     message.destTid = tid;
-    message.type = MSG_MSGONLY;
+    message.type = MSG_STRING;
     message.msglen = replylen;
     memcopy(message.msg, reply, replylen);
 
     Request request;
-    request.syscall = SYS_SEND;
+    request.syscall = SYS_REPLY;
     request.message = &message;
     int result = sendRequest(&request);
     if (result < 0) {
@@ -127,24 +118,7 @@ int Reply(int tid, void *reply, int replylen) {
         return result;
     }
 
-    int received = NO_RECEIVED_MSG;
-    for(;;) {
-        Request request;
-        request.syscall = SYS_WAITREPLY;
-        request.message = &message;
-        received = sendRequest(&request);
-        if (received == HAS_RECEIVED_MSG) {
-            // Received reply
-            break;
-        }
-    }
-
-    if (message.type != MSG_ERRNO) {
-        return ERR_INVALID_REPLY;
-    }
-
-    int *byteSent = message.msg;
-    return *byteSent;
+    return SUCCESS;
 }
 
 // Name Server
@@ -170,7 +144,7 @@ int RegisterAs(char *name) {
         return result;
     }
 
-    return SUCC_REGAS;
+    return SUCCESS;
 }
 
 int WhoIs(char *name) {
@@ -198,7 +172,7 @@ int WhoIs(char *name) {
     int received = NO_RECEIVED_MSG;
     for(;;) {
         Request request;
-        request.syscall = SYS_WAITREPLY;
+        request.syscall = SYS_TRY_RECV;
         request.message = &message;
         received = sendRequest(&request);
         if (received == HAS_RECEIVED_MSG) {

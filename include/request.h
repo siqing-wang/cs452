@@ -20,7 +20,8 @@
 #define SYS_PASS 3
 #define SYS_EXIT 4
 #define SYS_SEND 5
-#define SYS_WAITREPLY 6
+#define SYS_TRY_RECV 6
+#define SYS_REPLY 7
 
 #define ERR_UNKNOWN_SYSCALL -1
 #define ERR_CREATE_TASK_FAIL -2
@@ -37,8 +38,7 @@
 #define NO_RECEIVED_MSG 0
 #define HAS_RECEIVED_MSG 1
 
-#define SUCC_REPLY 0
-#define SUCC_REGAS 0
+#define SUCCESS 0
 
 typedef struct Request
 {
@@ -56,5 +56,6 @@ void request_handle(SharedVariables* sharedVariables, Task* active, Request *req
 void storeRetValue(Task* task, int retVal);
 int sendMessage(SharedVariables* sharedVariables, Task* active, Message *message);
 int readMessage(SharedVariables* sharedVariables, Task* active, Message *message);
+int replyMessage(SharedVariables* sharedVariables, Task* active, Message *message);
 
 #endif
