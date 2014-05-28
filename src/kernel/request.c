@@ -4,6 +4,8 @@
 
 #include <request.h>
 #include <scheduler.h>
+#include <send_queue.h>
+#include <utils.h>
 
 void request_handle(SharedVariables* sharedVariables, Task* active, Request *request) {
     switch(request->syscall) {
@@ -34,11 +36,10 @@ void request_handle(SharedVariables* sharedVariables, Task* active, Request *req
             storeRetValue(active, 0);
             return;
         case SYS_SEND:
-            request->message->srcTid = active->tid;
-            result = sendMessage(sharedVariables, request->message);
+            result = sendMessage(sharedVariables, active, request->message);
             storeRetValue(active, result);
         case SYS_WAITREPLY:
-            result = readMessage(sharedVariables, request->message);
+            result = readMessage(sharedVariables, active, request->message);
             storeRetValue(active, result);
         default:
             /* Unrecognized syscall. */
@@ -55,10 +56,23 @@ void storeRetValue(Task* task, int retVal) {
     *(task->sp) = retVal;
 }
 
-int sendMessage(SharedVariables* sharedVariables, Message *message) {
+int sendMessage(SharedVariables* sharedVariables, Task* active, Message *message) {
+    Task* destTask = task_find(sharedVariables, message->destTid);
+    if (destTask == 0) {
+        return ERR_NOEXIST_TID;
+    }
+
+    message->srcTid = active->tid;
+    active->message = message;
+    sendQueue_push(destTask->send_queue, active);
     return 0;
 }
 
-int readMessage(SharedVariables* sharedVariables, Message *message) {
-    return NO_RECEIVED_MSG;
+int readMessage(SharedVariables* sharedVariables, Task* active, Message *message) {
+    if(sendQueue_empty(active->send_queue)) {
+        return NO_RECEIVED_MSG;
+    }
+    Task* srcTask = sendQueue_pop(active->send_queue);
+    memcopy((char*)message, (char*)(srcTask->message), sizeof(srcTask->message));
+    return HAS_RECEIVED_MSG;
 }

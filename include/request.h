@@ -54,7 +54,7 @@ typedef struct Request
 
 void request_handle(SharedVariables* sharedVariables, Task* active, Request *request);
 void storeRetValue(Task* task, int retVal);
-int sendMessage(SharedVariables* sharedVariables, Message *message);
-int readMessage(SharedVariables* sharedVariables, Message *message);
+int sendMessage(SharedVariables* sharedVariables, Task* active, Message *message);
+int readMessage(SharedVariables* sharedVariables, Task* active, Message *message);
 
 #endif

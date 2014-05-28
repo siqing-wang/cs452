@@ -42,6 +42,10 @@ void Exit() {
 
 // Inter-task Communication
 int Send(int tid, void *msg, int msglen, void *reply, int replylen) {
+    if (tid <= 0) {
+        return ERR_INVALID_TID;
+    }
+
     Message message;
     message.destTid = tid;
     message.type = MSG_MSGONLY;
@@ -104,6 +108,10 @@ int Receive(int *tid, void *msg, int msglen) {
 }
 
 int Reply(int tid, void *reply, int replylen) {
+    if (tid <= 0) {
+        return ERR_INVALID_TID;
+    }
+
     Message message;
     message.destTid = tid;
     message.type = MSG_MSGONLY;
