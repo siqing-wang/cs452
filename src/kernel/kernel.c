@@ -5,7 +5,8 @@
 #include <kernel.h>
 #include <context_switch.h>
 #include <scheduler.h>
-#include <task.h>
+#include <task_queue.h>
+#include <send_queue.h>
 #include <user_tasks.h>
 #include <test_tasks.h>
 #include <syscall.h>
@@ -35,6 +36,7 @@ void kernel_run() {
 
     // Initialization (Task)
     Task tasks[TASK_MAX_NUM];                   // pre-alloc spaces for all tasks
+    SendQueue send_queues[TASK_MAX_NUM];        // pre-alloc spaces for each task's send_queue
     TaskQueue free_list;
 
     // Initialization (Global)
@@ -44,6 +46,7 @@ void kernel_run() {
     sharedVariables.task_queues = task_queues;
     sharedVariables.highestOccupiedQueue = &highestOccupiedQueue;
     sharedVariables.tasks = tasks;
+    sharedVariables.send_queues = send_queues;
     sharedVariables.free_list = &free_list;
     sharedVariables.loadOffset = loadOffset;
 

@@ -5,9 +5,11 @@
 #include <task.h>
 #include <scheduler.h>
 #include <task_queue.h>
+#include <send_queue.h>
 
 void task_init(SharedVariables* sharedVariables) {
     Task *tasks = sharedVariables->tasks;
+    SendQueue *send_queues = sharedVariables->send_queues;
     TaskQueue *free_list = sharedVariables->free_list;
     taskQueue_init(free_list);
 
@@ -16,7 +18,13 @@ void task_init(SharedVariables* sharedVariables) {
         (tasks + i)->tid = i;                       // assign initial tid = posn in array
         int *addr = (int *)(USER_STACK_LOW + (i + 1) * STACK_SIZE);     // One posn below beginning of task stack
                                                                         // because it is full stack (i.e. point to next full spot)
-        (tasks + i)->sp = addr;                            // sp need to be a ptr to an address
+        (tasks + i)->sp = addr;                             // sp need to be a ptr to an address
+
+        (tasks + i)->send_queue = (SendQueue*)(send_queues + i);
+        sendQueue_init((tasks + i)->send_queue);            // Initialize sendQueue
+        (tasks + i)->message = 0;
+        (tasks + i)->nextMessageTask = 0;                   // no task contains message in messageQueue
+
         taskQueue_push(free_list, tasks + i);
     }
 }

@@ -1,18 +1,19 @@
 /*
- * task.h
+ *  task.h
  *
- * task_init
- *		Initialize static variable for task class
- * task_create
- *		Get next available task pointer and initialize its fields
- * task_exit
- *		Task has exited so recycle task descriptor for next use
+ *  task_init
+ *      Initialize static variable for task class
+ *  task_create
+ *      Get next available task pointer and initialize its fields
+ *  task_exit
+ *      Task has exited so recycle task descriptor for next use
  */
 
 #ifndef __TASK_H__
 #define __TASK_H__
 
 #include <shared_variable.h>
+#include <message.h>
 
 #define TASK_MAX_NUM 128
 #define USER_STACK_LOW 0x300000
@@ -22,13 +23,17 @@
 
 typedef struct Task
 {
-    int *sp;		// stack pointer of the task
+    int *sp;        // stack pointer of the task
 
-    int tid;		// task id
-    int parent_tid;	// parent task id
-    int priority;	// priority from 0 to PRIORITY_MAX
+    int tid;        // task id
+    int parent_tid; // parent task id
+    int priority;   // priority from 0 to PRIORITY_MAX
 
-    struct Task *next;	// next task in the same scheduler priority queue or free list, 0 is NULL
+    struct Task *next;  // next task in the same scheduler priority queue or free list, 0 is NULL
+
+    struct SendQueue *send_queue;   // keep track of tasks that want to send message to this task
+    Message* message;               // Store this task's own message
+    struct Task *nextMessageTask;   // next task contains message which has the same dest as this task
 } Task;
 
 

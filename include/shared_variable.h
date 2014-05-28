@@ -9,6 +9,7 @@
 
 struct Task;
 struct TaskQueue;
+struct SendQueue;
 
 typedef struct SharedVariables
 {
@@ -17,6 +18,7 @@ typedef struct SharedVariables
     int* highestOccupiedQueue;
     /* Task */
     struct Task* tasks;
+    struct SendQueue* send_queues;  // send_queue for each task
     struct TaskQueue* free_list;    // queue of free task descriptors
     /* Global */
     int loadOffset;                 // stack base (0x00218000) it should be added

@@ -14,7 +14,6 @@
 #define __KERNEL_H__
 
 #include <task.h>
-#include <task_queue.h>
 #include <request.h>
 #include <shared_variable.h>
 
