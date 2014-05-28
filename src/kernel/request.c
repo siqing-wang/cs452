@@ -29,18 +29,19 @@ void request_handle(SharedVariables* sharedVariables, Task* active, Request *req
             storeRetValue(active, active->parent_tid);
             break;
         case SYS_PASS:
-            storeRetValue(active, 0);
+            storeRetValue(active, SUCCESS);
             break;
         case SYS_EXIT:
             task_exit(sharedVariables, active);
-            storeRetValue(active, 0);
+            storeRetValue(active, SUCCESS);
             return;
         case SYS_SEND:
             result = sendMessage(sharedVariables, active, request->message);
             storeRetValue(active, result);
-        case SYS_TRY_RECV:
-            result = readMessage(sharedVariables, active, request->message);
-            storeRetValue(active, result);
+        case SYS_RECV:
+            readMessage(sharedVariables, active, request->message);
+            /* No Error Code for this call (no return value) */
+            storeRetValue(active, SUCCESS);
         case SYS_REPLY:
             result = replyMessage(sharedVariables, active, request->message);
             storeRetValue(active, result);
@@ -50,7 +51,10 @@ void request_handle(SharedVariables* sharedVariables, Task* active, Request *req
             break;
     }
     /* Add current task back to scheduler. */
-    scheduler_add(sharedVariables, active);
+    if (active->state == TASK_ACTIVE) {
+        active->state = TASK_READY;
+        scheduler_add(sharedVariables, active);
+    }
 }
 
 void storeRetValue(Task* task, int retVal) {
@@ -63,41 +67,55 @@ int sendMessage(SharedVariables* sharedVariables, Task* active, Message *message
     Task* destTask = task_find(sharedVariables, message->destTid);
     if (destTask == 0) {
         return ERR_NOEXIST_TID;
+    } else if (destTask->state == TASK_SEND_BLK) {
+        /* A task in send block cannot receive msg. */
+        return ERR_INCOMPLETE_SRR_TRANS;
     }
 
-    // TODO: If destTask is send-blcoked
-    // return ERR_INCOMPLETE_SRR_TRANS
-
+    /* Update msg. */
     message->srcTid = active->tid;
     active->message = message;
-    sendQueue_push(destTask->send_queue, active);
-    return 0;
+
+    if (destTask->state == TASK_RECV_BLK) {
+        /* Destination is currently receive blocked. */
+        memcopy((char*)(destTask->message), (char*)(message), sizeof(message));
+        destTask->state = TASK_READY;
+        scheduler_add(sharedVariables, destTask);
+        active->state = TASK_RPLY_BLK;
+    } else {
+        /* Receiver is not receive blocked. */
+        sendQueue_push(destTask->send_queue, active);
+        active->state = TASK_SEND_BLK;
+    }
+
+    return SUCCESS;
 }
 
-int readMessage(SharedVariables* sharedVariables, Task* active, Message *message) {
+void readMessage(SharedVariables* sharedVariables, Task* active, Message *message) {
     if(sendQueue_empty(active->send_queue)) {
-        return NO_RECEIVED_MSG;
+        active->state = TASK_RECV_BLK;
+    } else {
+        Task* srcTask = sendQueue_pop(active->send_queue);
+        memcopy((char*)message, (char*)(srcTask->message), sizeof(message));
+        srcTask->state = TASK_RPLY_BLK;
     }
-    Task* srcTask = sendQueue_pop(active->send_queue);
-    memcopy((char*)message, (char*)(srcTask->message), sizeof(srcTask->message));
-    return HAS_RECEIVED_MSG;
 }
 
 int replyMessage(SharedVariables* sharedVariables, Task* active, Message *message) {
     Task* destTask = task_find(sharedVariables, message->destTid);
     if (destTask == 0) {
         return ERR_NOEXIST_TID;
+    } else if (destTask->state != TASK_RPLY_BLK) {
+        /* Can only send a reply to a task in reply block state. */
+        return ERR_NOT_REPLY_BLK;
     }
 
-    // TODO: If destTask is not in reply block
-    // return ERR_NOT_REPLY_BLK
+    memcopy((char*)(destTask->message), (char*)(message), sizeof(message));
+    destTask->state = TASK_READY;
+    scheduler_add(sharedVariables, destTask);
 
     if (message->msglen > destTask->message->replylen) {
         return ERR_INSUFFICIENT_SPACE;
     }
-
-    message->srcTid = active->tid;
-    active->message = message;
-    sendQueue_push(destTask->send_queue, active);
-    return 0;
+    return SUCCESS;
 }

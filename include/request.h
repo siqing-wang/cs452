@@ -20,7 +20,7 @@
 #define SYS_PASS 3
 #define SYS_EXIT 4
 #define SYS_SEND 5
-#define SYS_TRY_RECV 6
+#define SYS_RECV 6
 #define SYS_REPLY 7
 
 #define ERR_UNKNOWN_SYSCALL -1
@@ -55,7 +55,7 @@ typedef struct Request
 void request_handle(SharedVariables* sharedVariables, Task* active, Request *request);
 void storeRetValue(Task* task, int retVal);
 int sendMessage(SharedVariables* sharedVariables, Task* active, Message *message);
-int readMessage(SharedVariables* sharedVariables, Task* active, Message *message);
+void readMessage(SharedVariables* sharedVariables, Task* active, Message *message);
 int replyMessage(SharedVariables* sharedVariables, Task* active, Message *message);
 
 #endif

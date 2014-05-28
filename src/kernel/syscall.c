@@ -51,7 +51,8 @@ int Send(int tid, void *msg, int msglen, void *reply, int replylen) {
     message.type = MSG_STRING;
     message.msglen = msglen;
     message.replylen = replylen;
-    memcopy(message.msg, msg, msglen);
+    // memcopy(message.msg, msg, msglen);
+    message.msg = msg;
 
     Request request;
     request.syscall = SYS_SEND;
@@ -61,18 +62,6 @@ int Send(int tid, void *msg, int msglen, void *reply, int replylen) {
         // Send failed, do not wait for reply.
         return result;
     }
-
-    request.syscall = SYS_TRY_RECV;
-    int received = NO_RECEIVED_MSG;
-    // TODO: fix busy waiting.
-    for(;;) {
-        received = sendRequest(&request);
-        if (received == HAS_RECEIVED_MSG) {
-            // Received reply
-            break;
-        }
-    }
-
     memcopy(reply, message.msg, replylen);
     return message.msglen;
 }
@@ -81,18 +70,10 @@ int Receive(int *tid, void *msg, int msglen) {
     Message message;
 
     Request request;
-    request.syscall = SYS_TRY_RECV;
+    request.syscall = SYS_RECV;
     request.message = &message;
 
-    int received = NO_RECEIVED_MSG;
-    for(;;) {
-        received = sendRequest(&request);
-        if (received == HAS_RECEIVED_MSG) {
-            // Received reply
-            break;
-        }
-    }
-
+    sendRequest(&request);
     memcopy(msg, message.msg, msglen);
     *tid = message.srcTid;
     return message.msglen;
@@ -107,7 +88,8 @@ int Reply(int tid, void *reply, int replylen) {
     message.destTid = tid;
     message.type = MSG_STRING;
     message.msglen = replylen;
-    memcopy(message.msg, reply, replylen);
+    // memcopy(message.msg, msg, msglen);
+    message.msg = reply;
 
     Request request;
     request.syscall = SYS_REPLY;
@@ -132,18 +114,18 @@ int RegisterAs(char *name) {
     message.destTid = NAMESERVER_TID;
     message.type = MSG_REGAS;
     message.msglen = msglen;
-    memcopy(message.msg, name, msglen);
+    message.replylen = sizeof(int);
+    message.msg = name;
 
     Request request;
     request.syscall = SYS_SEND;
     request.message = &message;
-
     int result = sendRequest(&request);
     if (result < 0) {
-        // Syscall failed
-        return result;
+        return ERR_INVALID_TID;
+    } else if (message.type != MSG_STATUS) {
+        return ERR_NOT_NAMESERVER;
     }
-
     return SUCCESS;
 }
 
@@ -157,34 +139,20 @@ int WhoIs(char *name) {
     message.destTid = NAMESERVER_TID;
     message.type = MSG_WHOIS;
     message.msglen = msglen;
-    memcopy(message.msg, name, msglen);
+    message.replylen = sizeof(int);
+    message.msg = name;
 
     Request request;
     request.syscall = SYS_SEND;
     request.message = &message;
-
     int result = sendRequest(&request);
     if (result < 0) {
-        // Syscall failed
-        return result;
+        return ERR_INVALID_TID;
+    } else if (message.type != MSG_TID) {
+        return ERR_NOT_NAMESERVER;
     }
-
-    request.syscall = SYS_TRY_RECV;
-    int received = NO_RECEIVED_MSG;
-    for(;;) {
-        received = sendRequest(&request);
-        if (received == HAS_RECEIVED_MSG) {
-            // Received reply
-            break;
-        }
-    }
-
-    if (message.type != MSG_TID) {
-        return ERR_INVALID_REPLY;
-    }
-
-    int *tid = message.msg;
-    return *tid;
+    int *tid = (int*)message.msg;
+    return (int)*tid;
 }
 
 int sendRequest(Request* request) {

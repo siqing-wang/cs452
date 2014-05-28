@@ -16,6 +16,7 @@ void task_init(SharedVariables* sharedVariables) {
     int i = 0;
     for (; i < TASK_MAX_NUM; i++) {
         (tasks + i)->tid = i;                       // assign initial tid = posn in array
+        (tasks + i)->state = TASK_UNINIT;
         int *addr = (int *)(USER_STACK_LOW + (i + 1) * STACK_SIZE);     // One posn below beginning of task stack
                                                                         // because it is full stack (i.e. point to next full spot)
         (tasks + i)->sp = addr;                             // sp need to be a ptr to an address
@@ -48,6 +49,7 @@ Task* task_create(SharedVariables* sharedVariables, int parent_tid, int priority
 
     task->parent_tid = parent_tid;
     task->priority = priority;
+    task->state = TASK_READY;
     task->sp = task->sp - 13;                   // Move up 13 to store 13 registers
     *(task->sp) = 1;                            // return value = 1
     *(task->sp + 1 ) = USER_MODE;               // spsr = USER_MODE
@@ -59,17 +61,22 @@ Task* task_create(SharedVariables* sharedVariables, int parent_tid, int priority
 
 void task_exit(SharedVariables* sharedVariables, Task* task) {
     task->tid += TASK_MAX_NUM;                      // Update tid to avoid collision
+    task->state = TASK_ZOMBIE;
     taskQueue_push(sharedVariables->free_list, task);   // Put task back to free_list
 }
 
 Task* task_find(SharedVariables* sharedVariables, int tid) {
     int index = tid % TASK_MAX_NUM;
     Task* task = (Task*)(sharedVariables->tasks + index);
-    if (task->tid == tid) {
-        // TODO: if task is uninitialized, also return (Task*)0, need to implement state
-        return task;
+
+    switch(task->state) {
+        case TASK_UNINIT:
+        case TASK_ZOMBIE:
+            return (Task*)0;
     }
-    else {
+    if (task->tid != tid) {
         return (Task*)0;
     }
+
+    return task;
 }
