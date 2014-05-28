@@ -13,6 +13,7 @@
 #define __UTILS_H__
 
 #define DEBUG_MODE 1
+#define HASH_TABLE_SIZE 13
 
 void assert(int cond, char* msg);
 void assertEquals(int expected, int actual, char* msg);
@@ -20,5 +21,7 @@ void debug(char *msg);
 void warning(char *msg);
 
 void memcopy(char *dest, const char *src, int size);
+
+int computeHash(const char *str);
 
 #endif

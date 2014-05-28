@@ -43,3 +43,12 @@ void memcopy(char *dest, const char *src, int size) {
         src++;
     }
 }
+
+int computeHash(const char *str) {
+    int hash = 0;
+    while(*str != '\0') {
+        hash = (hash * 29 + (int)(*str)) % HASH_TABLE_SIZE;
+        str++;
+    }
+    return hash;
+}
