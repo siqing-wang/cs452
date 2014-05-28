@@ -40,5 +40,6 @@ typedef struct Task
 void task_init(SharedVariables* sharedVariables);
 Task* task_create(SharedVariables* sharedVariables, int parent_tid, int priority, void (*code));
 void task_exit(SharedVariables* sharedVariables, Task* task);
+Task* task_find(SharedVariables* sharedVariables, int tid);
 
 #endif

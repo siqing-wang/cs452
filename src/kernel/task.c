@@ -62,3 +62,14 @@ void task_exit(SharedVariables* sharedVariables, Task* task) {
     task->tid += TASK_MAX_NUM;                      // Update tid to avoid collision
     taskQueue_push(sharedVariables->free_list, task);   // Put task back to free_list
 }
+
+Task* task_find(SharedVariables* sharedVariables, int tid) {
+    int index = tid % TASK_MAX_NUM;
+    Task* task = (Task*)(sharedVariables->tasks + index);
+    if (task->tid == tid) {
+        return task;
+    }
+    else {
+        return (Task*)0;
+    }
+}
