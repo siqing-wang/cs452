@@ -86,3 +86,10 @@ void stringCopy(char *dest, char* src, int len) {
     }
     *dest = '\0';
 }
+
+unsigned long rand(unsigned long x) {
+    x ^= x >> 12; // a
+    x ^= x << 25; // b
+    x ^= x >> 27; // c
+    return x * 2685821657736338717LL;
+}

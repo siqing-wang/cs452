@@ -26,4 +26,6 @@ int computeHash(const char *str);
 int stringEquals(char* s1, char* s2);
 void stringCopy(char *dest, char* src, int len);
 
+unsigned long rand(unsigned long x);
+
 #endif
