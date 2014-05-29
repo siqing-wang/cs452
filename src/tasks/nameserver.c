@@ -9,7 +9,6 @@
 #include <utils.h>
 
 void nameServer() {
-    bwprintf(COM2, "---NameServer Initialized---\n\r");
     ServerLinklistNode linklistTable[SERVICETABLE_MAX_SIZE];
     ServerLinklistNode *serviceTable[HASH_TABLE_SIZE];
     int i = 0;
@@ -17,34 +16,51 @@ void nameServer() {
         serviceTable[i] = (ServerLinklistNode *)0;
     }
 
+    bwprintf(COM2, "---NameServer Initialized---\n\r");
+
     int tid;
     int serviceCount = 0;
-    char serverName[SERVERNAME_MAX_LENGTH];
+    NameserverMessage message;
+    char *serverName;
     for(;;) {
-        int byteSent = Receive(&tid, serverName, SERVERNAME_MAX_LENGTH);
-
-        if (serviceCount == SERVICETABLE_MAX_SIZE - 1) {
-            warning("Service Table Full.");
-            continue;
+        int byteSent = Receive(&tid, &message, sizeof(NameserverMessage));
+        if (byteSent > sizeof(NameserverMessage)) {
+            warning("Nameserver Message Request overflowed.");
         }
 
-        if (byteSent > SERVERNAME_MAX_LENGTH) {
-            warning("Service Name Too Long.");
-        }
-
+        serverName = message.serverName;
         int hash = computeHash(serverName);
         ServerLinklistNode* list = serviceTable[hash];
         ServerLinklistNode* result = ServerLinklist_find(list, serverName);
-        if (result == (ServerLinklistNode *)0) {
-            result = (ServerLinklistNode *)(linklistTable + serviceCount);
-            serviceCount++;
-            ServerLinklistNode_init(result, serverName, tid);
-            ServerLinklist_pushFront(list, result);
-            serviceTable[hash] = result;
-        } else {
-            result->tid = tid;
+
+        int resultTid = -1;
+        if (result != (ServerLinklistNode *)0) {
+            resultTid = result->tid;
         }
 
+        switch (message.type) {
+            int syscallResult;
+            int successCode = NAMESERVER_SUCCESS;
+            case NServerMSG_REGAS :
+                if (result != (ServerLinklistNode *)0) {
+                    result->tid = tid;
+                } else if (serviceCount < SERVICETABLE_MAX_SIZE - 1) {
+                    result = (ServerLinklistNode *)(linklistTable + serviceCount);
+                    serviceCount++;
+                    ServerLinklistNode_init(result, serverName, tid);
+                    ServerLinklist_pushFront(list, result);
+                    serviceTable[hash] = result;
+                } else {
+                    warning("Service Table Full.");
+                }
+                syscallResult = Reply(tid, &successCode, sizeof(int));
+                break;
+            case NServerMSG_WHOIS :
+                syscallResult = Reply(tid, &resultTid, sizeof(int));
+                break;
+            default :
+                warning("Unknown Nameserver Message Type.");
+        }
     }
 
     Exit();
