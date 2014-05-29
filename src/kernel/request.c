@@ -38,13 +38,16 @@ void request_handle(SharedVariables* sharedVariables, Task* active, Request *req
         case SYS_SEND:
             result = sendMessage(sharedVariables, active, request->message);
             storeRetValue(active, result);
+            break;
         case SYS_RECV:
             readMessage(sharedVariables, active, request->message);
             /* No Error Code for this call (no return value) */
             storeRetValue(active, SUCCESS);
+            break;
         case SYS_REPLY:
             result = replyMessage(sharedVariables, active, request->message);
             storeRetValue(active, result);
+            break;
         default:
             /* Unrecognized syscall. */
             storeRetValue(active, ERR_UNKNOWN_SYSCALL);
@@ -78,7 +81,7 @@ int sendMessage(SharedVariables* sharedVariables, Task* active, Message *message
 
     if (destTask->state == TASK_RECV_BLK) {
         /* Destination is currently receive blocked. */
-        memcopy((char*)(destTask->message), (char*)(message), sizeof(message));
+        memcopy((char*)(destTask->message), (char*)(message), sizeof(Message));
         destTask->state = TASK_READY;
         scheduler_add(sharedVariables, destTask);
         active->state = TASK_RPLY_BLK;
@@ -94,9 +97,10 @@ int sendMessage(SharedVariables* sharedVariables, Task* active, Message *message
 void readMessage(SharedVariables* sharedVariables, Task* active, Message *message) {
     if(sendQueue_empty(active->send_queue)) {
         active->state = TASK_RECV_BLK;
+        active->message = message;
     } else {
         Task* srcTask = sendQueue_pop(active->send_queue);
-        memcopy((char*)message, (char*)(srcTask->message), sizeof(message));
+        memcopy((char*)message, (char*)(srcTask->message), sizeof(Message));
         srcTask->state = TASK_RPLY_BLK;
     }
 }
@@ -110,7 +114,7 @@ int replyMessage(SharedVariables* sharedVariables, Task* active, Message *messag
         return ERR_NOT_REPLY_BLK;
     }
 
-    memcopy((char*)(destTask->message), (char*)(message), sizeof(message));
+    memcopy((char*)(destTask->message), (char*)(message), sizeof(Message));
     destTask->state = TASK_READY;
     scheduler_add(sharedVariables, destTask);
 
