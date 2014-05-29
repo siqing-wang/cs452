@@ -52,3 +52,37 @@ int computeHash(const char *str) {
     }
     return hash;
 }
+
+int stringEquals(char* s1, char* s2) {
+    for(;;) {
+        if ((*s1 == '\0') && (*s2 == '\0')) {
+            return 1;
+        }
+        else if (*s1 == '\0') {
+            return 0;
+        }
+        else if (*s2 == '\0') {
+            return 0;
+        }
+        else if (*s1 != *s2) {
+            return 0;
+        }
+        else {
+            s1 ++;
+            s2 ++;
+        }
+    }
+}
+
+void stringCopy(char *dest, char* src, int len) {
+    int i = 0;
+    for (; i < len - 1 ; i++) {
+        if (*src == '\0') {
+            break;
+        }
+        *dest = *src;
+        dest++;
+        src++;
+    }
+    *dest = '\0';
+}

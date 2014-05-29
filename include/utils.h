@@ -23,5 +23,7 @@ void warning(char *msg);
 void memcopy(char *dest, const char *src, int size);
 
 int computeHash(const char *str);
+int stringEquals(char* s1, char* s2);
+void stringCopy(char *dest, char* src, int len);
 
 #endif
