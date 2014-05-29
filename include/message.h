@@ -10,6 +10,12 @@
 #define NServerMSG_REGAS 0
 #define NServerMSG_WHOIS 1
 
+#define RPSMSG_SIGNUP 0
+#define RPSMSG_PLAY 1
+#define RPSMSG_QUIT 2
+#define RPSMSG_ROCK 1
+#define RPSMSG_PAPER 2
+#define RPSMSG_SCISSORS 3
 
 typedef struct Message
 {
@@ -27,5 +33,12 @@ typedef struct NameserverMessage
     char serverName[SERVERNAME_MAX_LENGTH];
 
 } NameserverMessage;
+
+typedef struct RPSMessage
+{
+    int type;
+    int choice;
+
+} RPSMessage;
 
 #endif
