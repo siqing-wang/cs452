@@ -48,7 +48,6 @@ int Send(int tid, void *msg, int msglen, void *reply, int replylen) {
 
     Message message;
     message.destTid = tid;
-    message.type = MSG_STRING;
     message.msglen = msglen;
     message.replylen = replylen;
     // memcopy(message.msg, msg, msglen);
@@ -86,7 +85,6 @@ int Reply(int tid, void *reply, int replylen) {
 
     Message message;
     message.destTid = tid;
-    message.type = MSG_STRING;
     message.msglen = replylen;
     // memcopy(message.msg, msg, msglen);
     message.msg = reply;
@@ -112,7 +110,6 @@ int RegisterAs(char *name) {
 
     Message message;
     message.destTid = NAMESERVER_TID;
-    message.type = MSG_REGAS;
     message.msglen = msglen;
     message.replylen = sizeof(int);
     message.msg = name;
@@ -123,7 +120,9 @@ int RegisterAs(char *name) {
     int result = sendRequest(&request);
     if (result < 0) {
         return ERR_INVALID_TID;
-    } else if (message.type != MSG_STATUS) {
+    }
+    int *status = (int*) message.msg;
+    if (*status != NAMESERVER_SUCCESS) {
         return ERR_NOT_NAMESERVER;
     }
     return SUCCESS;
@@ -137,7 +136,6 @@ int WhoIs(char *name) {
 
     Message message;
     message.destTid = NAMESERVER_TID;
-    message.type = MSG_WHOIS;
     message.msglen = msglen;
     message.replylen = sizeof(int);
     message.msg = name;
@@ -148,10 +146,11 @@ int WhoIs(char *name) {
     int result = sendRequest(&request);
     if (result < 0) {
         return ERR_INVALID_TID;
-    } else if (message.type != MSG_TID) {
-        return ERR_NOT_NAMESERVER;
     }
     int *tid = (int*)message.msg;
+    if (*tid <= 0) {
+        return ERR_NOT_NAMESERVER;
+    }
     return (int)*tid;
 }
 
