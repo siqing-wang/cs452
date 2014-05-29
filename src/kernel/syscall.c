@@ -6,6 +6,7 @@
 #include <request.h>
 #include <message.h>
 #include <utils.h>
+#include <nameserver.h>
 
 // Task Creation
 int Create(int priority, void (*code)()) {
@@ -108,21 +109,16 @@ int RegisterAs(char *name) {
         msglen++;
     }
 
-    Message message;
-    message.destTid = NAMESERVER_TID;
-    message.msglen = msglen;
-    message.replylen = sizeof(int);
-    message.msg = name;
+    NameserverMessage nameserverMessage;
+    nameserverMessage.type = NServerMSG_REGAS;
+    stringCopy(nameserverMessage.serverName, name, SERVERNAME_MAX_LENGTH);
 
-    Request request;
-    request.syscall = SYS_SEND;
-    request.message = &message;
-    int result = sendRequest(&request);
+    int status;
+    int result = Send(NAMESERVER_TID, &nameserverMessage, sizeof(NameserverMessage), &status, sizeof(int));
     if (result < 0) {
         return ERR_INVALID_TID;
     }
-    int *status = (int*) message.msg;
-    if (*status != NAMESERVER_SUCCESS) {
+    if (status != NAMESERVER_SUCCESS) {
         return ERR_NOT_NAMESERVER;
     }
     return SUCCESS;
@@ -134,24 +130,19 @@ int WhoIs(char *name) {
         msglen++;
     }
 
-    Message message;
-    message.destTid = NAMESERVER_TID;
-    message.msglen = msglen;
-    message.replylen = sizeof(int);
-    message.msg = name;
+    NameserverMessage nameserverMessage;
+    nameserverMessage.type = NServerMSG_WHOIS;
+    stringCopy(nameserverMessage.serverName, name, SERVERNAME_MAX_LENGTH);
 
-    Request request;
-    request.syscall = SYS_SEND;
-    request.message = &message;
-    int result = sendRequest(&request);
+    int tid;
+    int result = Send(NAMESERVER_TID, &nameserverMessage, sizeof(NameserverMessage), &tid, sizeof(int));
     if (result < 0) {
         return ERR_INVALID_TID;
     }
-    int *tid = (int*)message.msg;
-    if (*tid <= 0) {
+    if (tid <= 0) {
         return ERR_NOT_NAMESERVER;
     }
-    return (int)*tid;
+    return tid;
 }
 
 int sendRequest(Request* request) {

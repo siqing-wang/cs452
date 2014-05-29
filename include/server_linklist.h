@@ -6,7 +6,7 @@
 #ifndef __SERVER_LINKLIST_H__
 #define __SERVER_LINKLIST_H__
 
-#define SERVERNAME_MAX_LENGTH 64
+#include <message.h>
 
 typedef struct ServerLinklistNode {
 	char serverName[SERVERNAME_MAX_LENGTH];

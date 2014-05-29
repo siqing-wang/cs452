@@ -22,9 +22,6 @@
 #define PRIORITY_MED 7
 #define PRIORITY_HIGH 11
 
-#define NAMESERVER_TID 1
-#define NAMESERVER_SUCCESS 200
-
 // Task Creation
 int Create(int priority, void (*code)());
 int MyTid();
