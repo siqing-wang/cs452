@@ -3,6 +3,8 @@
  */
 
 #include <syscall.h>
+#include <nameserver.h>
+#include <utils.h>
 #include <bwio.h>
 
 void tinyTask() {
@@ -122,10 +124,37 @@ void testTask6() {
     Exit();
 }
 
+// Test Nameserver
+void testTask7_1() {
+    int tid;
+    tid = WhoIs("Test Server");
+    bwprintf(COM2, "Test Server is point to Task%d\n\r", tid);
+    RegisterAs("Test Server");
+    bwprintf(COM2, "Test Server is registered by Task%d\n\r", MyTid());
+    tid = WhoIs("Test Server");
+    bwprintf(COM2, "Test Server is point to Task%d\n\r", tid);
+    Exit();
+}
+void testTask7_2() {
+    int tid;
+    tid = WhoIs("Test Server");
+    bwprintf(COM2, "Test Server is point to Task%d\n\r", tid);
+    RegisterAs("Test Server");
+    bwprintf(COM2, "Test Server is registered by Task%d\n\r", MyTid());
+    tid = WhoIs("Test Server");
+    bwprintf(COM2, "Test Server is point to Task%d\n\r", tid);
+    Exit();
+}
+
+
 void firstTestTask() {
     // Main test task
     int tid;
     bwprintf(COM2,"Tests Start...\n\r");
+
+    // Create NameServer
+    tid = Create(PRIORITY_HIGH, &nameServer);
+    assertEquals(NAMESERVER_TID, tid, "NameServer should be the first task.");
 
     // Test 0
     bwprintf(COM2, "-----Test0 Start-----\n", tid);
@@ -161,6 +190,12 @@ void firstTestTask() {
     bwprintf(COM2, "-----Test6 Start-----\n", tid);
     tid = Create(9, &testTask6);
     bwprintf(COM2, "-----Test6 End-----\n", tid);
+
+    // Test 6
+    bwprintf(COM2, "-----Test7 Start-----\n", tid);
+    tid = Create(9, &testTask7_1);
+    tid = Create(8, &testTask7_2);
+    bwprintf(COM2, "-----Test7 End-----\n", tid);
 
     // End
     bwprintf(COM2,"All Tests Finished...\n\r");
