@@ -2,14 +2,11 @@
  * user_task.c
  */
 
+#include <user_tasks.h>
 #include <syscall.h>
+#include <nameserver.h>
 #include <bwio.h>
 #include <utils.h>
-
-void nameServer() {
-    bwprintf(COM2, "---NameServer Initialized---\n\r");
-    Exit();
-}
 
 void rpsServer() {
     bwprintf(COM2, "---RPS Server Initialized---\n\r");
