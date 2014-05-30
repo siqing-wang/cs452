@@ -5,7 +5,6 @@
 #include <nameserver.h>
 #include <server_linklist.h>
 #include <syscall.h>
-#include <bwio.h>
 #include <utils.h>
 
 void nameServer() {
@@ -15,8 +14,6 @@ void nameServer() {
     for(; i < HASH_TABLE_SIZE; i++) {
         serviceTable[i] = (ServerLinklistNode *)0;
     }
-
-    bwprintf(COM2, "---NameServer Initialized---\n\r");
 
     int tid;
     int serviceCount = 0;

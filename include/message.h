@@ -13,9 +13,9 @@
 #define RPSMSG_SIGNUP 0
 #define RPSMSG_PLAY 1
 #define RPSMSG_QUIT 2
-#define RPSMSG_ROCK 1
-#define RPSMSG_PAPER 2
-#define RPSMSG_SCISSORS 3
+#define RPSMSG_ROCK 0
+#define RPSMSG_PAPER 1
+#define RPSMSG_SCISSORS 2
 
 typedef struct Message
 {
