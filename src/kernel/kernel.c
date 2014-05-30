@@ -13,6 +13,9 @@
 #include <bwio.h>
 
 void kernel_init(SharedVariables *sharedVariables) {
+    /* Setup BWIO */
+    bwsetfifo( COM2, OFF );
+
     /* Store kerent function's address in swi jump table. */
     int * addr = (int *) 0x28;
     *addr = (int)(sharedVariables->loadOffset) + (int)&kerent;
