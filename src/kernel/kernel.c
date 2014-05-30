@@ -12,6 +12,18 @@
 #include <syscall.h>
 #include <bwio.h>
 
+void hardware_init() {
+    /* Enable Cache */
+    asm("mrc p15, 0, r0, c1, c0, 0");   // http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0198e/I1039296.html
+    asm("orr r0, r0, #4096");           // bit 12 for I-cache
+    asm("orr r0, r0, #4");              // bit 2 for D-cache
+    asm("mcr p15, 0, r0, c1, c0, 0");
+
+    /* Invalid Caches */
+    asm("mov r0, #0");
+    asm("mcr p15, 0, r0, c7, c7, 0");   // Invalid both I-cache and D-cache
+}
+
 void kernel_init(SharedVariables *sharedVariables) {
     /* Setup BWIO */
     bwsetfifo( COM2, OFF );
@@ -31,6 +43,8 @@ void kernel_init(SharedVariables *sharedVariables) {
 }
 
 void kernel_run() {
+    hardware_init();
+
     /* Memory allocation and build SharedVairables */
 
     // Initialization (Scheduler)
