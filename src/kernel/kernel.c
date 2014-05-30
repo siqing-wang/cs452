@@ -3,6 +3,9 @@
  */
 
 #include <kernel.h>
+#include <task.h>
+#include <request.h>
+#include <shared_variable.h>
 #include <context_switch.h>
 #include <scheduler.h>
 #include <task_queue.h>
@@ -13,6 +16,13 @@
 #include <syscall.h>
 #include <bwio.h>
 
+void hardware_init();
+void kernel_init(SharedVariables* sharedVariables);
+void activate(Task *active, Request **request);
+
+/*
+ * Initialize hardware related things such as cache & interrupt.
+ */
 void hardware_init() {
     /* Enable Cache */
     asm("mrc p15, 0, r0, c1, c0, 0");   // http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0198e/I1039296.html
@@ -25,6 +35,9 @@ void hardware_init() {
     asm("mcr p15, 0, r0, c7, c7, 0");   // Invalid both I-cache and D-cache
 }
 
+/*
+ * Initialize kernel components.
+ */
 void kernel_init(SharedVariables *sharedVariables) {
     /* Setup BWIO */
     bwsetfifo( COM2, OFF );
@@ -44,6 +57,9 @@ void kernel_init(SharedVariables *sharedVariables) {
     scheduler_add(sharedVariables, firstTask);
 }
 
+/*
+ * Start kernel.
+ */
 void kernel_run() {
     hardware_init();
 
@@ -87,6 +103,9 @@ void kernel_run() {
     }
 }
 
+/*
+ * Activate a given task. i.e. context switch to that task in userspace.
+ */
 void activate(Task *active, Request **request) {
     /*
      * Why &(active->sp):

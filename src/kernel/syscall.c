@@ -8,6 +8,9 @@
 #include <utils.h>
 #include <nameserver.h>
 
+// Internal helper.
+int sendRequest(Request* request);
+
 // Task Creation
 int Create(int priority, void (*code)()) {
     Request request;                    // Create request structure and store required fields.
@@ -51,7 +54,6 @@ int Send(int tid, void *msg, int msglen, void *reply, int replylen) {
     message.destTid = tid;
     message.msglen = msglen;
     message.replylen = replylen;
-    // memcopy(message.msg, msg, msglen);
     message.msg = msg;
 
     Request request;
@@ -87,7 +89,6 @@ int Reply(int tid, void *reply, int replylen) {
     Message message;
     message.destTid = tid;
     message.msglen = replylen;
-    // memcopy(message.msg, msg, msglen);
     message.msg = reply;
 
     Request request;

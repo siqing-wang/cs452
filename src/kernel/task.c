@@ -65,7 +65,7 @@ void task_exit(SharedVariables* sharedVariables, Task* task) {
     taskQueue_push(sharedVariables->free_list, task);   // Put task back to free_list
 }
 
-Task* task_find(SharedVariables* sharedVariables, int tid) {
+Task* task_get(SharedVariables* sharedVariables, int tid) {
     int index = tid % TASK_MAX_NUM;
     Task* task = (Task*)(sharedVariables->tasks + index);
 

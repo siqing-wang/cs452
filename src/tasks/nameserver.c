@@ -7,6 +7,8 @@
 #include <syscall.h>
 #include <utils.h>
 
+#define SERVICETABLE_MAX_SIZE 32
+
 void nameServer() {
     ServerLinklistNode linklistTable[SERVICETABLE_MAX_SIZE];
     ServerLinklistNode *serviceTable[HASH_TABLE_SIZE];
@@ -22,7 +24,8 @@ void nameServer() {
     for(;;) {
         int byteSent = Receive(&tid, &message, sizeof(NameserverMessage));
         if (byteSent > sizeof(NameserverMessage)) {
-            warning("Nameserver Message Request overflowed.");
+            warning("Nameserver: Message Request overflowed. Ignored.");
+            continue;
         }
 
         serverName = message.serverName;

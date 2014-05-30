@@ -7,6 +7,11 @@
 #include <send_queue.h>
 #include <utils.h>
 
+void storeRetValue(Task* task, int retVal);
+int sendMessage(SharedVariables* sharedVariables, Task* active, Message *message);
+void readMessage(SharedVariables* sharedVariables, Task* active, Message *message);
+int replyMessage(SharedVariables* sharedVariables, Task* active, Message *message);
+
 void request_handle(SharedVariables* sharedVariables, Task* active, Request *request) {
     switch(request->syscall) {
         Task *task;
@@ -67,7 +72,7 @@ void storeRetValue(Task* task, int retVal) {
 }
 
 int sendMessage(SharedVariables* sharedVariables, Task* active, Message *message) {
-    Task* destTask = task_find(sharedVariables, message->destTid);
+    Task* destTask = task_get(sharedVariables, message->destTid);
     if (destTask == 0) {
         return ERR_NOEXIST_TID;
     } else if (destTask->state == TASK_SEND_BLK) {
@@ -106,7 +111,7 @@ void readMessage(SharedVariables* sharedVariables, Task* active, Message *messag
 }
 
 int replyMessage(SharedVariables* sharedVariables, Task* active, Message *message) {
-    Task* destTask = task_find(sharedVariables, message->destTid);
+    Task* destTask = task_get(sharedVariables, message->destTid);
     if (destTask == 0) {
         return ERR_NOEXIST_TID;
     } else if (destTask->state != TASK_RPLY_BLK) {

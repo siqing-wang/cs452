@@ -7,6 +7,8 @@
  *      Get next available task pointer and initialize its fields
  *  task_exit
  *      Task has exited so recycle task descriptor for next use
+ *  task_get
+ *      Return corresponding Task* given tid or 0 if not found.
  */
 
 #ifndef __TASK_H__
@@ -50,6 +52,6 @@ typedef struct Task
 void task_init(SharedVariables* sharedVariables);
 Task* task_create(SharedVariables* sharedVariables, int parent_tid, int priority, void (*code));
 void task_exit(SharedVariables* sharedVariables, Task* task);
-Task* task_find(SharedVariables* sharedVariables, int tid);
+Task* task_get(SharedVariables* sharedVariables, int tid);
 
 #endif

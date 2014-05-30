@@ -38,7 +38,4 @@ int Reply(int tid, void *reply, int replylen);
 int RegisterAs(char *name);
 int WhoIs(char *name);
 
-// Helper function
-int sendRequest(Request* request);
-
 #endif

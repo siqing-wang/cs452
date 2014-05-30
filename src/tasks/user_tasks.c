@@ -28,14 +28,14 @@ void rpsServer() {
     int player2Choice = -1;
 
     int tid;
-    int inGame = 0;
     int sendPlayerLeftMsg = 0;
     int syscallResult = 0;
 
     for(;;) {
         int byteSent = Receive(&tid, &message, sizeof(RPSMessage));
         if (byteSent > sizeof(RPSMessage)) {
-            warning("RPSMessage Request overflowed.");
+            warning("RPSMessage: Request Message overflowed. Request ignored.");
+            continue;
         }
 
         switch (message.type) {
@@ -51,19 +51,22 @@ void rpsServer() {
                     player2Tid = tid;
                     Reply(player1Tid, "Game start.", 32);
                     Reply(player2Tid, "Game start.", 32);
-                    inGame = 1;
                     nextPlayer = 2;
                 }
                 break;
             case RPSMSG_PLAY :
+                /* Put the choices in place. */
                 if (tid == player1Tid) {
                     player1Choice = message.choice;
-                }
-                else if (tid == player2Tid) {
+                } else if (tid == player2Tid) {
                     player2Choice = message.choice;
+                } else {
+                    warning("NameServer: Got a messgae from a non player?!");
                 }
 
+                /* A letter to the diched. = =|| */
                 if (sendPlayerLeftMsg && (tid == player1Tid)) {
+                    /* play1 is the only one left. */
                     if (playerCount < 2) {
                         Reply(tid, NO_OPPONENT, 32);
                     }
@@ -75,6 +78,7 @@ void rpsServer() {
                     player2Choice = -1;
                 }
 
+                /* Both players have made a choice */
                 if ((player1Choice != -1) && (player2Choice != -1)) {
                     if (player1Choice == player2Choice) {
                         Reply(player1Tid, "Tier.", 32);
@@ -100,22 +104,26 @@ void rpsServer() {
                 playerCount --;
                 Reply(tid, "Game Finish.", 32);
                 if (tid == player1Tid) {
+                    /* When a player left, the one left will be player 1. */
                     player1Tid = player2Tid;
                 }
 
                 if (playerCount >= 2) {
+                    /* More than 2 players left. */
                     player2Tid = playerQueue[nextPlayer];
                     Reply(player2Tid, "Game start.", 32);
                     nextPlayer ++;
                     syscallResult = Reply(player1Tid, OPPONENT_SWITCHED, 32);
-                }
-                else {
+                } else {
                     syscallResult = Reply(player1Tid, NO_OPPONENT, 32);
                 }
+
                 if (syscallResult < 0) {
+                    /* Failing means the remaining player has not made choice. ()*/
                     sendPlayerLeftMsg = 1;
                 }
 
+                /* Reset the player choices. */
                 player1Choice = -1;
                 player2Choice = -1;
                 break;
@@ -147,7 +155,7 @@ void rpsClient() {
         seed = rand(seed);
         switch(seed % 7) {
             case 0 :
-            case 1:
+            case 1 :
                 message.type = RPSMSG_PLAY;
                 message.choice = RPSMSG_ROCK;
                 bwprintf(COM2, "Task%d : Rock.\n\r", myTid);

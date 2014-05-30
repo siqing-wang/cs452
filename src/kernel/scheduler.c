@@ -7,6 +7,7 @@
 #include <utils.h>
 
 void scheduler_init(SharedVariables* sharedVariables) {
+    /* Initialize shared variables. */
     TaskQueue* task_queues = sharedVariables->task_queues;
     int i = 0;
     for ( ; i <= PRIORITY_MAX; i++) {

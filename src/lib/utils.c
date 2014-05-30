@@ -30,6 +30,7 @@ void debug(char *msg) {
 }
 
 void warning(char *msg) {
+    /* TODO: add red color. */
     bwputstr(COM2, "WARNING: ");
     bwputstr(COM2, msg);
     bwputstr(COM2, "\n\r");
@@ -87,6 +88,7 @@ void stringCopy(char *dest, char* src, int len) {
     *dest = '\0';
 }
 
+/* XoR shift random. */
 unsigned long rand(unsigned long x) {
     x ^= x >> 12; // a
     x ^= x << 25; // b

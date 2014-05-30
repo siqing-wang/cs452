@@ -7,10 +7,12 @@
 #define __SERVER_LINKLIST_H__
 
 #include <message.h>
+#include <nameserver.h>
 
+// TODO: encapsulate this into a hash table.
 typedef struct ServerLinklistNode {
-	char serverName[SERVERNAME_MAX_LENGTH];
-	int tid;
+    char serverName[SERVERNAME_MAX_LENGTH];
+    int tid;
     struct ServerLinklistNode* next;
 } ServerLinklistNode;
 
