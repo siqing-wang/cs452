@@ -9,7 +9,7 @@
 #include <bwio.h>
 #include <utils.h>
 
-#define NUM_PLAYER 5
+#define NUM_PLAYER 4
 #define OPPONENT_SWITCHED "Opponent Switched."
 #define NO_OPPONENT "No Opponent Left."
 
