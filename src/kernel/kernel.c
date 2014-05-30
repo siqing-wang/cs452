@@ -9,6 +9,7 @@
 #include <send_queue.h>
 #include <user_tasks.h>
 #include <test_tasks.h>
+#include <pm_tasks.h>
 #include <syscall.h>
 #include <bwio.h>
 
@@ -38,6 +39,7 @@ void kernel_init(SharedVariables *sharedVariables) {
 
     /* Create and add first task. */
     // Task *firstTask = task_create(sharedVariables, -1, PRIORITY_MED, &firstTestTask);    // For test only
+    // Task *firstTask = task_create(sharedVariables, -1, PRIORITY_MED, &firstPmTask);      // For PM only
     Task *firstTask = task_create(sharedVariables, -1, PRIORITY_MED, &firstUserTask);
     scheduler_add(sharedVariables, firstTask);
 }
