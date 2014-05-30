@@ -9,7 +9,7 @@
 #include <bwio.h>
 #include <utils.h>
 
-#define NUM_PLAYER 6
+#define NUM_PLAYER 5
 #define OPPONENT_SWITCHED "Opponent Switched."
 #define NO_OPPONENT "No Opponent Left."
 
@@ -178,9 +178,12 @@ void rpsClient() {
                 Exit();
                 break;
         }
+        if (stringEquals(reply, OPPONENT_SWITCHED)) {
+            bwprintf(COM2, "Task%d : %s\n\r", myTid, OPPONENT_SWITCHED);
+        }
         Pass();
-
         if (stringEquals(reply, NO_OPPONENT)) {
+            bwprintf(COM2, "Task%d : %s\n\r", myTid, NO_OPPONENT);
             message.type = RPSMSG_QUIT;
             bwprintf(COM2, "Task%d : Quit.\n\r", myTid);
             Send(serverTid, &message, sizeof(RPSMessage), reply, 32);
