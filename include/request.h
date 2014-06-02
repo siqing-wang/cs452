@@ -43,6 +43,7 @@
 typedef struct Request
 {
     int syscall;
+    int retVal;
 
     // Task Creation
     int priority;

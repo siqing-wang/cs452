@@ -19,9 +19,8 @@ kerent:
 	# r1 = spsr of the active task
 	mrs r1, cpsr
 
-	# push spsr(r1), pc(r2), and other registers of the active task onto its stack
-	# will push return value(r0) later when handling syscall request
-	stmfd sp!, {r1, r2, r4, r5, r6, r7, r8, r9, r10, fp, ip, lr}
+	# push request*(r0), spsr(r1), pc(r2), and other registers of the active task onto its stack
+	stmfd sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, fp, ip, lr}
 
 	# r2 = ptr to request(already saved in r0 by request_handle)
 	mov r2, r0
@@ -66,8 +65,8 @@ kerxit:
 	# because r0 contains a ptr to sp we use ldr instead of "mov sp, r0"
 	ldr sp, [r0]
 
-	# pop return value(r0), spsr(r1), pc/code(r2) and other saved registers of the active task from its stack
-	ldmfd sp!, {r0, r1, r2, r4, r5, r6, r7, r8, r9, r10, fp, ip, lr}
+	# pop request*(r0), spsr(r1), pc/code(r2) and other saved registers of the active task from its stack
+	ldmfd sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, fp, ip, lr}
 
 	# change to svc state;
 	msr cpsr_c, #0xd3

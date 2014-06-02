@@ -149,6 +149,5 @@ int WhoIs(char *name) {
 int sendRequest(Request* request) {
     /* Request's ptr is already in r0 */
     asm("swi");                         // Call kerent with request
-    register int retVal asm ("r0");     // Return value from kernel at r0
-    return retVal;
+    return request->retVal;
 }
