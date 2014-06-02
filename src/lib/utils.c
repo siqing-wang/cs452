@@ -4,21 +4,25 @@
 
 #include <utils.h>
 #include <bwio.h>
-
+#include <ui.h>
 
 void assert(int cond, char* msg) {
     if (!cond) {
-        bwputstr(COM2, "\033[31mAssertion Failed: ");
+        bwputstr(COM2, TCS_RED);
+        bwputstr(COM2, "Assertion Failed: ");
         bwputstr(COM2, msg);
-        bwputstr(COM2, "\n\r\033[0m");
+        bwputstr(COM2, "\n\r");
+        bwputstr(COM2, TCS_RESET);
     }
 }
 
 void assertEquals(int expected, int actual, char* msg) {
     if (expected != actual) {
-        bwputstr(COM2, "\033[31mAssertion Failed: ");
+        bwputstr(COM2, TCS_RED);
+        bwputstr(COM2, "Assertion Failed: ");
         bwputstr(COM2, msg);
-        bwprintf(COM2, " expected = %d, actual = %d\n\r\033[0m", expected, actual);
+        bwprintf(COM2, " expected = %d, actual = %d\n\r", expected, actual);
+        bwputstr(COM2, TCS_RESET);
     }
 }
 
@@ -31,9 +35,11 @@ void debug(char *msg) {
 
 void warning(char *msg) {
     /* TODO: add red color. */
+    bwputstr(COM2, TCS_YELLOW);
     bwputstr(COM2, "WARNING: ");
     bwputstr(COM2, msg);
     bwputstr(COM2, "\n\r");
+    bwputstr(COM2, TCS_RESET);
 }
 
 void memcopy(char *dest, const char *src, int size) {
