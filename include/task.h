@@ -21,7 +21,7 @@
 #define USER_STACK_LOW      0x300000
 #define USER_STACK_HIGH     0x1300000
 #define STACK_SIZE          ((USER_STACK_HIGH - USER_STACK_LOW) / TASK_MAX_NUM)
-#define USER_MODE           0x50
+#define USER_MODE           0x10
 
 #define TASK_UNINIT         0
 #define TASK_ACTIVE         1

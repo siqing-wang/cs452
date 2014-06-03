@@ -24,6 +24,12 @@ void activate(Task *active, Request **request);
  * Initialize hardware related things such as cache & interrupt.
  */
 void hardware_init() {
+    /* Disable Interrupts */
+    asm("mrs r0, cpsr");
+    // asm("orr r0, r0, #64");             // Disable FIQ (Not working...)
+    asm("orr r0, r0, #128");            // Disable IRQ
+    asm("msr cpsr, r0");
+
     /* Enable Cache */
     asm("mrc p15, 0, r0, c1, c0, 0");   // http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0198e/I1039296.html
     asm("orr r0, r0, #4096");           // bit 12 for I-cache
