@@ -78,14 +78,14 @@ kerent:
 	# acquire the lr, which is the pc of the active task, temporarily save to r2
 	mov r2, lr
 
+	# r1 = spsr of the active task
+	mrs r1, spsr
+
 	# change to system state;
 	msr cpsr_c, #0xdf
 
 	# overwrite lr with the value from r2
 	mov lr, r2
-
-	# r1 = spsr of the active task
-	mrs r1, cpsr
 
 	# push request*(r0), spsr(r1), pc(r2), and other registers of the active task onto its stack
 	stmfd sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, fp, ip, lr}
