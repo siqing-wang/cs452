@@ -25,8 +25,6 @@ void activate(Task *active, Request **request);
  * Initialize hardware related things such as cache & interrupt.
  */
 void hardware_init() {
-    interrupt_init();
-
     /* Enable Cache */
     asm("mrc p15, 0, r0, c1, c0, 0");   // http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0198e/I1039296.html
     asm("orr r0, r0, #4096");           // bit 12 for I-cache
@@ -36,6 +34,8 @@ void hardware_init() {
     /* Invalid Caches */
     asm("mov r0, #0");
     asm("mcr p15, 0, r0, c7, c7, 0");   // Invalid both I-cache and D-cache
+
+    interrupt_init();
 }
 
 /*
@@ -48,6 +48,10 @@ void kernel_init(SharedVariables *sharedVariables) {
     /* Store kerent function's address in swi jump table. */
     int * addr = (int *) 0x28;
     *addr = (int)(sharedVariables->loadOffset) + (int)&kerent;
+
+    /* Store intent function's address in interrupt jum table. */
+    addr = (int *) 0x38;
+    *addr = (int)(sharedVariables->loadOffset) + (int)&intent;
 
     /* Initialize kernel components. */
     task_init(sharedVariables);
@@ -92,8 +96,9 @@ void kernel_run() {
     /* Start Kernel */
     kernel_init(&sharedVariables);
 
-    int i;
+    int i = 0;
     for( ;; i++) {
+        bwprintf(COM2, "Kernel round %d\n\r", i);
         Task *active = scheduler_getNextTask(&sharedVariables);
         if (active == 0) {
             /* No available tasks from scheduler. */
@@ -102,7 +107,11 @@ void kernel_run() {
         Request *request;
         /* Run user task and get user request in userspace. */
         activate(active, &request);
-        request_handle(&sharedVariables, active, request);
+        if (request == (Request*)0) {
+            interrupt_handle(&sharedVariables, active);
+        } else {
+            request_handle(&sharedVariables, active, request);
+        }
     }
 }
 

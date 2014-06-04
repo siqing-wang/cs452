@@ -1,6 +1,68 @@
 	.file	"context_switch.c"
 	.text
 	.align	2
+	.global	intent
+	.type	intent, %function
+intent:
+	@ args = 0, pretend = 0, frame = 0
+	@ frame_needed = 1, uses_anonymous_args = 0
+
+	# change to system state;
+	msr cpsr_c, #0xdf
+
+	# push all scratch registers of the active task onto its stack
+	stmfd sp!, {r0, r1, r2, r3, ip}
+
+	# # change to irq state;
+	msr cpsr_c, #0x92
+
+	# r1 = spsr
+	mrs r1, spsr
+
+	# r2 = lr
+	mov r2, lr
+
+	# store spsr and lr on local stack
+	stmfd sp!, {r1, r2}
+
+	# r0 = 0, then Reuqest* will be (Request *)0
+	mov r0, #0
+
+	# change to svc state;
+	msr cpsr_c, #0xd3
+
+	# kerent
+	bl kerent
+
+	# back from kernel
+
+	# change to irq state;
+	msr cpsr_c, #0x92
+
+	# load spsr and lr from local stack
+	ldmfd sp!, {r1, r2}
+
+	# spsr_irq = r1
+	msr spsr, r1
+
+	# lr_irq = r2
+	mov lr, r2
+
+	# change to system state;
+	msr cpsr_c, #0xdf
+
+	# pop all scratch registers of the active task from its stack
+	ldmfd sp!, {r0, r1, r2, r3, ip}
+
+	# change to irq state;
+	msr cpsr_c, #0x92
+
+	# back to state before interrupt
+	# pc = lr_irq, cpsr = spsr_irq
+	movs pc, lr
+
+	.size	intent, .-intent
+	.align	2
 	.global	kerent
 	.type	kerent, %function
 kerent:

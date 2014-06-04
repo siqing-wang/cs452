@@ -9,213 +9,28 @@
 #include <bwio.h>
 #include <utils.h>
 
-#define NUM_PLAYER 4
-#define OPPONENT_SWITCHED "Opponent Switched."
-#define NO_OPPONENT "No Opponent Left."
+void testTask() {
+    int i = 0;
+    int j = 0;
+    for(;i<10000000;i++) {
+        for(;j<100000;j++) {
 
-void rpsServer() {
-    RegisterAs("RPS Server");
-
-    RPSMessage message;
-    int playerQueue[NUM_PLAYER];
-    int playerQueueIndex = 0;
-    int playerCount = 0;
-    int nextPlayer = 0;
-
-    int player1Tid = -1;
-    int player2Tid = -1;
-    int player1Choice = -1;
-    int player2Choice = -1;
-
-    int tid;
-    int sendPlayerLeftMsg = 0;
-    int syscallResult = 0;
-
-    for(;;) {
-        int byteSent = Receive(&tid, &message, sizeof(RPSMessage));
-        if (byteSent > sizeof(RPSMessage)) {
-            warning("RPSMessage: Request Message overflowed. Request ignored.");
-            continue;
         }
-
-        switch (message.type) {
-            case RPSMSG_SIGNUP :
-                playerQueue[playerQueueIndex] = tid;
-                playerQueueIndex ++;
-                playerCount ++;
-
-                if (playerCount == 1) {
-                    player1Tid = tid;
-                }
-                else if (playerCount == 2) {
-                    player2Tid = tid;
-                    Reply(player1Tid, "Game start.", 32);
-                    Reply(player2Tid, "Game start.", 32);
-                    nextPlayer = 2;
-                }
-                break;
-            case RPSMSG_PLAY :
-                /* Put the choices in place. */
-                if (tid == player1Tid) {
-                    player1Choice = message.choice;
-                } else if (tid == player2Tid) {
-                    player2Choice = message.choice;
-                } else {
-                    warning("NameServer: Got a messgae from a non player?!");
-                }
-
-                /* A letter to the diched. = =|| */
-                if (sendPlayerLeftMsg && (tid == player1Tid)) {
-                    /* play1 is the only one left. */
-                    if (playerCount < 2) {
-                        Reply(tid, NO_OPPONENT, 32);
-                    }
-                    else {
-                        Reply(tid, OPPONENT_SWITCHED, 32);
-                    }
-                    sendPlayerLeftMsg = 0;
-                    player1Choice = -1;
-                    player2Choice = -1;
-                }
-
-                /* Both players have made a choice */
-                if ((player1Choice != -1) && (player2Choice != -1)) {
-                    if (player1Choice == player2Choice) {
-                        Reply(player1Tid, "Tier.", 32);
-                        Reply(player2Tid, "Tier.", 32);
-                        bwprintf(COM2, "Tier\n\r");
-                    }
-                    else if ((player1Choice + 1) % 3 == player2Choice) {
-                        Reply(player1Tid, "Lose.", 32);
-                        Reply(player2Tid, "Win.", 32);
-                        bwprintf(COM2, "Task%d Win.\n\r", player2Tid);
-                    }
-                    else {
-                        Reply(player1Tid, "Win.", 32);
-                        Reply(player2Tid, "Lose.", 32);
-                        bwprintf(COM2, "Task%d Win.\n\r", player1Tid);
-                    }
-                    bwgetc(COM2);
-                    player1Choice = -1;
-                    player2Choice = -1;
-                }
-                break;
-            case RPSMSG_QUIT :
-                playerCount --;
-                Reply(tid, "Game Finish.", 32);
-                if (tid == player1Tid) {
-                    /* When a player left, the one left will be player 1. */
-                    player1Tid = player2Tid;
-                }
-
-                if (playerCount >= 2) {
-                    /* More than 2 players left. */
-                    player2Tid = playerQueue[nextPlayer];
-                    Reply(player2Tid, "Game start.", 32);
-                    nextPlayer ++;
-                    syscallResult = Reply(player1Tid, OPPONENT_SWITCHED, 32);
-                } else {
-                    syscallResult = Reply(player1Tid, NO_OPPONENT, 32);
-                }
-
-                if (syscallResult < 0) {
-                    /* Failing means the remaining player has not made choice. ()*/
-                    sendPlayerLeftMsg = 1;
-                }
-
-                /* Reset the player choices. */
-                player1Choice = -1;
-                player2Choice = -1;
-                break;
-            default :
-                warning("Unknown RPSMessage Type.");
-        }
+        bwprintf(COM2, "/");
     }
-
-    warning("NameServer Finished.");
+    bwprintf(COM2, "leave\n\r");
     Exit();
-}
-
-void rpsClient() {
-    int myTid = MyTid();
-    int serverTid = WhoIs("RPS Server");
-
-    RPSMessage message;
-    char reply[32];
-
-    unsigned long seed = myTid;
-
-    message.type = RPSMSG_SIGNUP;
-    Send(serverTid, &message, sizeof(RPSMessage), reply, 32);
-    bwprintf(COM2, "Task%d Join the Game\n\r", myTid);
-
-    Pass();
-
-    for(;;) {
-        seed = rand(seed);
-        switch(seed % 7) {
-            case 0 :
-            case 1 :
-                message.type = RPSMSG_PLAY;
-                message.choice = RPSMSG_ROCK;
-                bwprintf(COM2, "Task%d : Rock.\n\r", myTid);
-                Send(serverTid, &message, sizeof(RPSMessage), reply, 32);
-                // bwprintf(COM2, "Task%d : %s\n\r", myTid, reply);
-                break;
-            case 2 :
-            case 3 :
-                message.type = RPSMSG_PLAY;
-                message.choice = RPSMSG_PAPER;
-                bwprintf(COM2, "Task%d : Paper.\n\r", myTid);
-                Send(serverTid, &message, sizeof(RPSMessage), reply, 32);
-                // bwprintf(COM2, "Task%d : %s\n\r", myTid, reply);
-                break;
-            case 4 :
-            case 5 :
-                message.type = RPSMSG_PLAY;
-                message.choice = RPSMSG_SCISSORS;
-                bwprintf(COM2, "Task%d : Scissors.\n\r", myTid);
-                Send(serverTid, &message, sizeof(RPSMessage), reply, 32);
-                // bwprintf(COM2, "Task%d : %s\n\r", myTid, reply);
-                break;
-            case 6 :
-                message.type = RPSMSG_QUIT;
-                bwprintf(COM2, "Task%d : Quit.\n\r", myTid);
-                Send(serverTid, &message, sizeof(RPSMessage), reply, 32);
-                bwprintf(COM2, "Task%d Leave the Game\n\r", myTid);
-                Exit();
-                break;
-        }
-        if (stringEquals(reply, OPPONENT_SWITCHED)) {
-            bwprintf(COM2, "Task%d : %s\n\r", myTid, OPPONENT_SWITCHED);
-        }
-        Pass();
-        if (stringEquals(reply, NO_OPPONENT)) {
-            bwprintf(COM2, "Task%d : %s\n\r", myTid, NO_OPPONENT);
-            message.type = RPSMSG_QUIT;
-            bwprintf(COM2, "Task%d : Quit.\n\r", myTid);
-            Send(serverTid, &message, sizeof(RPSMessage), reply, 32);
-            bwprintf(COM2, "Task%d Leave the Game\n\r", myTid);
-            Exit();
-        }
-    }
 }
 
 void firstUserTask() {
     int tid;
 
     // Create NameServer
-    tid = Create(PRIORITY_HIGH, &nameServer);
-    assertEquals(NAMESERVER_TID, tid, "NameServer should be the first task.");
+    // tid = Create(PRIORITY_HIGH, &nameServer);
+    // assertEquals(NAMESERVER_TID, tid, "NameServer should be the first task.");
 
     // Create RPS Server
-    tid = Create(PRIORITY_MED + 2, &rpsServer);
-
-    // Create RPS Client1
-    int i = 0;
-    for(; i < NUM_PLAYER; i++) {
-        tid = Create(PRIORITY_MED - 1, &rpsClient);
-    }
+    tid = Create(PRIORITY_MED + 2, &testTask);
 
     Exit();
 }

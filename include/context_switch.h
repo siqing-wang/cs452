@@ -13,6 +13,7 @@
 #include <task.h>
 #include <request.h>
 
+void intent();
 void kerent();
 void kerxit(int **sp, Request **req);
 
