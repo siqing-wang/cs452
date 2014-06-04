@@ -29,9 +29,9 @@ void interrupt_init(SharedVariables* sharedVariables) {
 
 void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
     if (interrupt_check(INTERRUPT_TIMER)) {
-        debug("Timer interrupt");
         timer_clear();
 
+        event_unblockTask(sharedVariables, INTERRUPT_TIMER);
         /* Add current task back to scheduler. */
         if (active->state == TASK_ACTIVE) {
             active->state = TASK_READY;
