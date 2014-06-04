@@ -12,5 +12,6 @@
 
 void interrupt_init();
 void interrupt_handle(SharedVariables* sharedVariables, Task* active);
+void interrupt_reset();
 
 #endif

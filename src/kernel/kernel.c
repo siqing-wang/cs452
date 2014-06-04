@@ -102,7 +102,7 @@ void kernel_run() {
         Task *active = scheduler_getNextTask(&sharedVariables);
         if (active == 0) {
             /* No available tasks from scheduler. */
-            return;
+            break;
         }
         Request *request;
         /* Run user task and get user request in userspace. */
@@ -113,6 +113,8 @@ void kernel_run() {
             request_handle(&sharedVariables, active, request);
         }
     }
+
+    interrupt_reset();
 }
 
 /*

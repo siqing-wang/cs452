@@ -46,6 +46,14 @@ void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
     }
 }
 
+void interrupt_reset() {
+    interrupt_clearAll();
+
+    // Disable Timer
+    timer_clear();
+    interrupt_disable(INTERRUPT_TIMER);
+}
+
 void interrupt_enable(int interruptId) {
     assert((interruptId >= 0) && (interruptId < 64), "Invalid Interrupt Id");
     unsigned int *interruptEnable;

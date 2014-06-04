@@ -12,11 +12,12 @@
 void testTask() {
     int i = 0;
     int j = 0;
-    for(;i<10000000;i++) {
-        for(;j<100000;j++) {
+    for(;i<10000;i++) {
+        j = 0;
+        for(;j<10000;j++) {
 
         }
-        bwprintf(COM2, "/");
+        // bwprintf(COM2, "/");
     }
     bwprintf(COM2, "leave\n\r");
     Exit();
