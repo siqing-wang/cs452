@@ -1,5 +1,5 @@
 /*
- *	task_queue.c
+ *	send_queue.c
  */
 
 #include <send_queue.h>

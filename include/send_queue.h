@@ -1,5 +1,5 @@
 /*
- *  sned_queue.h
+ *  send_queue.h
  *      Implements a ring queue for tasks with fixed size.
  *
  *  sendQueue_init
