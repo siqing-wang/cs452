@@ -19,8 +19,8 @@ intent:
 	# r1 = spsr
 	mrs r1, spsr
 
-	# r2 = lr
-	mov r2, lr
+	# r2 = lr - 4 // we need to jump to original instruction
+	sub r2, lr, #4
 
 	# store spsr and lr on local stack
 	stmfd sp!, {r1, r2}
