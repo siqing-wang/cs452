@@ -13,7 +13,7 @@ intent:
 	# push all scratch registers of the active task onto its stack
 	stmfd sp!, {r0, r1, r2, r3, ip}
 
-	# # change to irq state;
+	# change to irq state;
 	msr cpsr_c, #0x92
 
 	# r1 = spsr
@@ -22,7 +22,10 @@ intent:
 	# r2 = lr - 4 // we need to jump to original instruction
 	sub r2, lr, #4
 
-	# store spsr and lr on local stack
+	# change to system state;
+	msr cpsr_c, #0xdf
+
+	# store spsr and lr on user stack
 	stmfd sp!, {r1, r2}
 
 	# r0 = 0, then Reuqest* will be (Request *)0
@@ -36,11 +39,14 @@ intent:
 
 	# back from kernel
 
+	# change to system state;
+	msr cpsr_c, #0xdf
+
+	# load spsr and lr from user stack
+	ldmfd sp!, {r1, r2}
+
 	# change to irq state;
 	msr cpsr_c, #0x92
-
-	# load spsr and lr from local stack
-	ldmfd sp!, {r1, r2}
 
 	# spsr_irq = r1
 	msr spsr, r1

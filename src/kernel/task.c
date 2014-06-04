@@ -50,7 +50,7 @@ Task* task_create(SharedVariables* sharedVariables, int parent_tid, int priority
     task->parent_tid = parent_tid;
     task->priority = priority;
     task->state = TASK_READY;
-    task->sp = task->sp - 13;                   // Move up 13 to store 13 registers
+    task->sp = task->sp - 14;                   // Move up 14 to store 14 registers
     *(task->sp) = 1;                            // return value = 1
     *(task->sp + 1 ) = USER_MODE;               // spsr = USER_MODE
     *(task->sp + 2 ) = (int)(sharedVariables->loadOffset) + (int)code;      // pc = code
