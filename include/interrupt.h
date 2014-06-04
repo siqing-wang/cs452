@@ -10,7 +10,7 @@
 
 #define INTERRUPT_TIMER 51
 
-void interrupt_init();
+void interrupt_init(SharedVariables* sharedVariables);
 void interrupt_handle(SharedVariables* sharedVariables, Task* active);
 void interrupt_reset();
 

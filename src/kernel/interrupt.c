@@ -3,6 +3,7 @@
  */
 
 #include <interrupt.h>
+#include <event.h>
 #include <scheduler.h>
 #include <ts7200.h>
 #include <timer.h>
@@ -13,15 +14,7 @@ void interrupt_disable(int interruptId);
 int interrupt_check(int interruptId);
 void interrupt_clearAll();
 
-void interrupt_init() {
-     /* Disable IRQ */
-    asm("mrs r0, cpsr");
-    asm("orr r0, r0, #128");
-    asm("msr cpsr, r0");
-
-    // Kernel initializes ICU
-
-
+void interrupt_init(SharedVariables* sharedVariables) {
     interrupt_clearAll();
     // For each device
     //  Kernel initializes hardware
@@ -30,6 +23,7 @@ void interrupt_init() {
     // Initiailize Timer
     timer_clear();
     timer_init();
+    event_addInterrupt(sharedVariables, EVENT_TIMER, INTERRUPT_TIMER);
     interrupt_enable(INTERRUPT_TIMER);
 }
 

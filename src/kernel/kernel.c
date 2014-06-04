@@ -4,6 +4,7 @@
 
 #include <kernel.h>
 #include <task.h>
+#include <event.h>
 #include <interrupt.h>
 #include <request.h>
 #include <shared_variable.h>
@@ -35,7 +36,10 @@ void hardware_init() {
     asm("mov r0, #0");
     asm("mcr p15, 0, r0, c7, c7, 0");   // Invalid both I-cache and D-cache
 
-    interrupt_init();
+     /* Disable IRQ */
+    asm("mrs r0, cpsr");
+    asm("orr r0, r0, #128");
+    asm("msr cpsr, r0");
 }
 
 /*
@@ -56,6 +60,8 @@ void kernel_init(SharedVariables *sharedVariables) {
     /* Initialize kernel components. */
     task_init(sharedVariables);
     scheduler_init(sharedVariables);
+    event_init(sharedVariables);
+    interrupt_init(sharedVariables);
 
     /* Create and add first task. */
     // Task *firstTask = task_create(sharedVariables, -1, PRIORITY_MED, &firstTestTask);    // For test only
@@ -81,6 +87,10 @@ void kernel_run() {
     SendQueue send_queues[TASK_MAX_NUM];        // pre-alloc spaces for each task's send_queue
     TaskQueue free_list;
 
+    // Initialization (Event)
+    Event events[MAX_EVENTS_NUM];
+    EventQueue event_queue[MAX_EVENTS_NUM];
+
     // Initialization (Global)
     register int loadOffset asm ("sl");         // Get stack base from register (normally 0x00218000)
 
@@ -90,8 +100,9 @@ void kernel_run() {
     sharedVariables.tasks = tasks;
     sharedVariables.send_queues = send_queues;
     sharedVariables.free_list = &free_list;
+    sharedVariables.events = events;
+    sharedVariables.event_queue = event_queue;
     sharedVariables.loadOffset = loadOffset;
-
 
     /* Start Kernel */
     kernel_init(&sharedVariables);
