@@ -3,6 +3,7 @@
  */
 
 #include <event.h>
+#include <scheduler.h>
 
 void event_init(SharedVariables* sharedVariables) {
     Event *events = sharedVariables->events;
@@ -26,7 +27,7 @@ void event_addInterrupt(SharedVariables* sharedVariables, int eventId, int inter
     }
 }
 
-void event_hasInterrupt(SharedVariables* sharedVariables, int eventId, int interruptId) {
+int event_hasInterrupt(SharedVariables* sharedVariables, int eventId, int interruptId) {
     Event *event = (Event *)(sharedVariables->events + eventId);
     if (interruptId < 32) {
         return (unsigned int)(event->interruptMask1) & (1 << interruptId);
@@ -35,10 +36,20 @@ void event_hasInterrupt(SharedVariables* sharedVariables, int eventId, int inter
     }
 }
 
-void event_blockTask(SharedVariables* sharedVariables, int eventId, Task* active) {
-
+void event_blockTask(SharedVariables* sharedVariables, Task* active, int eventId) {
+    Event *event = (Event *)(sharedVariables->events + eventId);
+    active->state = TASK_EVENT_BLK;
+    eventQueue_push(event->event_queue, active);
 }
 
 void event_unblockTask(SharedVariables* sharedVariables, int eventId) {
-
+    Event *event = (Event *)(sharedVariables->events + eventId);
+    EventQueue *queue = event->event_queue;
+    Task* task;
+    while(!eventQueue_empty(queue)) {
+        task = eventQueue_pop(queue);
+        task->state = TASK_READY;
+        scheduler_add(sharedVariables, task);
+    }
+    event->event_queue = queue;
 }

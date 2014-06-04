@@ -22,8 +22,8 @@ typedef struct Event
 
 void event_init(SharedVariables* sharedVariables);
 void event_addInterrupt(SharedVariables* sharedVariables, int eventId, int interruptId);
-void event_hasInterrupt(SharedVariables* sharedVariables, int eventId, int interruptId);
-void event_blockTask(SharedVariables* sharedVariables, int eventId, Task* active);
+int event_hasInterrupt(SharedVariables* sharedVariables, int eventId, int interruptId);
+void event_blockTask(SharedVariables* sharedVariables, Task* active, int eventId);
 void event_unblockTask(SharedVariables* sharedVariables, int eventId);
 
 #endif

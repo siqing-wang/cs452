@@ -5,6 +5,7 @@
 #include <request.h>
 #include <scheduler.h>
 #include <send_queue.h>
+#include <event.h>
 #include <utils.h>
 
 int sendMessage(SharedVariables* sharedVariables, Task* active, Message *message);
@@ -51,6 +52,9 @@ void request_handle(SharedVariables* sharedVariables, Task* active, Request *req
         case SYS_REPLY:
             result = replyMessage(sharedVariables, active, request->message);
             request->retVal = result;
+            break;
+        case SYS_AWAITEVT:
+            event_blockTask(sharedVariables, active, request->eventId);
             break;
         default:
             /* Unrecognized syscall. */
