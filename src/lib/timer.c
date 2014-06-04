@@ -16,6 +16,11 @@ unsigned int timer_getVal() {
     return *timerVal;
 }
 
+void timer_clear() {
+    int* timerClear = (int*)(TIMER3_BASE + CLR_OFFSET);
+    *timerClear = 1;
+}
+
 void debugTimer_init() {
     int *timerCtr = (int *)(TIMER4_BASE + TIMER4_CTRL_OFFSET);
     *timerCtr = TIMER4_ENABLE_MASK | *timerCtr;

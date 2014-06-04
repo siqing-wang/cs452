@@ -13,6 +13,7 @@
 /* Timer */
 void timer_init();
 unsigned int timer_getVal();
+void timer_clear();
 void debugTimer_init();
 unsigned int debugTimer_getVal();
 
