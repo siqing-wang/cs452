@@ -10,6 +10,19 @@
 #define	TIMER3_BASE	0x80810080
 #define	TIMER4_BASE	0x80810060
 
+#define VIC1_BASE 	0x800b0000
+#define VIC2_BASE 	0x800c0000
+
+#define IRQSTATUS_OFFSET	0x00
+#define FIQSTATUS_OFFSET	0x04
+#define RAWINTR_OFFSET		0x08
+#define INTSELECT_OFFSET	0x0c
+#define INTENABLE_OFFSET	0x10
+#define INTENCLEAR_OFFSET	0x14
+#define SOFTINT_OFFSET		0x18
+#define SOFTINTCLEAR_OFFSET	0x1c
+#define PROTECTION_OFFSET	0x20
+#define VECTORADDR_OFFSET	0x30
 
 #define	LDR_OFFSET	0x00000000	// 16/32 bits, RW
 #define	VAL_OFFSET	0x00000004	// 16/32 bits, RO
@@ -62,7 +75,7 @@
 	#define RIEN_MASK	0x10	// receive int
 	#define TIEN_MASK	0x20	// transmit int
 	#define RTIEN_MASK	0x40	// receive timeout int
-	#define LBEN_MASK	0x80	// loopback 
+	#define LBEN_MASK	0x80	// loopback
 #define UART_FLAG_OFFSET	0x18	// low 8 bits
 	#define CTS_MASK	0x1
 	#define DCD_MASK	0x2
