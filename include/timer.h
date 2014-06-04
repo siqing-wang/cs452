@@ -7,7 +7,7 @@
 
 #include <ts7200.h>
 
-#define TIMER3_HZ 2000
+#define TIMER3_HZ 508000
 #define DEBUG_TIMER_HZ 983000
 
 /* Timer */

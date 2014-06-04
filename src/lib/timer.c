@@ -6,9 +6,9 @@
 
 void timer_init() {
     int *timerLoad = (int *)(TIMER3_BASE + LDR_OFFSET);
-    *timerLoad = TIMER3_HZ / 10; // precious to 10th of a second
+    *timerLoad = TIMER3_HZ / 100; // precious to 10 millisec
     int *timerCtr = (int *)(TIMER3_BASE + CRTL_OFFSET);
-    *timerCtr = ENABLE_MASK | MODE_MASK;
+    *timerCtr = ENABLE_MASK | CLKSEL_MASK | MODE_MASK;
 }
 
 unsigned int timer_getVal() {
