@@ -146,6 +146,15 @@ int WhoIs(char *name) {
     return tid;
 }
 
+// Interrupt Processing
+int AwaitEvent(int eventid) {
+    Request request;
+    request.syscall = SYS_AWAITEVT;
+    request.eventId = eventid;
+    return sendRequest(&request);
+}
+
+// Internal helper
 int sendRequest(Request* request) {
     /* Request's ptr is already in r0 */
     asm("swi");                         // Call kerent with request

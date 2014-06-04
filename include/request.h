@@ -22,6 +22,7 @@
 #define SYS_SEND 5
 #define SYS_RECV 6
 #define SYS_REPLY 7
+#define SYS_AWAITEVT 8
 
 #define ERR_UNKNOWN_SYSCALL -1
 #define ERR_CREATE_TASK_FAIL -2
@@ -51,6 +52,9 @@ typedef struct Request
 
     // Inter-task Communication
     Message *message;
+
+    // Interrupt Processing
+    int eventId;
 } Request;
 
 void request_handle(SharedVariables* sharedVariables, Task* active, Request *request);
