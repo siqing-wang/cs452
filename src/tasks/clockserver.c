@@ -36,12 +36,23 @@ void clockServer() {
     for(;;) {
         Receive(&requesterTid, &message, sizeof(message));
         switch (message.type) {
-            case CServerMSG_NOTIFIER:
+            case CServerMSG_NOTIFIER :
                 Reply(requesterTid, &msg, sizeof(msg));
                 tickCount++;
                 bwprintf(COM2, "\033[1;1HCount: %u\n\r", tickCount);
                 break;
-            case CServerMSG_CLIENT:
+            case CServerMSG_CLIENT :
+                switch (message.syscall) {
+                    case CServerMSG_DELAY :
+                        break;
+                    case CServerMSG_TIME :
+                        Reply(requesterTid, &tickCount, sizeof(tickCount));
+                        break;
+                    case CServerMSG_UNTIL :
+                        break;
+                    default :
+                        warning("Unknown Clockserver Syscall.");
+                }
                 break;
             default :
                 warning("Unknown Clockserver Message Type.");
