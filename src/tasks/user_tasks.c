@@ -19,9 +19,14 @@ typedef struct ClockClientMessage
 } ClockClientMessage;
 
 void idleTask() {
+    char c;
     for(;;) {
-
+        c = bwgetc(COM2);
+        if (c == 'q') {
+            break;
+        }
     }
+    Exit();
 }
 
 void clockClient() {
