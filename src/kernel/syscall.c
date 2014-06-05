@@ -47,7 +47,7 @@ void Exit() {
 
 // Inter-task Communication
 int Send(int tid, void *msg, int msglen, void *reply, int replylen) {
-    if (tid <= 0) {
+    if (tid < 0) {
         return ERR_INVALID_TID;
     }
 
@@ -83,7 +83,7 @@ int Receive(int *tid, void *msg, int msglen) {
 }
 
 int Reply(int tid, void *reply, int replylen) {
-    if (tid <= 0) {
+    if (tid < 0) {
         return ERR_INVALID_TID;
     }
 
