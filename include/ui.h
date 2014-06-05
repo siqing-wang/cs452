@@ -14,3 +14,12 @@
 #define TCS_MAGENTA "\033[35m"
 #define TCS_CYAN    "\033[36m"
 #define TCS_WHITE   "\033[37m"
+
+void clearScreen();
+void moveCursorToUpLeft();
+void moveCursor(int row, int col);
+void hideCursor();
+void deleteFromCursorToEol();
+void saveCursor();
+void restoreCursor();
+void resetColor();

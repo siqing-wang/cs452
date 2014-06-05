@@ -49,8 +49,8 @@ void hardware_init() {
 void kernel_init(SharedVariables *sharedVariables) {
     /* Setup BWIO */
     bwsetfifo( COM2, OFF );
-    bwprintf(COM2, "\033[2J\033[?25l");
-    bwputstr(COM2, TCS_RESET);
+    clearScreen();
+    resetColor();
 
     /* Store kerent function's address in swi jump table. */
     int * addr = (int *) 0x28;
