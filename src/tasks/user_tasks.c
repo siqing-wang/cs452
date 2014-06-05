@@ -15,6 +15,10 @@ void idleTask() {
     }
 }
 
+void clockClient() {
+    Exit();
+}
+
 void firstUserTask() {
     int tid;
 
@@ -29,7 +33,7 @@ void firstUserTask() {
         Create(PRIORITY_MED - 1, &clockClient);
     }
 
-    // Create(PRIORITY_LOW, &idleTask);
+    Create(PRIORITY_LOW, &idleTask);
 
     Exit();
 }
