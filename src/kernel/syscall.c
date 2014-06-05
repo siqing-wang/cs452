@@ -7,6 +7,7 @@
 #include <message.h>
 #include <utils.h>
 #include <nameserver.h>
+#include <clock.h>
 
 // Internal helper.
 int sendRequest(Request* request);
@@ -152,6 +153,67 @@ int AwaitEvent(int eventid) {
     request.syscall = SYS_AWAITEVT;
     request.eventId = eventid;
     return sendRequest(&request);
+}
+
+// Clock Server
+int Delay(int ticks) {
+    if (ticks <= 0) {
+        Pass();
+        return SUCCESS;
+    }
+
+    ClockserverMessage message;
+    message.type = CServerMSG_CLIENT;
+    message.syscall = CServerMSG_DELAY;
+    message.data = ticks;
+
+    int data;
+    int result = Send(CLOCKSERVER_TID, &message, sizeof(message), &data, sizeof(data));
+    if (result < 0) {
+        return ERR_INVALID_TID;
+    }
+    if (data <= 0) {
+        return ERR_NOT_CLOCKSERVER;
+    }
+    return SUCCESS;
+}
+
+int Time() {
+    ClockserverMessage message;
+    message.type = CServerMSG_CLIENT;
+    message.syscall = CServerMSG_TIME;
+
+    int data;
+    int result = Send(CLOCKSERVER_TID, &message, sizeof(message), &data, sizeof(data));
+    if (result < 0) {
+        return ERR_INVALID_TID;
+    }
+    if (data <= 0) {
+        return ERR_NOT_CLOCKSERVER;
+    }
+    return data;
+}
+
+int DelayUntil(int ticks) {
+    if (ticks <= 0) {
+        Pass();
+        return SUCCESS;
+    }
+
+    ClockserverMessage message;
+    message.type = CServerMSG_CLIENT;
+    message.syscall = CServerMSG_UNTIL;
+    message.data = ticks;
+
+    int data;
+    int result = Send(CLOCKSERVER_TID, &message, sizeof(message), &data, sizeof(data));
+    if (result < 0) {
+        return ERR_INVALID_TID;
+    }
+    if (data <= 0) {
+        return ERR_NOT_CLOCKSERVER;
+    }
+    return SUCCESS;
 }
 
 // Internal helper

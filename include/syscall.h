@@ -41,4 +41,9 @@ int AwaitEvent(int eventid);
 int RegisterAs(char *name);
 int WhoIs(char *name);
 
+// Clock Server
+int Delay(int ticks);
+int Time();
+int DelayUntil(int ticks);
+
 #endif
