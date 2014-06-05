@@ -17,6 +17,7 @@
 #include <pm_tasks.h>
 #include <syscall.h>
 #include <bwio.h>
+#include <ui.h>
 
 void hardware_init();
 void kernel_init(SharedVariables* sharedVariables);
@@ -48,6 +49,8 @@ void hardware_init() {
 void kernel_init(SharedVariables *sharedVariables) {
     /* Setup BWIO */
     bwsetfifo( COM2, OFF );
+    bwprintf(COM2, "\033[2J\033[?25l");
+    bwputstr(COM2, TCS_RESET);
 
     /* Store kerent function's address in swi jump table. */
     int * addr = (int *) 0x28;
@@ -109,7 +112,6 @@ void kernel_run() {
 
     int i = 0;
     for( ;; i++) {
-        bwprintf(COM2, "Kernel round %d\n\r", i);
         Task *active = scheduler_getNextTask(&sharedVariables);
         if (active == 0) {
             /* No available tasks from scheduler. */
