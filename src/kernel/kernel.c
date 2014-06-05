@@ -51,6 +51,7 @@ void kernel_init(SharedVariables *sharedVariables) {
     bwsetfifo( COM2, OFF );
     clearScreen();
     resetColor();
+    moveCursorToUpLeft();
 
     /* Store kerent function's address in swi jump table. */
     int * addr = (int *) 0x28;
