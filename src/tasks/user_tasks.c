@@ -6,6 +6,7 @@
 #include <syscall.h>
 #include <nameserver.h>
 #include <clockserver.h>
+#include <timer.h>
 #include <bwio.h>
 #include <utils.h>
 
@@ -30,19 +31,22 @@ void clockClient() {
 
     int myTid = MyTid();
     int i;
+    unsigned int val1, val2;
     for(i = 1; i < message.num; i ++) {
+        val1 = debugTimer_getVal() / (DEBUG_TIMER_HZ / 1000);
         Delay(message.delay);
-        bwprintf(COM2, "Task%d Delay Time : %d Delays Complete : %d\n\r", myTid, message.delay, i);
+        val2 = debugTimer_getVal() / (DEBUG_TIMER_HZ / 1000);
+        bwprintf(COM2, "Task%d delay %d ticks (actual %ums). Delays Complete : %d\n\r", myTid, message.delay, val2 - val2, i);
     }
 
     Exit();
 }
 
 void firstUserTask() {
-    int tid;
+    debugTimer_init();
 
     // Create NameServer
-    tid = Create(PRIORITY_HIGH, &nameServer);
+    int tid = Create(PRIORITY_HIGH, &nameServer);
     assertEquals(NAMESERVER_TID, tid, "NameServer should be the first task.");
 
     Create(PRIORITY_MED, &clockServer);
