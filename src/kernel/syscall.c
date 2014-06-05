@@ -205,11 +205,6 @@ int Time() {
 }
 
 int DelayUntil(int ticks) {
-    if (ticks <= 0) {
-        Pass();
-        return SUCCESS;
-    }
-
     int clockServerTid = WhoIs("Clock Server");
     if (clockServerTid < 0) {
         return clockServerTid;
