@@ -162,13 +162,18 @@ int Delay(int ticks) {
         return SUCCESS;
     }
 
+    int clockServerTid = WhoIs("Clock Server");
+    if (clockServerTid < 0) {
+        return clockServerTid;
+    }
+
     ClockserverMessage message;
     message.type = CServerMSG_CLIENT;
     message.syscall = CServerMSG_DELAY;
     message.data = ticks;
 
     int data;
-    int result = Send(CLOCKSERVER_TID, &message, sizeof(message), &data, sizeof(data));
+    int result = Send(clockServerTid, &message, sizeof(message), &data, sizeof(data));
     if (result < 0) {
         return ERR_INVALID_TID;
     }
@@ -179,12 +184,17 @@ int Delay(int ticks) {
 }
 
 int Time() {
+    int clockServerTid = WhoIs("Clock Server");
+    if (clockServerTid < 0) {
+        return clockServerTid;
+    }
+
     ClockserverMessage message;
     message.type = CServerMSG_CLIENT;
     message.syscall = CServerMSG_TIME;
 
     int data;
-    int result = Send(CLOCKSERVER_TID, &message, sizeof(message), &data, sizeof(data));
+    int result = Send(clockServerTid, &message, sizeof(message), &data, sizeof(data));
     if (result < 0) {
         return ERR_INVALID_TID;
     }
@@ -200,13 +210,18 @@ int DelayUntil(int ticks) {
         return SUCCESS;
     }
 
+    int clockServerTid = WhoIs("Clock Server");
+    if (clockServerTid < 0) {
+        return clockServerTid;
+    }
+
     ClockserverMessage message;
     message.type = CServerMSG_CLIENT;
     message.syscall = CServerMSG_UNTIL;
     message.data = ticks;
 
     int data;
-    int result = Send(CLOCKSERVER_TID, &message, sizeof(message), &data, sizeof(data));
+    int result = Send(clockServerTid, &message, sizeof(message), &data, sizeof(data));
     if (result < 0) {
         return ERR_INVALID_TID;
     }

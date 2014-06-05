@@ -5,8 +5,6 @@
 #ifndef __CLOCKSERVER_H__
 #define __CLOCKSERVER_H__
 
-#define CLOCKSERVER_TID 	2
-
 #define CServerMSG_NOTIFIER 1
 #define CServerMSG_CLIENT   2
 
