@@ -5,7 +5,7 @@
 #include <user_tasks.h>
 #include <syscall.h>
 #include <nameserver.h>
-#include <clock.h>
+#include <clockserver.h>
 #include <bwio.h>
 #include <utils.h>
 

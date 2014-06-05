@@ -1,9 +1,9 @@
 /*
- * clock.h
+ * clockserver.h
  */
 
-#ifndef __CLOCK_H__
-#define __CLOCK_H__
+#ifndef __CLOCKSERVER_H__
+#define __CLOCKSERVER_H__
 
 #define CLOCKSERVER_TID 	2
 

@@ -7,7 +7,7 @@
 #include <message.h>
 #include <utils.h>
 #include <nameserver.h>
-#include <clock.h>
+#include <clockserver.h>
 
 // Internal helper.
 int sendRequest(Request* request);

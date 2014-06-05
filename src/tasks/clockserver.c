@@ -1,8 +1,8 @@
  /*
-  * clock.c
+  * clockserver.c
   */
 
-#include <clock.h>
+#include <clockserver.h>
 #include <syscall.h>
 #include <event.h>
 #include <bwio.h>
