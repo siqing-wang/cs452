@@ -32,11 +32,11 @@ void clockClient() {
     int myTid = MyTid();
     int i;
     unsigned int val1, val2;
-    for(i = 1; i < message.num; i ++) {
+    for(i = 1; i <= message.num; i ++) {
         val1 = debugTimer_getVal() / (DEBUG_TIMER_HZ / 1000);
         Delay(message.delay);
         val2 = debugTimer_getVal() / (DEBUG_TIMER_HZ / 1000);
-        bwprintf(COM2, "Task%d delay %d ticks (actual %ums). Delays Complete : %d\n\r", myTid, message.delay, val2 - val2, i);
+        bwprintf(COM2, "Task%d delay %d ticks (actual %ums). Delays Complete : %d\n\r", myTid, message.delay, val2 - val1, i);
     }
 
     Exit();

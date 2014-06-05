@@ -41,9 +41,6 @@ void clockServer() {
             case CServerMSG_NOTIFIER :
                 Reply(requesterTid, &msg, sizeof(msg));
                 tickCount++;
-                saveCursor();
-                bwprintf(COM2, "\033[1;1HCount: %u\n\r", tickCount);
-                restoreCursor();
                 break;
             case CServerMSG_CLIENT :
                 switch (message.syscall) {
