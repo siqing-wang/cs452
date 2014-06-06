@@ -41,7 +41,7 @@ void clockClient() {
         val1 = debugTimer_getVal() / (DEBUG_TIMER_HZ / 1000);
         Delay(message.delay);
         val2 = debugTimer_getVal() / (DEBUG_TIMER_HZ / 1000);
-        bwprintf(COM2, "Task%d delay %d ticks (actual %ums). Delays Complete : %d\n\r", myTid, message.delay, val2 - val1, i);
+        bwprintf(COM2, "Task%d: Delay Interval = %d ticks (actual %ums); Delays Completed = %d.\n\r", myTid, message.delay, val2 - val1, i);
     }
 
     Exit();
