@@ -57,7 +57,7 @@ void kernel_init(SharedVariables *sharedVariables) {
     int * addr = (int *) 0x28;
     *addr = (int)(sharedVariables->loadOffset) + (int)&kerent;
 
-    /* Store intent function's address in interrupt jum table. */
+    /* Store intent function's address in hwi jump table. */
     addr = (int *) 0x38;
     *addr = (int)(sharedVariables->loadOffset) + (int)&intent;
 
@@ -122,6 +122,7 @@ void kernel_run() {
         /* Run user task and get user request in userspace. */
         activate(active, &request);
         if (request == (Request*)0) {
+            /* No request, so it must be a hwi.(see context switch) */
             interrupt_handle(&sharedVariables, active);
         } else {
             request_handle(&sharedVariables, active, request);

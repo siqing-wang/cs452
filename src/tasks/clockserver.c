@@ -6,12 +6,19 @@
 #include <syscall.h>
 #include <event.h>
 #include <task_minheap.h>
-#include <bwio.h>
 #include <utils.h>
 
 void clockNotifier() {
     int serverTid;
     int msg = 0;
+
+    /* Why use send/reply to know who is clock server instead of WhoIs:
+     *  Because:
+     *      1. Clockserver should not call RegAs before initialization is completed.
+     *      2. Clockserver initialization completion depends on notifier ready.
+     *      3. Notifier needs to know Clock Server id to be ready.
+     *  Chick-egg problem! >.<
+     */
     Receive(&serverTid, &msg, sizeof(msg));
     Reply(serverTid, &msg, sizeof(msg));
 
@@ -25,20 +32,25 @@ void clockNotifier() {
 
 void clockServer() {
     int msg = 0;
+    /* Create notifier, and send a message to it. */
     int notifierTid = Create(PRIORITY_HIGH, &clockNotifier);
     Send(notifierTid, &msg, sizeof(msg), &msg, sizeof(msg));
 
     int tickCount = 0;
     TaskMinHeap taskMinHeap;
     taskMinHeap_init(&taskMinHeap);
+    /* RegAs only after initialization is done. */
     RegisterAs("Clock Server");
 
     int requesterTid;
     ClockserverMessage message;
     for(;;) {
+        /* Receive msg. */
         Receive(&requesterTid, &message, sizeof(message));
         switch (message.type) {
             case CServerMSG_NOTIFIER :
+                /* Msg from notifier: clock has ticked. */
+                /* Important Note: Need to reply to unblock notififer ASAP to avoid missing ticks. */
                 Reply(requesterTid, &msg, sizeof(msg));
                 tickCount++;
                 break;
@@ -63,6 +75,7 @@ void clockServer() {
         int tid;
         int delayUntil;
         for(;;) {
+            /* Unblock all tasks with delayed time reached. */
             taskMinHeap_peekMin(&taskMinHeap, &tid, &delayUntil);
             if ((delayUntil == -1) || (delayUntil > tickCount)) {
                 break;

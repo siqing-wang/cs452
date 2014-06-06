@@ -1,6 +1,8 @@
 /*
  * syscall.h
- *
+ * ---------------------------------------------------------------------------
+ * Task Creation
+ * ---------------------------------------------------------------------------
  *	Create
  *		Create a new task with priority and code
  *	MyTid
@@ -11,6 +13,41 @@
  *		Yield to other tasks
  *	Exit
  *		Finish task
+ *
+ * ---------------------------------------------------------------------------
+ * Inter-task Communication
+ * ---------------------------------------------------------------------------
+ *  Send
+ *      Send a message to another task, task will be blocked until reply is
+ *      received.
+ *  Receive
+ *      Receive msg from send queue. Will be blocked if no msg available.
+ *  Reply
+ *      Reply to a task waiting for reply.
+ *
+ * ---------------------------------------------------------------------------
+ * Interrupt Processing
+ * ---------------------------------------------------------------------------
+ *  AwaitEvent
+ *      Block a task on an event.
+ *
+ * ---------------------------------------------------------------------------
+ * Name Server
+ * ---------------------------------------------------------------------------
+ *  RegisterAs
+ *      Register task as a service.
+ *  WhoIs
+ *      Get tid of the task registered to provide given service.
+ *
+ * ---------------------------------------------------------------------------
+ * Clock Server
+ * ---------------------------------------------------------------------------
+ *  Delay
+ *      Block task for given number of clock ticks.
+ *  Time
+ *      Get current timer ticks from clock server.
+ *  DelayUntil
+ *      Block task until timer has ticked given times.
  */
 
 #ifndef __SYSCALL_H__

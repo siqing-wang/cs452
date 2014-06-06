@@ -1,5 +1,14 @@
 /*
- *  event.h
+ * event.h
+ *
+ *  event_init
+ *      Initialize event table and event queue in each event.
+ *  event_addInterrupt
+ *      Associate interrupt with an event.
+ *  event_blockTask
+ *      Block task on an event.
+ *  eveny_unblockTask
+ *      Unblock all tasks on events associated with given interrupt.
  */
 
 #ifndef __EVENT_H__
@@ -15,8 +24,10 @@
 
 typedef struct Event
 {
+    /* 64 interrupts so need two int for 64 bits mask. */
     unsigned int interruptMask1;
     unsigned int interruptMask2;
+    /* Tasks blocked on this event. */
     struct EventQueue *event_queue;
 } Event;
 

@@ -7,10 +7,10 @@ intent:
 	@ args = 0, pretend = 0, frame = 0
 	@ frame_needed = 1, uses_anonymous_args = 0
 
-	# change to system state;
+	# Enter with IRQ mode, change to system state
 	msr cpsr_c, #0xdf
 
-	# push all scratch registers of the active task onto its stack
+	# push all scratch registers of the interrupted user task onto its own stack
 	stmfd sp!, {r0, r1, r2, r3, ip}
 
 	# change to irq state;
@@ -19,16 +19,16 @@ intent:
 	# r1 = spsr
 	mrs r1, spsr
 
-	# r2 = lr - 4 // we need to jump to original instruction
+	# r2 = lr - 4 (Important Note: we need to jump to original instruction)
 	sub r2, lr, #4
 
-	# change to system state;
+	# change to system state
 	msr cpsr_c, #0xdf
 
-	# store spsr and lr on user stack
+	# store irq mode's spsr and lr on user stack
 	stmfd sp!, {r1, r2}
 
-	# r0 = 0, then Reuqest* will be (Request *)0
+	# r0 = 0, then Reuqest* will be (Request *)0, to differentiate b/w swi and hwi
 	mov r0, #0
 
 	# change to svc state;

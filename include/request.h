@@ -1,10 +1,9 @@
 /*
- * request.h - called by kernel, handle syscall requests from user space
+ * request.h
+ *      called by kernel, handle syscall requests from user space
  *
- * request_handle
+ *  request_handle
  *		handle syscall request
- * storeRetValue
- *		push syscall return value onto stack
  */
 
 #ifndef __REQUEST_H__
@@ -45,16 +44,16 @@
 typedef struct Request
 {
     int syscall;
-    int retVal;
+    int retVal;             // Return value of the request handle by kernel.
 
-    // Task Creation
+    /* Task Creation */
     int priority;
     void *code;
 
-    // Inter-task Communication
+    /* Inter-task Communication */
     Message *message;
 
-    // Interrupt Processing
+    /* Interrupt Processing */
     int eventId;
 } Request;
 

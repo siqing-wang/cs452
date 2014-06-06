@@ -21,8 +21,8 @@ typedef struct SharedVariables
     struct SendQueue* send_queues;  // send_queue for each task
     struct TaskQueue* free_list;    // queue of free task descriptors
     /* Event */
-    struct Event* events;
-    struct EventQueue* event_queue;
+    struct Event* events;           // event table
+    struct EventQueue* event_queue; // blocked tasks queue for each of the event
     /* Global */
     int loadOffset;                 // stack base (0x00218000) it should be added
                                     // to any memory addresses.

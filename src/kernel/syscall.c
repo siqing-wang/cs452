@@ -9,10 +9,12 @@
 #include <nameserver.h>
 #include <clockserver.h>
 
-// Internal helper.
+/* Internal helper. */
+
 int sendRequest(Request* request);
 
-// Task Creation
+/* Task Creation */
+
 int Create(int priority, void (*code)()) {
     Request request;                    // Create request structure and store required fields.
     request.syscall = SYS_CREATE;
@@ -45,7 +47,8 @@ void Exit() {
     sendRequest(&request);
 }
 
-// Inter-task Communication
+/* Inter-task Communication */
+
 int Send(int tid, void *msg, int msglen, void *reply, int replylen) {
     if (tid < 0) {
         return ERR_INVALID_TID;
@@ -104,7 +107,8 @@ int Reply(int tid, void *reply, int replylen) {
     return SUCCESS;
 }
 
-// Name Server
+/* Name Server */
+
 int RegisterAs(char *name) {
     int msglen = 0;
     while (*(name+msglen) != '\0') {
@@ -147,7 +151,8 @@ int WhoIs(char *name) {
     return tid;
 }
 
-// Interrupt Processing
+/* Interrupt Processing */
+
 int AwaitEvent(int eventid) {
     Request request;
     request.syscall = SYS_AWAITEVT;
@@ -155,18 +160,22 @@ int AwaitEvent(int eventid) {
     return sendRequest(&request);
 }
 
-// Clock Server
+/* Clock Server */
+
 int Delay(int ticks) {
     if (ticks <= 0) {
+        /* Delayed time <= 0, it is a pass, ensentially. */
         Pass();
         return SUCCESS;
     }
 
+    /* Get clock server tid. */
     int clockServerTid = WhoIs("Clock Server");
     if (clockServerTid < 0) {
         return clockServerTid;
     }
 
+    /* Send message to clock server. */
     ClockserverMessage message;
     message.type = CServerMSG_CLIENT;
     message.syscall = CServerMSG_DELAY;
@@ -184,11 +193,13 @@ int Delay(int ticks) {
 }
 
 int Time() {
+    /* Get Clock Server tid. */
     int clockServerTid = WhoIs("Clock Server");
     if (clockServerTid < 0) {
         return clockServerTid;
     }
 
+    /* Send message to Clock Server requesting time. */
     ClockserverMessage message;
     message.type = CServerMSG_CLIENT;
     message.syscall = CServerMSG_TIME;
@@ -205,11 +216,13 @@ int Time() {
 }
 
 int DelayUntil(int ticks) {
+    /* Get Clock Server tid. */
     int clockServerTid = WhoIs("Clock Server");
     if (clockServerTid < 0) {
         return clockServerTid;
     }
 
+    /* Send message to Clock Server. */
     ClockserverMessage message;
     message.type = CServerMSG_CLIENT;
     message.syscall = CServerMSG_UNTIL;
@@ -226,7 +239,8 @@ int DelayUntil(int ticks) {
     return SUCCESS;
 }
 
-// Internal helper
+/* Internal helper */
+
 int sendRequest(Request* request) {
     /* Request's ptr is already in r0 */
     asm("swi");                         // Call kerent with request

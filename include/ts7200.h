@@ -10,6 +10,7 @@
 #define	TIMER3_BASE	0x80810080
 #define	TIMER4_BASE	0x80810060
 
+/* Used by interrupts (lecture note 11). */
 #define VIC1_BASE 	0x800b0000
 #define VIC2_BASE 	0x800c0000
 

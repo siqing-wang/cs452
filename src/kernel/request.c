@@ -55,6 +55,7 @@ void request_handle(SharedVariables* sharedVariables, Task* active, Request *req
             break;
         case SYS_AWAITEVT:
             event_blockTask(sharedVariables, active, request->eventId);
+            request->retVal = SUCCESS;
             break;
         default:
             /* Unrecognized syscall. */

@@ -20,7 +20,7 @@ void interrupt_init(SharedVariables* sharedVariables) {
     //  Kernel initializes hardware
     //  Kernel turns on interrupt(s) in the device
 
-    // Initiailize Timer
+    /* Initiailize Timer */
     timer_clear();
     timer_init();
     event_addInterrupt(sharedVariables, EVENT_TIMER, INTERRUPT_TIMER);
@@ -32,7 +32,7 @@ void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
         timer_clear();
 
         event_unblockTask(sharedVariables, INTERRUPT_TIMER);
-        /* Add current task back to scheduler. */
+        /* Add current interupted task back to scheduler. */
         if (active->state == TASK_ACTIVE) {
             active->state = TASK_READY;
             scheduler_add(sharedVariables, active);
@@ -43,7 +43,7 @@ void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
 void interrupt_reset() {
     interrupt_clearAll();
 
-    // Disable Timer
+    /* Disable Timer */
     timer_clear();
     interrupt_disable(INTERRUPT_TIMER);
 }
@@ -75,6 +75,7 @@ void interrupt_disable(int interruptId) {
 int interrupt_check(int interruptId) {
     assert((interruptId >= 0) && (interruptId < 64), "Invalid Interrupt Id");
     unsigned int *interruptEnable;
+    /* Check if interupt has occured. */
     if (interruptId < 32) {
         interruptEnable = (unsigned int *) (VIC1_BASE + IRQSTATUS_OFFSET);
         return (unsigned int)(*interruptEnable) & (1 << interruptId);
@@ -85,6 +86,7 @@ int interrupt_check(int interruptId) {
 }
 
 void interrupt_clearAll() {
+    /* Reset all interrupt bit. */
     unsigned int *interruptClear;
     interruptClear = (unsigned int *) (VIC1_BASE + INTENCLEAR_OFFSET);
     *interruptClear = 0xffffffff;

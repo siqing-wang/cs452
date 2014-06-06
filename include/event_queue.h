@@ -1,5 +1,5 @@
 /*
- *  event_queue.h
+ * event_queue.h
  *      Implements a ring queue for tasks with fixed size.
  *
  *  eventQueue_init

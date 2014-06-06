@@ -21,7 +21,7 @@
 #define USER_STACK_LOW      0x300000
 #define USER_STACK_HIGH     0x1300000
 #define STACK_SIZE          ((USER_STACK_HIGH - USER_STACK_LOW) / TASK_MAX_NUM)
-#define USER_MODE           0x10
+#define USER_MODE           0x10            // Both IRQ and FIQ enabled.
 
 #define TASK_UNINIT         0
 #define TASK_ACTIVE         1
@@ -48,7 +48,7 @@ typedef struct Task
     Message* message;               // Store this task's own message
     struct Task *nextMessageTask;   // next task contains message which has the same dest as this task
 
-    struct Task *nextBlockedTask;  // next task block on the same event, 0 is NULL
+    struct Task *nextBlockedTask;  // next task blocked on the same event, 0 is NULL
 } Task;
 
 

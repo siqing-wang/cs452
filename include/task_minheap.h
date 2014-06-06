@@ -1,6 +1,7 @@
 /*
  * task_minheap.h
  *      Used in clocked server to get the delayed task with min time.
+ *      Note: min heap elements ordered by time ticks.
  */
 
 #ifndef __TASK_MINHEAP_H__
