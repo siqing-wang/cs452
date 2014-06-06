@@ -14,7 +14,7 @@ void event_init(SharedVariables* sharedVariables) {
     int i = 0;
     for (; i < MAX_EVENTS_NUM; i++) {
         (events + i)->interruptMask1 = 0;
-        (events + i)->interruptMask1 = 0;
+        (events + i)->interruptMask2 = 0;
         (events + i)->event_queue = (EventQueue*)(event_queue + i);
         eventQueue_init((events + i)->event_queue);
     }
