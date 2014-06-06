@@ -43,8 +43,17 @@ void warning(char *msg) {
 }
 
 void memcopy(char *dest, const char *src, int size) {
-    int i = 0;
-    for (; i < size ; i++) {
+    int i;
+    unsigned long *destll = (unsigned long*) dest;
+    unsigned long *srcll = (unsigned long*) src;
+    for (i = 0; i < size / (sizeof(unsigned long)); i++) {
+        *destll = *srcll;
+        destll++;
+        srcll++;
+    }
+    dest = (char*)destll;
+    src = (char*)srcll;
+    for (i = 0; i < size % (sizeof(unsigned long)); i++) {
         *dest = *src;
         dest++;
         src++;
