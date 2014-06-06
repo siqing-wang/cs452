@@ -64,7 +64,7 @@ void clockServer() {
         int delayUntil;
         for(;;) {
             taskMinHeap_peekMin(&taskMinHeap, &tid, &delayUntil);
-            if (delayUntil > tickCount) {
+            if ((delayUntil == -1) || (delayUntil > tickCount)) {
                 break;
             }
             taskMinHeap_popMin(&taskMinHeap, &tid, &delayUntil);
