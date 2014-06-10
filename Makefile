@@ -21,7 +21,7 @@ ASMSOURCES = $(wildcard src/lib/*.asm) $(wildcard src/kernel/*.asm)
 ASMFILES = $(CSOURCES:.c=.s)
 OBJECTS = $(CSOURCES:.c=.o) $(ASMSOURCES:.asm=.o)
 MAIN = main
-EXEC = kernel3
+EXEC = kernel4
 
 all: clean $(ASMFILES) $(OBJECTS) $(EXEC).elf
 
