@@ -18,9 +18,14 @@
 #include <task.h>
 #include <event_queue.h>
 
-#define MAX_EVENTS_NUM 10
+#define MAX_EVENTS_NUM          10
 
-#define EVENT_TIMER 0
+#define EVENT_TIMER             0
+#define EVENT_TERMINAL_SEND     1
+#define EVENT_TERMINAL_RECV     2
+#define EVENT_TRAIN_SEND        3
+#define EVENT_TRAIN_RECV        4
+
 
 typedef struct Event
 {
