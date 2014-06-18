@@ -23,20 +23,52 @@ void interrupt_init(SharedVariables* sharedVariables) {
     /* Initiailize Timer */
     timer_clear();
     timer_init();
-    event_addInterrupt(sharedVariables, EVENT_TIMER, INTERRUPT_TIMER);
     interrupt_enable(INTERRUPT_TIMER);
+    interrupt_enable(INTERRUPT_TERMINAL);
+    interrupt_enable(INTERRUPT_TRAIN);
 }
 
 void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
     if (interrupt_check(INTERRUPT_TIMER)) {
         timer_clear();
-
-        event_unblockTask(sharedVariables, INTERRUPT_TIMER);
-        /* Add current interupted task back to scheduler. */
-        if (active->state == TASK_ACTIVE) {
-            active->state = TASK_READY;
-            scheduler_add(sharedVariables, active);
+        event_unblockTask(sharedVariables, EVENT_TIMER);
+    }
+    else if (interrupt_check(INTERRUPT_TERMINAL)) {
+        int *interruptVal = (int *) (UART2_BASE + UART_INTR_OFFSET);
+        switch((*interruptVal) & INTR_MASK) {
+            case MIS_MASK:
+                event_unblockTask(sharedVariables, EVENT_TERMINAL_CTRL);
+                break;
+            case RIS_MASK:
+                event_unblockTask(sharedVariables, EVENT_TERMINAL_RECV);
+                break;
+            case TIS_MASK:
+                event_unblockTask(sharedVariables, EVENT_TERMINAL_SEND);
+                break;
+            default:
+                break;
         }
+    }
+    else if (interrupt_check(INTERRUPT_TRAIN)) {
+        int *interruptVal = (int *) (UART1_BASE + UART_INTR_OFFSET);
+        switch((*interruptVal) & INTR_MASK) {
+            case MIS_MASK:
+                event_unblockTask(sharedVariables, EVENT_TRAIN_CTRL);
+                break;
+            case RIS_MASK:
+                event_unblockTask(sharedVariables, EVENT_TRAIN_RECV);
+                break;
+            case TIS_MASK:
+                event_unblockTask(sharedVariables, EVENT_TRAIN_SEND);
+                break;
+            default:
+                break;
+        }
+    }
+    /* Add current interupted task back to scheduler. */
+    if (active->state == TASK_ACTIVE) {
+        active->state = TASK_READY;
+        scheduler_add(sharedVariables, active);
     }
 }
 

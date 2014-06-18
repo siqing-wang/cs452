@@ -16,7 +16,9 @@
 #include <task.h>
 
 /* timer interrupt's bit location in VIC. EP9301 User's Guide Chap 5.1.1 */
-#define INTERRUPT_TIMER 51
+#define INTERRUPT_TIMER     51
+#define INTERRUPT_TERMINAL  54
+#define INTERRUPT_TRAIN     52
 
 void interrupt_init(SharedVariables* sharedVariables);
 void interrupt_handle(SharedVariables* sharedVariables, Task* active);

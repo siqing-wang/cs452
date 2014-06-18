@@ -92,8 +92,8 @@ void kernel_run() {
     TaskQueue free_list;
 
     // Initialization (Event)
-    Event events[MAX_EVENTS_NUM];
-    EventQueue event_queue[MAX_EVENTS_NUM];
+    Event events[NUM_EVENTS];
+    EventQueue event_queue[NUM_EVENTS];
 
     // Initialization (Global)
     register int loadOffset asm ("sl");         // Get stack base from register (normally 0x00218000)

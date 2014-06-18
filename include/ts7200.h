@@ -87,6 +87,10 @@
 	#define RXFF_MASK	0x40	// Receive buffer full
 	#define TXFE_MASK	0x80	// Transmit buffer empty
 #define UART_INTR_OFFSET	0x1c
+ 	#define MIS_MASK	0x1
+ 	#define RIS_MASK	0x2
+ 	#define TIS_MASK	0x4
+ 	#define INTR_MASK	0x15
 #define UART_DMAR_OFFSET	0x28
 
 // Specific to UART1
