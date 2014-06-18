@@ -12,6 +12,7 @@
 void terminalSendNotifier() {
     int serverTid;
     int msg = 0;
+    char data;
 
     Receive(&serverTid, &msg, sizeof(msg));
     Reply(serverTid, &msg, sizeof(msg));
@@ -21,7 +22,9 @@ void terminalSendNotifier() {
 
     for(;;) {
         AwaitEvent(EVENT_TERMINAL_SEND);
-        Send(serverTid, &message, sizeof(message), &msg, sizeof(msg));
+        Send(serverTid, &message, sizeof(message), &data, sizeof(data));
+        io_putdata(COM2, data);
+        io_interrupt_enable(COM2, TIEN_MASK);
     }
 }
 
@@ -45,6 +48,7 @@ void terminalRecvNotifier() {
 void trainSendNotifier() {
     int serverTid;
     int msg = 0;
+    char data;
 
     Receive(&serverTid, &msg, sizeof(msg));
     Reply(serverTid, &msg, sizeof(msg));
@@ -54,7 +58,9 @@ void trainSendNotifier() {
 
     for(;;) {
         AwaitEvent(EVENT_TRAIN_SEND);
-        Send(serverTid, &message, sizeof(message), &msg, sizeof(msg));
+        Send(serverTid, &message, sizeof(message), &data, sizeof(data));
+        io_putdata(COM1, data);
+        io_interrupt_enable(COM1, TIEN_MASK);
     }
 }
 
@@ -99,9 +105,6 @@ void terminalIOServer() {
             case IOServerMSG_RECV_NOTIFIER:
                 Reply(requesterTid, &msg, sizeof(msg));
                 break;
-            case IOServerMSG_CTRL_NOTIFIER:
-                Reply(requesterTid, &msg, sizeof(msg));
-                break;
             case IOServerMSG_CLIENT :
                 switch (message.syscall) {
                     case IOServerMSG_PUTC :
@@ -141,9 +144,6 @@ void trainIOServer() {
                 Reply(requesterTid, &msg, sizeof(msg));
                 break;
             case IOServerMSG_RECV_NOTIFIER:
-                Reply(requesterTid, &msg, sizeof(msg));
-                break;
-            case IOServerMSG_CTRL_NOTIFIER:
                 Reply(requesterTid, &msg, sizeof(msg));
                 break;
             case IOServerMSG_CLIENT :

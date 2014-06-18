@@ -63,6 +63,19 @@ char io_getdata(int channel) {
     return *line;
 }
 
+void io_putdata(int channel, char ch) {
+    int *line;
+    switch(channel) {
+        case COM1:
+            line = (int *)(UART1_BASE + UART_DATA_OFFSET);
+                break;
+        case COM2:
+            line = (int *)(UART2_BASE + UART_DATA_OFFSET);
+            break;
+    }
+    *line = ch;
+}
+
 void io_setfifo(int channel, int state) {
     int *line, buf;
     switch(channel) {
