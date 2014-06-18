@@ -18,6 +18,15 @@ void event_init(SharedVariables* sharedVariables) {
 }
 
 void event_blockTask(SharedVariables* sharedVariables, Task* active, int eventId) {
+    if ((eventId == EVENT_TERMINAL_SEND) && (sharedVariables->com2TxReady)) {
+        sharedVariables->com2TxReady = 0;
+        return;
+    }
+    if ((eventId == EVENT_TRAIN_SEND) && (sharedVariables->com1TxReady)) {
+        sharedVariables->com1TxReady = 0;
+        return;
+    }
+
     /* Find corresponding event. */
     Event *event = (Event *)(sharedVariables->events + eventId);
 

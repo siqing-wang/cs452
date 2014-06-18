@@ -153,9 +153,9 @@ void trainIOServer() {
     int msg = 0;
     /* Create notifiers, and send a message to it. */
     int notifierTid;
-    notifierTid = Create(PRIORITY_HIGH, &terminalSendNotifier);
+    notifierTid = Create(PRIORITY_HIGH, &trainSendNotifier);
     Send(notifierTid, &msg, sizeof(msg), &msg, sizeof(msg));
-    notifierTid = Create(PRIORITY_HIGH, &terminalRecvNotifier);
+    notifierTid = Create(PRIORITY_HIGH, &trainRecvNotifier);
     Send(notifierTid, &msg, sizeof(msg), &msg, sizeof(msg));
 
     IOQueue sendQueue;
