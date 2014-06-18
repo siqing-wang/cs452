@@ -130,7 +130,7 @@ void kernel_run() {
     }
 
     interrupt_reset();
-    Printf(COM2, "Finished\n\r");
+    bwprintf(COM2, "Finished\n\r");
 }
 
 /*
