@@ -68,6 +68,7 @@ void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
                 if (ctsStatus && !(*flag & TXBUSY_MASK)) {
                     event_unblockTask(sharedVariables, EVENT_TRAIN_SEND);
                 }
+                *interruptVal = (int)(*interruptVal) & (~MIS_MASK);
                 break;
             default:
                 break;
@@ -86,6 +87,10 @@ void interrupt_reset() {
     /* Disable Timer */
     timer_clear();
     interrupt_disable(INTERRUPT_TIMER);
+
+    /* Disable IO*/
+    interrupt_disable(INTERRUPT_TERMINAL);
+    interrupt_disable(INTERRUPT_TRAIN);
 }
 
 void interrupt_enable(int interruptId) {
