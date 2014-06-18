@@ -1,40 +1,37 @@
 #include <io_queue.h>
 #include <utils.h>
 
-int ioQueue_init(io_queue *q, char* buffer, int size) {
-    q->buffer = buffer;
-    q->capacity = size;
+void ioQueue_init(IOQueue *q) {
     q->start = 0;
     q->size = 0;
 }
 
-int ioQueue_empty(io_queue *q) {
-    return q->size == 0;
+int ioQueue_empty(IOQueue *q) {
+    return (q->size == 0);
 }
 
-int ioQueue_full(io_queue *q) {
-    return q->size >= q->capacity;
+int ioQueue_full(IOQueue *q) {
+    return (q->size >= IO_QUEUE_CAPACITY);
 }
 
-void ioQueue_push(io_queue *q, char c) {
-    if (ioQueue_full(queue)) {
-        warning("io_queue: try to PUSH into a FULL queue.")
+void ioQueue_push(IOQueue *q, char c) {
+    if (ioQueue_full(q)) {
+        warning("io_queue: try to PUSH into a FULL queue.");
         return;
     }
 
-    int index = (q->start + q->size) % q->capacity;
-    q->size++;
-    *(q->buffer + index) = c;
+    q->buffer[(q->start + q->size) % IO_QUEUE_CAPACITY] = c;
+    q->size ++;
 }
 
-char ioQueue_pop(io_queue *q) {
-    if (ioQueue_empty(channel)) {
-        warning("io_queue: try to POP from an EMPTY queue.")
+char ioQueue_pop(IOQueue *q) {
+    if (ioQueue_empty(q)) {
+        warning("io_queue: try to POP from an EMPTY queue.");
         return -1;
     }
 
     q->size--;
-    char c = (char) q->buffer[q->start];
-    q->start = (q->start + 1) % q->capacity;
+    char c = q->buffer[q->start];
+    q->start = (q->start + 1) % IO_QUEUE_CAPACITY;
     return c;
 }

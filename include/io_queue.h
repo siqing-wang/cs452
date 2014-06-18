@@ -8,17 +8,16 @@
 
 #define IO_QUEUE_CAPACITY   20
 
-typedef struct io_queue {
-    char *buffer;
-    int capacity;   // max capacity
+typedef struct IOQueue {
+    char buffer[IO_QUEUE_CAPACITY];
     int start;
     int size;
-} io_queue;
+} IOQueue;
 
-int ioQueue_init(io_queue *q, char* buffer, int size);
-int ioQueue_empty(io_queue *q);
-int ioQueue_full(io_queue *q);
-void ioQueue_push(io_queue *q, char c);
-char ioQueue_pop(io_queue *q);
+void ioQueue_init(IOQueue *q);
+int ioQueue_empty(IOQueue *q);
+int ioQueue_full(IOQueue *q);
+void ioQueue_push(IOQueue *q, char c);
+char ioQueue_pop(IOQueue *q);
 
 #endif
