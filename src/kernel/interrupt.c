@@ -39,9 +39,6 @@ void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
     else if (interrupt_check(INTERRUPT_TERMINAL)) {
         int *interruptVal = (int *) (UART2_BASE + UART_INTR_OFFSET);
         switch((*interruptVal) & INTR_MASK) {
-            case MIS_MASK:
-                event_unblockTask(sharedVariables, EVENT_TERMINAL_CTRL);
-                break;
             case RIS_MASK:
                 event_unblockTask(sharedVariables, EVENT_TERMINAL_RECV);
                 break;
@@ -55,9 +52,6 @@ void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
     else if (interrupt_check(INTERRUPT_TRAIN)) {
         int *interruptVal = (int *) (UART1_BASE + UART_INTR_OFFSET);
         switch((*interruptVal) & INTR_MASK) {
-            case MIS_MASK:
-                event_unblockTask(sharedVariables, EVENT_TRAIN_CTRL);
-                break;
             case RIS_MASK:
                 event_unblockTask(sharedVariables, EVENT_TRAIN_RECV);
                 break;

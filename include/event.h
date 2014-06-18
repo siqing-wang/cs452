@@ -16,15 +16,13 @@
 #include <task.h>
 #include <event_queue.h>
 
-#define NUM_EVENTS              7
+#define NUM_EVENTS              5
 
 #define EVENT_TIMER             0
 #define EVENT_TERMINAL_SEND     1
 #define EVENT_TERMINAL_RECV     2
-#define EVENT_TERMINAL_CTRL     3
-#define EVENT_TRAIN_SEND        4
-#define EVENT_TRAIN_RECV        5
-#define EVENT_TRAIN_CTRL        6
+#define EVENT_TRAIN_SEND        3
+#define EVENT_TRAIN_RECV        4
 
 
 typedef struct Event
