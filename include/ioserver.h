@@ -21,7 +21,7 @@ typedef struct IOserverMessage
 {
     int type;           // Notifier/Client
     int syscall;        // Delay, Time, Until
-    int data;
+    char data;
 
 } IOserverMessage;
 

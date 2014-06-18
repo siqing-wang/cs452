@@ -6,6 +6,8 @@
 #include <syscall.h>
 #include <event.h>
 #include <utils.h>
+#include <io.h>
+#include <ts7200.h>
 
 void terminalSendNotifier() {
     int serverTid;
@@ -35,6 +37,7 @@ void terminalRecvNotifier() {
 
     for(;;) {
         AwaitEvent(EVENT_TERMINAL_RECV);
+        message.data = io_getdata(COM2);
         Send(serverTid, &message, sizeof(message), &msg, sizeof(msg));
     }
 }
@@ -67,6 +70,7 @@ void trainRecvNotifier() {
 
     for(;;) {
         AwaitEvent(EVENT_TRAIN_RECV);
+        message.data = io_getdata(COM2);
         Send(serverTid, &message, sizeof(message), &msg, sizeof(msg));
     }
 }

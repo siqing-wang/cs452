@@ -48,7 +48,6 @@ void hardware_init() {
  */
 void kernel_init(SharedVariables *sharedVariables) {
     /* Setup BWIO */
-    bwsetfifo( COM2, OFF );
     clearScreen();
     resetColor();
     moveCursorToUpLeft();

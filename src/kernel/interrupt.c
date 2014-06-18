@@ -7,6 +7,7 @@
 #include <scheduler.h>
 #include <ts7200.h>
 #include <timer.h>
+#include <io.h>
 #include <utils.h>
 
 void interrupt_enable();
@@ -23,6 +24,8 @@ void interrupt_init(SharedVariables* sharedVariables) {
     /* Initiailize Timer */
     timer_clear();
     timer_init();
+    io_init(COM1);
+    io_init(COM2);
     interrupt_enable(INTERRUPT_TIMER);
     interrupt_enable(INTERRUPT_TERMINAL);
     interrupt_enable(INTERRUPT_TRAIN);
