@@ -10,14 +10,15 @@ void io_setfifo(int channel, int state);
 void io_setspeed(int channel, int speed);
 
 void io_init(int channel) {
-    io_interrupt_enable(channel, MSIEN_MASK | RIEN_MASK | TIEN_MASK);
-    io_setfifo(channel, OFF);
-
     switch(channel) {
         case COM1:
+            io_interrupt_enable(channel, MSIEN_MASK | RIEN_MASK | TIEN_MASK);
+            io_setfifo(COM1, OFF);
             io_setspeed(COM1, 2400);
             break;
         case COM2:
+            io_interrupt_enable(channel, RIEN_MASK | TIEN_MASK);
+            io_setfifo(COM2, OFF);
             io_setspeed(COM2, 115200);
             break;
     }

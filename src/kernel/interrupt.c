@@ -51,12 +51,23 @@ void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
     }
     else if (interrupt_check(INTERRUPT_TRAIN)) {
         int *interruptVal = (int *) (UART1_BASE + UART_INTR_OFFSET);
+        int *flag = (int *) (UART1_BASE + UART_FLAG_OFFSET);
+        int ctsStatus = !(*flag & CTS_MASK);
+
         switch((*interruptVal) & INTR_MASK) {
             case RIS_MASK:
                 event_unblockTask(sharedVariables, EVENT_TRAIN_RECV);
                 break;
             case TIS_MASK:
-                event_unblockTask(sharedVariables, EVENT_TRAIN_SEND);
+                if (ctsStatus) {
+                    event_unblockTask(sharedVariables, EVENT_TRAIN_SEND);
+                }
+                io_interrupt_disable(COM1, TIEN_MASK);
+                break;
+            case MIS_MASK:
+                if (ctsStatus && !(*flag & TXBUSY_MASK)) {
+                    event_unblockTask(sharedVariables, EVENT_TRAIN_SEND);
+                }
                 break;
             default:
                 break;
