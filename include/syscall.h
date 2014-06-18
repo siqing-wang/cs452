@@ -83,4 +83,8 @@ int Delay(int ticks);
 int Time();
 int DelayUntil(int ticks);
 
+// Input/Output
+int Getc(int channel);
+int Putc(int channel, char ch);
+
 #endif

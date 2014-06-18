@@ -8,6 +8,7 @@
 #include <utils.h>
 #include <nameserver.h>
 #include <clockserver.h>
+#include <ioserver.h>
 
 /* Internal helper. */
 
@@ -235,6 +236,64 @@ int DelayUntil(int ticks) {
     }
     if (data <= 0) {
         return ERR_NOT_CLOCKSERVER;
+    }
+    return SUCCESS;
+}
+
+/* Input/Output */
+
+int Getc(int channel) {
+    int ioServerTid;
+    switch(channel) {
+        case 0:
+            ioServerTid = WhoIs("Train IO Server");
+            break;
+        case 1:
+            ioServerTid = WhoIs("Terminal IO Server");
+            break;
+        default:
+            return ERR_INVALID_TID;
+    }
+
+     /* Send message to Clock Server. */
+    IOserverMessage message;
+    message.type = IOServerMSG_CLIENT;
+    message.syscall = IOServerMSG_GETC;
+
+    char data;
+    int result = Send(ioServerTid, &message, sizeof(message), &data, sizeof(data));
+    if (result < 0) {
+        return ERR_INVALID_TID;
+    }
+    if ((int)data <= 0) {
+        return ERR_NOT_IOSERVER;
+    }
+    return data;
+}
+
+int Putc(int channel, char ch) {
+    int ioServerTid;
+    switch(channel) {
+        case 0:
+            ioServerTid = WhoIs("Train IO Server");
+            break;
+        case 1:
+            ioServerTid = WhoIs("Terminal IO Server");
+            break;
+        default:
+            return ERR_INVALID_TID;
+    }
+
+     /* Send message to Clock Server. */
+    IOserverMessage message;
+    message.type = IOServerMSG_CLIENT;
+    message.syscall = IOServerMSG_GETC;
+    message.data = ch;
+
+    int data;
+    int result = Send(ioServerTid, &message, sizeof(message), &data, sizeof(data));
+    if (result < 0) {
+        return ERR_INVALID_TID;
     }
     return SUCCESS;
 }
