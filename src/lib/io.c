@@ -4,6 +4,7 @@
 
 #include <io.h>
 #include <ts7200.h>
+#include <utils.h>
 
 void io_setfifo(int channel, int state);
 void io_setspeed(int channel, int speed);

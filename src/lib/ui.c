@@ -4,6 +4,7 @@
 
 #include <ui.h>
 #include <bwio.h>
+#include <utils.h>
 
 /* Display */
 

@@ -13,6 +13,8 @@
 /* Internal helper. */
 
 int sendRequest(Request* request);
+void Putw(int ioServerTid, int n, char fc, char *bf);
+void format(int ioServerTid, char *fmt, va_list va);
 
 /* Task Creation */
 
@@ -255,7 +257,7 @@ int Getc(int channel) {
             return ERR_INVALID_TID;
     }
 
-     /* Send message to Clock Server. */
+     /* Send message to IO Server. */
     IOserverMessage message;
     message.type = IOServerMSG_CLIENT;
     message.syscall = IOServerMSG_GETC;
@@ -284,10 +286,10 @@ int Putc(int channel, char ch) {
             return ERR_INVALID_TID;
     }
 
-     /* Send message to Clock Server. */
+     /* Send message to IO Server. */
     IOserverMessage message;
     message.type = IOServerMSG_CLIENT;
-    message.syscall = IOServerMSG_GETC;
+    message.syscall = IOServerMSG_PUTC;
     message.data = ch;
 
     int data;
@@ -298,10 +300,148 @@ int Putc(int channel, char ch) {
     return SUCCESS;
 }
 
+int PutStr(int channel, char *str) {
+    int ioServerTid;
+    switch(channel) {
+        case 0:
+            ioServerTid = WhoIs("Train IO Server");
+            break;
+        case 1:
+            ioServerTid = WhoIs("Terminal IO Server");
+            break;
+        default:
+            return ERR_INVALID_TID;
+    }
+
+     /* Send message to IO Server. */
+    IOserverMessage message;
+    message.type = IOServerMSG_CLIENT;
+    message.syscall = IOServerMSG_PUTC;
+
+    int result, data;
+    while(*str) {
+        message.data = *str;
+        result = Send(ioServerTid, &message, sizeof(message), &data, sizeof(data));
+        if (result < 0) {
+            return result;
+        }
+        str++;
+    }
+    return SUCCESS;
+}
+
+void Printf(int channel, char *fmt, ...) {
+    int ioServerTid;
+    switch(channel) {
+        case 0:
+            ioServerTid = WhoIs("Train IO Server");
+            break;
+        case 1:
+            ioServerTid = WhoIs("Terminal IO Server");
+            break;
+        default:
+            return;
+    }
+
+    va_list va;
+    va_start(va,fmt);
+    format(ioServerTid, fmt, va);
+    va_end(va);
+}
+
+
 /* Internal helper */
 
 int sendRequest(Request* request) {
     /* Request's ptr is already in r0 */
     asm("swi");                         // Call kerent with request
     return request->retVal;
+}
+
+void Putw(int ioServerTid, int n, char fc, char *bf) {
+    char ch;
+    char *p = bf;
+
+     /* Send message to IO Server. */
+    IOserverMessage message;
+    message.type = IOServerMSG_CLIENT;
+    message.syscall = IOServerMSG_PUTC;
+
+    int data;
+    while(*p++ && n > 0) {
+        n--;
+    }
+    while(n-- > 0) {
+        message.data = fc;
+        Send(ioServerTid, &message, sizeof(message), &data, sizeof(data));
+    }
+    while((ch = *bf++)) {
+        message.data = ch;
+        Send(ioServerTid, &message, sizeof(message), &data, sizeof(data));
+    }
+}
+
+void format(int ioServerTid, char *fmt, va_list va) {
+    char bf[12];
+    char ch, lz;
+    int w;
+
+     /* Send message to IO Server. */
+    IOserverMessage message;
+    message.type = IOServerMSG_CLIENT;
+    message.syscall = IOServerMSG_PUTC;
+
+    int data;
+    while ((ch = *(fmt++))) {
+        if (ch != '%') {
+            message.data = ch;
+            Send(ioServerTid, &message, sizeof(message), &data, sizeof(data));
+        }
+        else {
+            lz = 0; w = 0;
+            ch = *(fmt++);
+            switch ( ch ) {
+                case '0':
+                    lz = 1; ch = *(fmt++);
+                    break;
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                case '9':
+                    ch = a2i( ch, &fmt, 10, &w );
+                    break;
+            }
+            switch( ch ) {
+                case 0: return;
+                case 'c':
+                    message.data = va_arg(va, char);
+                    Send(ioServerTid, &message, sizeof(message), &data, sizeof(data));
+                    break;
+                case 's':
+                    Putw(ioServerTid, w, 0, va_arg(va, char*));
+                    break;
+                case 'u':
+                    ui2a(va_arg(va, unsigned int), 10, bf);
+                    Putw(ioServerTid, w, lz, bf);
+                    break;
+                case 'd':
+                    i2a(va_arg(va, int ), bf);
+                    Putw(ioServerTid, w, lz, bf);
+                    break;
+                case 'x':
+                    ui2a(va_arg(va, unsigned int), 16, bf );
+                    Putw(ioServerTid, w, lz, bf);
+                    break;
+                case '%':
+                    message.data = ch;
+                    Send(ioServerTid, &message, sizeof(message), &data, sizeof(data));
+                    break;
+            }
+        }
+    }
 }

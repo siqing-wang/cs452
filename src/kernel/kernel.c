@@ -18,6 +18,7 @@
 #include <syscall.h>
 #include <bwio.h>
 #include <ui.h>
+#include <utils.h>
 
 void hardware_init();
 void kernel_init(SharedVariables* sharedVariables);
@@ -129,6 +130,7 @@ void kernel_run() {
     }
 
     interrupt_reset();
+    bwprintf(COM2, "Finished\n\r");
 }
 
 /*

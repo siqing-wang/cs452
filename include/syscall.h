@@ -86,5 +86,7 @@ int DelayUntil(int ticks);
 // Input/Output
 int Getc(int channel);
 int Putc(int channel, char ch);
+int PutStr(int channel, char *str);
+void Printf(int channel, char *fmt, ...);
 
 #endif
