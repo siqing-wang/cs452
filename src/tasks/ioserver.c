@@ -7,6 +7,7 @@
 #include <event.h>
 #include <utils.h>
 #include <io.h>
+#include <io_queue.h>
 #include <ts7200.h>
 
 void terminalSendNotifier() {
@@ -90,27 +91,50 @@ void terminalIOServer() {
     notifierTid = Create(PRIORITY_HIGH, &terminalRecvNotifier);
     Send(notifierTid, &msg, sizeof(msg), &msg, sizeof(msg));
 
+    IOQueue sendQueue;
+    IOQueue recvQueue;
+    ioQueue_init(&sendQueue);
+    ioQueue_init(&recvQueue);
+
     /* RegAs only after initialization is done. */
     RegisterAs("Terminal IO Server");
 
     int requesterTid;
+    int sendWaitingTid = -1;
+    int recvWaitingTid = -1;
     IOserverMessage message;
+    char ch;
     for(;;) {
         /* Receive msg. */
         Receive(&requesterTid, &message, sizeof(message));
         switch (message.type) {
             case IOServerMSG_SEND_NOTIFIER :
-                Reply(requesterTid, &msg, sizeof(msg));
+                if (ioQueue_empty(&sendQueue)) {
+                    sendWaitingTid = requesterTid;
+                }
+                else {
+                    ch = ioQueue_pop(&sendQueue);
+                    Reply(requesterTid, &ch, sizeof(ch));
+                }
                 break;
             case IOServerMSG_RECV_NOTIFIER:
+                ioQueue_push(&recvQueue, message.data);
                 Reply(requesterTid, &msg, sizeof(msg));
                 break;
             case IOServerMSG_CLIENT :
                 switch (message.syscall) {
                     case IOServerMSG_PUTC :
+                        ioQueue_push(&sendQueue, message.data);
                         Reply(requesterTid, &msg, sizeof(msg));
                         break;
                     case IOServerMSG_GETC :
+                        if (ioQueue_empty(&recvQueue)) {
+                            recvWaitingTid = requesterTid;
+                        }
+                        else {
+                            ch = ioQueue_pop(&recvQueue);
+                            Reply(requesterTid, &ch, sizeof(ch));
+                        }
                         break;
                     default :
                         warning("Unknown IOserver Syscall.");
@@ -118,6 +142,17 @@ void terminalIOServer() {
                 break;
             default :
                 warning("Unknown IOserver Message Type.");
+        }
+
+        if (!ioQueue_empty(&recvQueue) && (recvWaitingTid >= 0)) {
+            ch = ioQueue_pop(&recvQueue);
+            Reply(recvWaitingTid, &ch, sizeof(ch));
+            recvWaitingTid = -1;
+        }
+        if (!ioQueue_empty(&sendQueue) && (sendWaitingTid >= 0)) {
+            ch = ioQueue_pop(&sendQueue);
+            Reply(sendWaitingTid, &ch, sizeof(ch));
+            sendWaitingTid = -1;
         }
     }
 }
@@ -131,27 +166,50 @@ void trainIOServer() {
     notifierTid = Create(PRIORITY_HIGH, &terminalRecvNotifier);
     Send(notifierTid, &msg, sizeof(msg), &msg, sizeof(msg));
 
+    IOQueue sendQueue;
+    IOQueue recvQueue;
+    ioQueue_init(&sendQueue);
+    ioQueue_init(&recvQueue);
+
     /* RegAs only after initialization is done. */
     RegisterAs("Train IO Server");
 
     int requesterTid;
+    int sendWaitingTid = -1;
+    int recvWaitingTid = -1;
     IOserverMessage message;
+    char ch;
     for(;;) {
         /* Receive msg. */
         Receive(&requesterTid, &message, sizeof(message));
         switch (message.type) {
             case IOServerMSG_SEND_NOTIFIER :
-                Reply(requesterTid, &msg, sizeof(msg));
+                if (ioQueue_empty(&sendQueue)) {
+                    sendWaitingTid = requesterTid;
+                }
+                else {
+                    ch = ioQueue_pop(&sendQueue);
+                    Reply(requesterTid, &ch, sizeof(ch));
+                }
                 break;
             case IOServerMSG_RECV_NOTIFIER:
+                ioQueue_push(&recvQueue, message.data);
                 Reply(requesterTid, &msg, sizeof(msg));
                 break;
             case IOServerMSG_CLIENT :
                 switch (message.syscall) {
                     case IOServerMSG_PUTC :
+                        ioQueue_push(&sendQueue, message.data);
                         Reply(requesterTid, &msg, sizeof(msg));
                         break;
                     case IOServerMSG_GETC :
+                        if (ioQueue_empty(&recvQueue)) {
+                            recvWaitingTid = requesterTid;
+                        }
+                        else {
+                            ch = ioQueue_pop(&recvQueue);
+                            Reply(requesterTid, &ch, sizeof(ch));
+                        }
                         break;
                     default :
                         warning("Unknown IOserver Syscall.");
@@ -159,6 +217,17 @@ void trainIOServer() {
                 break;
             default :
                 warning("Unknown IOserver Message Type.");
+        }
+
+        if (!ioQueue_empty(&recvQueue) && (recvWaitingTid >= 0)) {
+            ch = ioQueue_pop(&recvQueue);
+            Reply(recvWaitingTid, &ch, sizeof(ch));
+            recvWaitingTid = -1;
+        }
+        if (!ioQueue_empty(&sendQueue) && (sendWaitingTid >= 0)) {
+            ch = ioQueue_pop(&sendQueue);
+            Reply(sendWaitingTid, &ch, sizeof(ch));
+            sendWaitingTid = -1;
         }
     }
 }
