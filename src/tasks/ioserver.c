@@ -101,10 +101,10 @@ void terminalIOServer() {
 
     int requesterTid;
     int sendWaitingTid = -1;
-    int recvWaitingTid = -1;
     IOserverMessage message;
     char ch;
     for(;;) {
+        ch = 0;
         /* Receive msg. */
         Receive(&requesterTid, &message, sizeof(message));
         switch (message.type) {
@@ -128,13 +128,10 @@ void terminalIOServer() {
                         Reply(requesterTid, &msg, sizeof(msg));
                         break;
                     case IOServerMSG_GETC :
-                        if (ioQueue_empty(&recvQueue)) {
-                            recvWaitingTid = requesterTid;
-                        }
-                        else {
+                        if (!ioQueue_empty(&recvQueue)) {
                             ch = ioQueue_pop(&recvQueue);
-                            Reply(requesterTid, &ch, sizeof(ch));
                         }
+                        Reply(requesterTid, &ch, sizeof(ch));
                         break;
                     default :
                         warning("Unknown IOserver Syscall.");
@@ -144,11 +141,6 @@ void terminalIOServer() {
                 warning("Unknown IOserver Message Type.");
         }
 
-        if (!ioQueue_empty(&recvQueue) && (recvWaitingTid >= 0)) {
-            ch = ioQueue_pop(&recvQueue);
-            Reply(recvWaitingTid, &ch, sizeof(ch));
-            recvWaitingTid = -1;
-        }
         if (!ioQueue_empty(&sendQueue) && (sendWaitingTid >= 0)) {
             ch = ioQueue_pop(&sendQueue);
             Reply(sendWaitingTid, &ch, sizeof(ch));
@@ -176,10 +168,10 @@ void trainIOServer() {
 
     int requesterTid;
     int sendWaitingTid = -1;
-    int recvWaitingTid = -1;
     IOserverMessage message;
     char ch;
     for(;;) {
+        ch = 0;
         /* Receive msg. */
         Receive(&requesterTid, &message, sizeof(message));
         switch (message.type) {
@@ -203,13 +195,10 @@ void trainIOServer() {
                         Reply(requesterTid, &msg, sizeof(msg));
                         break;
                     case IOServerMSG_GETC :
-                        if (ioQueue_empty(&recvQueue)) {
-                            recvWaitingTid = requesterTid;
-                        }
-                        else {
+                        if (!ioQueue_empty(&recvQueue)) {
                             ch = ioQueue_pop(&recvQueue);
-                            Reply(requesterTid, &ch, sizeof(ch));
                         }
+                        Reply(requesterTid, &ch, sizeof(ch));
                         break;
                     default :
                         warning("Unknown IOserver Syscall.");
@@ -219,11 +208,6 @@ void trainIOServer() {
                 warning("Unknown IOserver Message Type.");
         }
 
-        if (!ioQueue_empty(&recvQueue) && (recvWaitingTid >= 0)) {
-            ch = ioQueue_pop(&recvQueue);
-            Reply(recvWaitingTid, &ch, sizeof(ch));
-            recvWaitingTid = -1;
-        }
         if (!ioQueue_empty(&sendQueue) && (sendWaitingTid >= 0)) {
             ch = ioQueue_pop(&sendQueue);
             Reply(sendWaitingTid, &ch, sizeof(ch));
