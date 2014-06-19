@@ -47,7 +47,7 @@ void io_interrupt_disable(int channel, int mask) {
             line = (int *)(UART2_BASE + UART_CTLR_OFFSET);
             break;
     }
-    *line = *line & ~mask;
+    *line &= ~mask;
 }
 
 char io_getdata(int channel) {
@@ -55,7 +55,7 @@ char io_getdata(int channel) {
     switch(channel) {
         case COM1:
             line = (int *)(UART1_BASE + UART_DATA_OFFSET);
-                break;
+            break;
         case COM2:
             line = (int *)(UART2_BASE + UART_DATA_OFFSET);
             break;
@@ -68,7 +68,7 @@ void io_putdata(int channel, char ch) {
     switch(channel) {
         case COM1:
             line = (int *)(UART1_BASE + UART_DATA_OFFSET);
-                break;
+            break;
         case COM2:
             line = (int *)(UART2_BASE + UART_DATA_OFFSET);
             break;

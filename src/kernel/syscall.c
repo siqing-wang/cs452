@@ -267,9 +267,6 @@ int Getc(int channel) {
     if (result < 0) {
         return ERR_INVALID_TID;
     }
-    if ((int)data <= 0) {
-        return ERR_NOT_IOSERVER;
-    }
     return data;
 }
 
