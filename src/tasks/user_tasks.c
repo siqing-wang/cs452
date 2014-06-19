@@ -12,14 +12,24 @@
 #include <utils.h>
 
 void idleTask() {
-    char c;
     for(;;) {
-        c = Getc(COM2);
-        if (c == 'q') {
-            break;
-        }
+
     }
     Exit();
+}
+
+void testTask() {
+    for(;;) {
+
+        Putc(COM2, 'a');
+        for(;;) {
+            char c= Getc(COM2);
+            if (c > 0) {
+                Putc(COM2, c);
+                break;
+            }
+        }
+    }
 }
 
 void firstUserTask() {
@@ -29,12 +39,17 @@ void firstUserTask() {
     int tid = Create(PRIORITY_HIGH, &nameServer);
     assertEquals(NAMESERVER_TID, tid, "NameServer should be the first task.");
 
-    /* Create Clock Server. */
+    // /* Create Clock Server. */
     Create(PRIORITY_HIGH - 1, &clockServer);
 
-    /* Create IO Server. */
+    // /* Create IO Server. */
     Create(PRIORITY_HIGH - 1, &trainIOServer);
     Create(PRIORITY_HIGH - 1, &terminalIOServer);
+
+    /* Create Idle Task. */
+    Create(0, &idleTask);
+
+    Create(2, &testTask);
 
     Exit();
 }
