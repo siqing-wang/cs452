@@ -68,7 +68,7 @@ void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
                 sharedVariables->com1TxReady = 1;
                 break;
             case MIS_MASK:
-                if (ctsStatus && !(*flag & TXBUSY_MASK)) {
+                if (ctsStatus && sharedVariables->com1TxReady) {
                     event_unblockTask(sharedVariables, EVENT_TRAIN_SEND);
                 }
                 *interruptVal = (int)(*interruptVal) & (~MIS_MASK);
