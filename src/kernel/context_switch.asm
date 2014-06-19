@@ -22,6 +22,9 @@ intent:
 	# r2 = lr - 4 (Important Note: we need to jump to original instruction)
 	sub r2, lr, #4
 
+	# r3 = cpsr_irq
+	mrs r3, cpsr
+
 	# change to system state
 	msr cpsr_c, #0xdf
 
@@ -33,6 +36,9 @@ intent:
 
 	# change to svc state;
 	msr cpsr_c, #0xd3
+
+	# spsr_svc = r3 of the active task
+	msr spsr, r3
 
 	# kerent
 	bl kerent
