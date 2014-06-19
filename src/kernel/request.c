@@ -54,7 +54,7 @@ void request_handle(SharedVariables* sharedVariables, Task* active, Request *req
             request->retVal = result;
             break;
         case SYS_AWAITEVT:
-            event_blockTask(sharedVariables, active, request->eventId);
+            event_blockTask(sharedVariables, active, request->eventId, request->data);
             request->retVal = SUCCESS;
             break;
         default:

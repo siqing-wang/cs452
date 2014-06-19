@@ -163,6 +163,24 @@ int AwaitEvent(int eventid) {
     return sendRequest(&request);
 }
 
+int AwaitSend(int eventid, char ch) {
+    Request request;
+    request.syscall = SYS_AWAITEVT;
+    request.eventId = eventid;
+    request.data = ch;
+    return sendRequest(&request);
+}
+
+char AwaitRecv(int eventid) {
+    Request request;
+    request.syscall = SYS_AWAITEVT;
+    request.eventId = eventid;
+    if (sendRequest(&request) >= 0) {
+        return request.data;
+    }
+    return 0;
+}
+
 /* Clock Server */
 
 int Delay(int ticks) {

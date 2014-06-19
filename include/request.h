@@ -56,6 +56,7 @@ typedef struct Request
 
     /* Interrupt Processing */
     int eventId;
+    char data;
 } Request;
 
 void request_handle(SharedVariables* sharedVariables, Task* active, Request *request);

@@ -6,9 +6,7 @@
 #include <syscall.h>
 #include <event.h>
 #include <utils.h>
-#include <io.h>
 #include <io_queue.h>
-#include <ts7200.h>
 
 void terminalSendNotifier() {
     int serverTid;
@@ -22,10 +20,8 @@ void terminalSendNotifier() {
     message.type = IOServerMSG_SEND_NOTIFIER;
 
     for(;;) {
-        AwaitEvent(EVENT_TERMINAL_SEND);
         Send(serverTid, &message, sizeof(message), &data, sizeof(data));
-        io_putdata(COM2, data);
-        io_interrupt_enable(COM2, TIEN_MASK);
+        AwaitSend(EVENT_TERMINAL_SEND, data);
     }
 }
 
@@ -40,8 +36,7 @@ void terminalRecvNotifier() {
     message.type = IOServerMSG_RECV_NOTIFIER;
 
     for(;;) {
-        AwaitEvent(EVENT_TERMINAL_RECV);
-        message.data = io_getdata(COM2);
+        message.data = AwaitRecv(EVENT_TERMINAL_RECV);
         Send(serverTid, &message, sizeof(message), &msg, sizeof(msg));
     }
 }
@@ -58,10 +53,8 @@ void trainSendNotifier() {
     message.type = IOServerMSG_SEND_NOTIFIER;
 
     for(;;) {
-        AwaitEvent(EVENT_TRAIN_SEND);
         Send(serverTid, &message, sizeof(message), &data, sizeof(data));
-        io_putdata(COM1, data);
-        io_interrupt_enable(COM1, TIEN_MASK);
+        AwaitSend(EVENT_TRAIN_SEND, data);
     }
 }
 
@@ -76,8 +69,7 @@ void trainRecvNotifier() {
     message.type = IOServerMSG_RECV_NOTIFIER;
 
     for(;;) {
-        AwaitEvent(EVENT_TRAIN_RECV);
-        message.data = io_getdata(COM2);
+        message.data = AwaitRecv(EVENT_TRAIN_RECV);
         Send(serverTid, &message, sizeof(message), &msg, sizeof(msg));
     }
 }

@@ -43,9 +43,9 @@ void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
                 event_unblockTask(sharedVariables, EVENT_TERMINAL_RECV);
                 break;
             case TIS_MASK:
-                event_unblockTask(sharedVariables, EVENT_TERMINAL_SEND);
                 io_interrupt_disable(COM2, TIEN_MASK);
                 sharedVariables->com2TxReady = 1;
+                event_unblockTask(sharedVariables, EVENT_TERMINAL_SEND);
                 break;
             default:
                 break;
@@ -61,11 +61,11 @@ void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
                 event_unblockTask(sharedVariables, EVENT_TRAIN_RECV);
                 break;
             case TIS_MASK:
+                io_interrupt_disable(COM1, TIEN_MASK);
+                sharedVariables->com1TxReady = 1;
                 if (ctsStatus) {
                     event_unblockTask(sharedVariables, EVENT_TRAIN_SEND);
                 }
-                io_interrupt_disable(COM1, TIEN_MASK);
-                sharedVariables->com1TxReady = 1;
                 break;
             case MIS_MASK:
                 if (ctsStatus && sharedVariables->com1TxReady) {

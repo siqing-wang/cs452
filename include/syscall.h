@@ -73,6 +73,8 @@ int Reply(int tid, void *reply, int replylen);
 
 // Interrupt Processing
 int AwaitEvent(int eventid);
+int AwaitSend(int eventid, char ch);
+char AwaitRecv(int eventid);
 
 // Name Server
 int RegisterAs(char *name);
