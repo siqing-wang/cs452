@@ -84,7 +84,10 @@ int sendMessage(SharedVariables* sharedVariables, Task* active, Message *message
 
     if (destTask->state == TASK_RECV_BLK) {
         /* Destination is currently receive blocked. */
-        memcopy((char*)(destTask->message), (char*)(message), sizeof(Message));
+        destTask->message->srcTid = active->tid;
+        destTask->message->rcvMsgOrigLen = message->sendMsgLen;
+        memcopy((char*)(destTask->message->rcvMsg), (char*)(message->sendMsg), destTask->message->rcvMsgLen);
+
         destTask->state = TASK_READY;
         scheduler_add(sharedVariables, destTask);
         active->state = TASK_RPLY_BLK;
@@ -103,7 +106,11 @@ void readMessage(SharedVariables* sharedVariables, Task* active, Message *messag
         active->message = message;
     } else {
         Task* srcTask = sendQueue_pop(active->send_queue);
-        memcopy((char*)message, (char*)(srcTask->message), sizeof(Message));
+
+        message->srcTid = srcTask->tid;
+        message->rcvMsgOrigLen = srcTask->message->sendMsgLen;
+        memcopy((char*)(message->rcvMsg), (char*)(srcTask->message->sendMsg), message->rcvMsgLen);
+
         srcTask->state = TASK_RPLY_BLK;
     }
 }
@@ -117,11 +124,14 @@ int replyMessage(SharedVariables* sharedVariables, Task* active, Message *messag
         return ERR_NOT_REPLY_BLK;
     }
 
-    memcopy((char*)(destTask->message), (char*)(message), sizeof(Message));
+    destTask->message->srcTid = active->tid;
+    destTask->message->rcvMsgOrigLen = message->sendMsgLen;
+    memcopy((char*)(destTask->message->rcvMsg), (char*)(message->sendMsg), destTask->message->rcvMsgLen);
+
     destTask->state = TASK_READY;
     scheduler_add(sharedVariables, destTask);
 
-    if (message->msglen > destTask->message->replylen) {
+    if (message->sendMsgLen > destTask->message->rcvMsgLen) {
         return ERR_INSUFFICIENT_SPACE;
     }
     return SUCCESS;

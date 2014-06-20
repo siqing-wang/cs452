@@ -10,9 +10,13 @@ typedef struct Message
 {
     int destTid;
     int srcTid;
-    int msglen;
-    void *msg;
-    int replylen;
+
+    int sendMsgLen;
+    void *sendMsg;
+
+    int rcvMsgLen;
+    int rcvMsgOrigLen;
+    void *rcvMsg;
 
 } Message;
 

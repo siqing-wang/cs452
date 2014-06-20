@@ -9,6 +9,7 @@
 #include <nameserver.h>
 #include <clockserver.h>
 #include <ioserver.h>
+#include <bwio.h>
 
 /* Internal helper. */
 
@@ -52,16 +53,17 @@ void Exit() {
 
 /* Inter-task Communication */
 
-int Send(int tid, void *msg, int msglen, void *reply, int replylen) {
+int Send(int tid, void *msg, int sendMsgLen, void *reply, int rcvMsgLen) {
     if (tid < 0) {
         return ERR_INVALID_TID;
     }
 
     Message message;
     message.destTid = tid;
-    message.msglen = msglen;
-    message.replylen = replylen;
-    message.msg = msg;
+    message.sendMsgLen = sendMsgLen;
+    message.rcvMsgLen = rcvMsgLen;
+    message.sendMsg = msg;
+    message.rcvMsg = reply;
 
     Request request;
     request.syscall = SYS_SEND;
@@ -71,32 +73,32 @@ int Send(int tid, void *msg, int msglen, void *reply, int replylen) {
         // Send failed, do not wait for reply.
         return result;
     }
-    memcopy(reply, message.msg, replylen);
-    return message.msglen;
+    return message.rcvMsgOrigLen;
 }
 
 int Receive(int *tid, void *msg, int msglen) {
     Message message;
+    message.rcvMsg = msg;
+    message.rcvMsgLen = msglen;
 
     Request request;
     request.syscall = SYS_RECV;
     request.message = &message;
 
     sendRequest(&request);
-    memcopy(msg, message.msg, msglen);
     *tid = message.srcTid;
-    return message.msglen;
+    return message.rcvMsgOrigLen;
 }
 
-int Reply(int tid, void *reply, int replylen) {
+int Reply(int tid, void *reply, int replyMsgLen) {
     if (tid < 0) {
         return ERR_INVALID_TID;
     }
 
     Message message;
     message.destTid = tid;
-    message.msglen = replylen;
-    message.msg = reply;
+    message.sendMsgLen = replyMsgLen;
+    message.sendMsg = reply;
 
     Request request;
     request.syscall = SYS_REPLY;
