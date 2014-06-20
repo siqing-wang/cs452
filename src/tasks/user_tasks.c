@@ -19,17 +19,16 @@ void idleTask() {
 }
 
 void testTask() {
+    PutStr(COM2, "Start\n\r");
     for(;;) {
-
-        Putc(COM2, 'a');
-        for(;;) {
-            char c= Getc(COM2);
-            if (c > 0) {
-                Putc(COM2, c);
-                break;
-            }
+        char c = Getc(COM2);
+        if (c == 'q') {
+            break;
         }
+        Putc(COM2 , c);
     }
+    PutStr(COM2, "End\n\r");
+    Exit();
 }
 
 void firstUserTask() {
@@ -42,14 +41,16 @@ void firstUserTask() {
     // /* Create Clock Server. */
     Create(PRIORITY_HIGH - 1, &clockServer);
 
+
     // /* Create IO Server. */
     Create(PRIORITY_HIGH - 1, &trainIOServer);
     Create(PRIORITY_HIGH - 1, &terminalIOServer);
 
-    /* Create Idle Task. */
-    Create(0, &idleTask);
-
     Create(2, &testTask);
+
+    /* Create Idle Task. */
+    // Create(0, &idleTask);
+
 
     Exit();
 }
