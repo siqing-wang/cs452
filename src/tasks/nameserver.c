@@ -90,6 +90,7 @@ void nameServer() {
             warning("Nameserver: Message Request overflowed. Ignored.");
             continue;
         }
+        name = message.serverName;
 
         NSHashNode* result = NSHash_get(&hashtable, name);
         int resultTid = -1;
