@@ -90,7 +90,7 @@
  	#define MIS_MASK	0x1
  	#define RIS_MASK	0x2
  	#define TIS_MASK	0x4
- 	#define INTR_MASK	0x15
+ 	#define INTR_MASK	0xf
 #define UART_DMAR_OFFSET	0x28
 
 // Specific to UART1
