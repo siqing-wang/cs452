@@ -122,14 +122,14 @@ void interrupt_disable(int interruptId) {
 
 int interrupt_check(int interruptId) {
     assert((interruptId >= 0) && (interruptId < 64), "Invalid Interrupt Id");
-    unsigned int *interruptEnable;
+    unsigned int *interruptStatus;
     /* Check if interupt has occured. */
     if (interruptId < 32) {
-        interruptEnable = (unsigned int *) (VIC1_BASE + IRQSTATUS_OFFSET);
-        return (unsigned int)(*interruptEnable) & (1 << interruptId);
+        interruptStatus = (unsigned int *) (VIC1_BASE + IRQSTATUS_OFFSET);
+        return (unsigned int)(*interruptStatus) & (1 << interruptId);
     } else {
-        interruptEnable = (unsigned int *) (VIC2_BASE + IRQSTATUS_OFFSET);
-        return (unsigned int)(*interruptEnable) & (1 << (interruptId-32));
+        interruptStatus = (unsigned int *) (VIC2_BASE + IRQSTATUS_OFFSET);
+        return (unsigned int)(*interruptStatus) & (1 << (interruptId-32));
     }
 }
 
