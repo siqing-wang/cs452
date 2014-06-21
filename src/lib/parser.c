@@ -7,6 +7,21 @@
 #include <trainset.h>
 
 /* Parser Helper */
+int readNum(char** input);
+int isWhiteSpace(char c);
+
+/* Parser */
+int skipWhiteSpace(char** input);
+int readToken(char** input, char* token);
+
+/* Commands */
+int parseSetSpeedCommand(TrainSetData *data, char* input);
+int parseReverseDirectionCommand(TrainSetData *data, char* input);
+int parseTurnSwitchCommand(TrainSetData *data, char* input) ;
+int parseHaltCommand(char* input);
+int parsePerformanceMonitor(char* input);
+
+/* Parser Helper */
 int readNum(char** input) {
     if (a2d(**input) == -1) {
         /* First digit is invalid number */
@@ -83,15 +98,15 @@ int readToken(char** input, char* token) {
     return 1;
 }
 
-int parseCommand(char* input) {
+int parseCommand(TrainSetData *data, char* input) {
 
     switch (input[0]) {
         case 't':
-            return parseSetSpeedCommand(input);
+            return parseSetSpeedCommand(data, input);
         case 'r':
-            return parseReverseDirectionCommand(input);
+            return parseReverseDirectionCommand(data, input);
         case 's':
-            return parseTurnSwitchCommand(input);
+            return parseTurnSwitchCommand(data, input);
         case 'q':
             return parseHaltCommand(input);
         case 'p':
@@ -104,7 +119,7 @@ int parseCommand(char* input) {
 
 
 /* Parse commands */
-int parseSetSpeedCommand(char* input){
+int parseSetSpeedCommand(TrainSetData *data, char* input){
 
     int train_number, train_speed;
 
@@ -126,12 +141,12 @@ int parseSetSpeedCommand(char* input){
     }
 
     Printf(COM2, "%sSet speed of train %u to %u.%s", TCS_GREEN, train_number, train_speed, TCS_RESET);
-    trainset_setSpeed(train_number, train_speed);
+    trainset_setSpeed(data, train_number, train_speed);
 
     return CMD_SUCCEED;
 }
 
-int parseReverseDirectionCommand(char* input) {
+int parseReverseDirectionCommand(TrainSetData *data, char* input) {
 
     int train_number;
 
@@ -147,11 +162,11 @@ int parseReverseDirectionCommand(char* input) {
     }
 
     Printf(COM2, "%sReverse train %u%s", TCS_GREEN, train_number, TCS_RESET);
-    trainset_reverse(train_number);
+    trainset_reverse(data, train_number);
     return CMD_SUCCEED;
 }
 
-int parseTurnSwitchCommand(char* input) {
+int parseTurnSwitchCommand(TrainSetData *data, char* input) {
 
     int switch_number;
     int switch_direction;
@@ -185,8 +200,8 @@ int parseTurnSwitchCommand(char* input) {
     }
     PutStr(COM2, TCS_RESET);
 
-    trainset_turnSwitch(switch_number, switch_direction);
-    updateSwitchTable(switch_number);
+    trainset_turnSwitch(data, switch_number, switch_direction);
+    updateSwitchTable(data, switch_number);
 
     return CMD_SUCCEED;
 }

@@ -11,7 +11,6 @@
 #define SWTABLE_NPERLINE 5
 #define SENTABLE_R  16          // sensor table
 #define SENTABLE_C  11
-#define SENTABLE_SIZE 6
 #define LOG_R       19          // system log
 #define LOG_C       5
 #define CMD_R       24          // command

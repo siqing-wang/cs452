@@ -3,8 +3,9 @@
 #include <ui.h>
 #include <ts7200.h>
 #include <parser.h>
+#include <trainset.h>
 
-void initializeUI() {
+void initializeUI(TrainSetData *data) {
     /* Initialize. */
     clearScreen();
     hideCursor();
@@ -28,6 +29,9 @@ void initializeUI() {
     PutStr(COM2, "----------------------------------------------");
     moveCursor(SWTABLE_R + 5, SWTABLE_C);
     PutStr(COM2, "----------------------------------------------");
+    PutStr(COM2, TCS_RESET);
+    printSwitchTable(data);
+    PutStr(COM2, TCS_YELLOW);
 
     /* Display Sensor Table Frame. */
     moveCursor(SENTABLE_R - 1, SENTABLE_C - 6);
@@ -60,7 +64,13 @@ void displayTime(unsigned int timerCount) {
 
 void train() {
 
-    initializeUI();
+
+
+    /* Trainset Initialization. */
+    TrainSetData trainsetData;
+    trainset_init(&trainsetData);
+
+    initializeUI(&trainsetData);
 
     /* Timer Initialization. */
     unsigned int time;
@@ -76,15 +86,15 @@ void train() {
 
         /* DISPLAY TIMER */
         unsigned int newtime = Time()/ 10;
-        if (newtime == time) {
-            continue;
-        }
-        time = newtime;
+        if (newtime != time) {
+            time = newtime;
 
-        saveCursor();
-        moveCursor(TIMER_R, TIMER_C);
-        displayTime(time);
-        restoreCursor();
+            saveCursor();
+            moveCursor(TIMER_R, TIMER_C);
+            displayTime(time);
+            restoreCursor();
+       }
+
 
         /* READ INPUT & PARSE COMMAND */
 
@@ -111,7 +121,7 @@ void train() {
             moveCursor(LOG_R + 1, LOG_C + 4);
             deleteFromCursorToEol();
 
-            result = parseCommand(inputBuffer);
+            result = parseCommand(&trainsetData, inputBuffer);
             if (result == CMD_HALT) {
                 goto TearDown;
             } else if (result == CMD_FAILED) {

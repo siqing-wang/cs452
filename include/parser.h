@@ -11,19 +11,8 @@
 #define CMD_PM_ON       3
 #define CMD_PM_OFF      4
 
-/* Parser Helper */
-int readNum(char** input);
-int isWhiteSpace(char c);
-
-/* Parser */
-int skipWhiteSpace(char** input);
-int readToken(char** input, char* token);
+#include <trainset.h>
 
 /* Parse Commands. */
-int parseCommand(char* input);
-int parseSetSpeedCommand(char* input);
-int parseReverseDirectionCommand(char* input);
-int parseTurnSwitchCommand(char* input) ;
-int parseHaltCommand(char* input);
-int parsePerformanceMonitor(char* input);
+int parseCommand(TrainSetData *data, char* input);
 #endif
