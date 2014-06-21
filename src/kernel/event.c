@@ -80,4 +80,5 @@ void event_unblockTask(SharedVariables* sharedVariables, int eventId, char ch) {
 
     task->state = TASK_READY;
     scheduler_add(sharedVariables, task);
+    event->task = (Task *)0;
 }

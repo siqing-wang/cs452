@@ -15,7 +15,7 @@ typedef struct SharedVariables
 {
     /* Scheduler */
     struct TaskQueue* task_queues;
-    int* highestOccupiedQueue;
+    int highestOccupiedQueue;
     /* Task */
     struct Task* tasks;
     struct SendQueue* send_queues;  // send_queue for each task

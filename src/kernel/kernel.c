@@ -99,7 +99,7 @@ void kernel_run() {
 
     SharedVariables sharedVariables;
     sharedVariables.task_queues = task_queues;
-    sharedVariables.highestOccupiedQueue = &highestOccupiedQueue;
+    sharedVariables.highestOccupiedQueue = highestOccupiedQueue;
     sharedVariables.tasks = tasks;
     sharedVariables.send_queues = send_queues;
     sharedVariables.free_list = &free_list;
