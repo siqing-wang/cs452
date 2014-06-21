@@ -47,8 +47,6 @@ typedef struct Task
     struct SendQueue *send_queue;   // keep track of tasks that want to send message to this task
     Message* message;               // Store this task's own message
     struct Task *nextMessageTask;   // next task contains message which has the same dest as this task
-
-    struct Task *nextBlockedTask;  // next task blocked on the same event, 0 is NULL
 } Task;
 
 

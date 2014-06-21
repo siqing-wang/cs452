@@ -93,7 +93,6 @@ void kernel_run() {
 
     // Initialization (Event)
     Event events[NUM_EVENTS];
-    EventQueue event_queue[NUM_EVENTS];
 
     // Initialization (Global)
     register int loadOffset asm ("sl");         // Get stack base from register (normally 0x00218000)
@@ -105,7 +104,6 @@ void kernel_run() {
     sharedVariables.send_queues = send_queues;
     sharedVariables.free_list = &free_list;
     sharedVariables.events = events;
-    sharedVariables.event_queue = event_queue;
     sharedVariables.loadOffset = loadOffset;
     sharedVariables.com1TxReady = 0;
     sharedVariables.com2TxReady = 0;

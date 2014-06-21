@@ -14,7 +14,6 @@
 
 #include <shared_variable.h>
 #include <task.h>
-#include <event_queue.h>
 
 #define NUM_EVENTS              5
 
@@ -28,7 +27,7 @@
 typedef struct Event
 {
     /* Tasks blocked on this event. */
-    struct EventQueue *event_queue;
+    Task* task;
 } Event;
 
 void event_init(SharedVariables* sharedVariables);
