@@ -106,6 +106,7 @@ void kernel_run() {
     sharedVariables.events = events;
     sharedVariables.loadOffset = loadOffset;
     sharedVariables.com1TxReady = 0;
+    sharedVariables.com1CtsReady = 0;
     sharedVariables.com2TxReady = 0;
 
     /* Start Kernel */

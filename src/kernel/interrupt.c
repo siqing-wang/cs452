@@ -58,28 +58,27 @@ void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
     else if (interrupt_check(INTERRUPT_TRAIN)) {
         int *interruptVal = (int *) (UART1_BASE + UART_INTR_OFFSET);
         int *flag = (int *) (UART1_BASE + UART_FLAG_OFFSET);
-        int ctsStatus = !(*flag & CTS_MASK);
+        int ctsStatus = (*flag & CTS_MASK);
 
-        switch((*interruptVal) & INTR_MASK) {
-            case RIS_MASK:
-                ch = io_getdata(COM1);
-                event_unblockTask(sharedVariables, EVENT_TRAIN_RECV, ch);
-                break;
-            case TIS_MASK:
-                io_interrupt_disable(COM1, TIEN_MASK);
-                sharedVariables->com1TxReady = 1;
-                if (ctsStatus) {
-                    event_unblockTask(sharedVariables, EVENT_TRAIN_SEND, ch);
-                }
-                break;
-            case MIS_MASK:
-                if (ctsStatus && sharedVariables->com1TxReady) {
-                    event_unblockTask(sharedVariables, EVENT_TRAIN_SEND, ch);
-                }
-                *interruptVal = (int)(*interruptVal) & (~MIS_MASK);
-                break;
-            default:
-                break;
+        int mask = ((*interruptVal) & INTR_MASK);
+        if (mask & MIS_MASK) {
+            sharedVariables->com1CtsReady = ctsStatus;
+            if (ctsStatus && sharedVariables->com1TxReady) {
+                event_unblockTask(sharedVariables, EVENT_TRAIN_SEND, ch);
+            }
+            *interruptVal = (int)(*interruptVal) & (~MIS_MASK);
+        }
+        if (mask & RIS_MASK) {
+            ch = io_getdata(COM1);
+            event_unblockTask(sharedVariables, EVENT_TRAIN_RECV, ch);
+        }
+        if (mask & TIS_MASK) {
+            io_interrupt_disable(COM1, TIEN_MASK);
+            sharedVariables->com1TxReady = 1;
+            sharedVariables->com1CtsReady = ctsStatus;
+            if (sharedVariables->com1CtsReady) {
+                event_unblockTask(sharedVariables, EVENT_TRAIN_SEND, ch);
+            }
         }
     }
     /* Add current interupted task back to scheduler. */

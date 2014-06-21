@@ -26,6 +26,7 @@ typedef struct SharedVariables
     int loadOffset;                 // stack base (0x00218000) it should be added
                                     // to any memory addresses.
     int com1TxReady;
+    int com1CtsReady;
     int com2TxReady;
 } SharedVariables;
 

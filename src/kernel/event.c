@@ -27,10 +27,19 @@ void event_blockTask(SharedVariables* sharedVariables, Task* active, int eventId
         return;
     }
     if ((eventId == EVENT_TRAIN_SEND) && (sharedVariables->com1TxReady)) {
-        io_putdata(COM1, data);
-        io_interrupt_enable(COM1, TIEN_MASK);
-        sharedVariables->com1TxReady = 0;
-        return;
+        if (!sharedVariables->com1CtsReady) {
+            int *flag = (int *) (UART1_BASE + UART_FLAG_OFFSET);
+            int ctsStatus = (*flag & CTS_MASK);
+            sharedVariables->com1CtsReady = ctsStatus;
+        }
+
+        if (sharedVariables->com1CtsReady) {
+            io_putdata(COM1, data);
+            io_interrupt_enable(COM1, TIEN_MASK);
+            sharedVariables->com1TxReady = 0;
+            sharedVariables->com1CtsReady = 0;
+            return;
+        }
     }
 
     /* Find corresponding event. */
