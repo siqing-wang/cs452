@@ -10,6 +10,7 @@
 #include <timer.h>
 #include <bwio.h>
 #include <utils.h>
+#include <train.h>
 
 void idleTask() {
     for(;;) {
@@ -47,7 +48,7 @@ void firstUserTask() {
     Create(11, &trainIOServer);
     Create(11, &terminalIOServer);
 
-    Create(2, &testTask);
+    Create(2, &train);
 
     /* Create Idle Task. */
     Create(0, &idleTask);
