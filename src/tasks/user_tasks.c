@@ -18,21 +18,6 @@ void idleTask() {
     }
 }
 
-void testTask() {
-    PutStr(COM2, "Start\n\r");
-    int i=0;
-    for(;;i++) {
-        char c = Getc(COM2);
-        if (c > 0)
-            Putc(COM2 , c);
-        if (c == 'q') {
-            break;
-        }
-    }
-    PutStr(COM2, "End\n\r");
-    Exit();
-}
-
 void firstUserTask() {
     debugTimer_init();
 
