@@ -125,7 +125,10 @@ void kernel_run() {
             /* No request, so it must be a hwi.(see context switch) */
             interrupt_handle(&sharedVariables, active);
         } else {
-            request_handle(&sharedVariables, active, request);
+            int doesExit = request_handle(&sharedVariables, active, request);
+            if (doesExit) {
+                break;
+            }
         }
     }
 

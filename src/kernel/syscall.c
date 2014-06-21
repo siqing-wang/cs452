@@ -51,6 +51,13 @@ void Exit() {
     sendRequest(&request);
 }
 
+void ExitProgram() {
+    Request request;
+    request.syscall = SYS_EXIT_PROGRAM;
+    sendRequest(&request);
+}
+
+
 /* Inter-task Communication */
 
 int Send(int tid, void *msg, int sendMsgLen, void *reply, int rcvMsgLen) {

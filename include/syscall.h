@@ -61,6 +61,7 @@ int MyTid();
 int MyParentTid();
 void Pass();
 void Exit();
+void ExitProgram();
 
 // Inter-task Communication
 int Send(int Tid, void *msg, int msglen, void *reply, int replylen);

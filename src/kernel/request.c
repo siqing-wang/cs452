@@ -12,7 +12,7 @@ int sendMessage(SharedVariables* sharedVariables, Task* active, Message *message
 void readMessage(SharedVariables* sharedVariables, Task* active, Message *message);
 int replyMessage(SharedVariables* sharedVariables, Task* active, Message *message);
 
-void request_handle(SharedVariables* sharedVariables, Task* active, Request *request) {
+int request_handle(SharedVariables* sharedVariables, Task* active, Request *request) {
     switch(request->syscall) {
         Task *task;
         int result;
@@ -39,7 +39,7 @@ void request_handle(SharedVariables* sharedVariables, Task* active, Request *req
         case SYS_EXIT:
             task_exit(sharedVariables, active);
             request->retVal = SUCCESS;
-            return;
+            return 0;
         case SYS_SEND:
             result = sendMessage(sharedVariables, active, request->message);
             request->retVal = result;
@@ -57,6 +57,8 @@ void request_handle(SharedVariables* sharedVariables, Task* active, Request *req
             event_blockTask(sharedVariables, active, request->eventId, request->data);
             request->retVal = SUCCESS;
             break;
+        case SYS_EXIT_PROGRAM:
+            return 1;
         default:
             /* Unrecognized syscall. */
             request->retVal = ERR_UNKNOWN_SYSCALL;
@@ -67,6 +69,8 @@ void request_handle(SharedVariables* sharedVariables, Task* active, Request *req
         active->state = TASK_READY;
         scheduler_add(sharedVariables, active);
     }
+
+    return 0;
 }
 
 int sendMessage(SharedVariables* sharedVariables, Task* active, Message *message) {

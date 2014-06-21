@@ -22,6 +22,7 @@
 #define SYS_RECV 6
 #define SYS_REPLY 7
 #define SYS_AWAITEVT 8
+#define SYS_EXIT_PROGRAM 9
 
 #define ERR_UNKNOWN_SYSCALL -1
 #define ERR_CREATE_TASK_FAIL -2
@@ -59,6 +60,6 @@ typedef struct Request
     char data;
 } Request;
 
-void request_handle(SharedVariables* sharedVariables, Task* active, Request *request);
+int request_handle(SharedVariables* sharedVariables, Task* active, Request *request);
 
 #endif
