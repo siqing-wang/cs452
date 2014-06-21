@@ -68,9 +68,9 @@ void kernel_init(SharedVariables *sharedVariables) {
     interrupt_init(sharedVariables);
 
     /* Create and add first task. */
-    // Task *firstTask = task_create(sharedVariables, -1, PRIORITY_MED, &firstTestTask);    // For test only
-    // Task *firstTask = task_create(sharedVariables, -1, PRIORITY_MED, &firstPmTask);      // For PM only
-    Task *firstTask = task_create(sharedVariables, -1, PRIORITY_MED, &firstUserTask);
+    // Task *firstTask = task_create(sharedVariables, -1, 7, &firstTestTask);    // For test only
+    // Task *firstTask = task_create(sharedVariables, -1, 7, &firstPmTask);      // For PM only
+    Task *firstTask = task_create(sharedVariables, -1, 7, &firstUserTask);
     scheduler_add(sharedVariables, firstTask);
 }
 

@@ -78,9 +78,9 @@ void terminalIOServer() {
     int msg = 0;
     /* Create notifiers, and send a message to it. */
     int notifierTid;
-    notifierTid = Create(PRIORITY_HIGH, &terminalSendNotifier);
+    notifierTid = Create(12, &terminalSendNotifier);
     Send(notifierTid, &msg, sizeof(msg), &msg, sizeof(msg));
-    notifierTid = Create(PRIORITY_HIGH, &terminalRecvNotifier);
+    notifierTid = Create(12, &terminalRecvNotifier);
     Send(notifierTid, &msg, sizeof(msg), &msg, sizeof(msg));
 
     IOQueue sendQueue;
@@ -123,6 +123,7 @@ void terminalIOServer() {
                         if (!ioQueue_empty(&recvQueue)) {
                             ch = ioQueue_pop(&recvQueue);
                         }
+
                         Reply(requesterTid, &ch, sizeof(ch));
                         break;
                     default :
@@ -145,9 +146,9 @@ void trainIOServer() {
     int msg = 0;
     /* Create notifiers, and send a message to it. */
     int notifierTid;
-    notifierTid = Create(PRIORITY_HIGH, &trainSendNotifier);
+    notifierTid = Create(12, &trainSendNotifier);
     Send(notifierTid, &msg, sizeof(msg), &msg, sizeof(msg));
-    notifierTid = Create(PRIORITY_HIGH, &trainRecvNotifier);
+    notifierTid = Create(12, &trainRecvNotifier);
     Send(notifierTid, &msg, sizeof(msg), &msg, sizeof(msg));
 
     IOQueue sendQueue;

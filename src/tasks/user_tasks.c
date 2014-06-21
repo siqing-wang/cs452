@@ -15,17 +15,18 @@ void idleTask() {
     for(;;) {
 
     }
-    Exit();
 }
 
 void testTask() {
     PutStr(COM2, "Start\n\r");
-    for(;;) {
+    int i=0;
+    for(;;i++) {
         char c = Getc(COM2);
+        if (c > 0)
+            Putc(COM2 , c);
         if (c == 'q') {
             break;
         }
-        Putc(COM2 , c);
     }
     PutStr(COM2, "End\n\r");
     Exit();
@@ -35,21 +36,21 @@ void firstUserTask() {
     debugTimer_init();
 
     /* Create NameServer. */
-    int tid = Create(PRIORITY_HIGH, &nameServer);
+    int tid = Create(15, &nameServer);
     assertEquals(NAMESERVER_TID, tid, "NameServer should be the first task.");
 
     // /* Create Clock Server. */
-    Create(PRIORITY_HIGH - 1, &clockServer);
+    Create(13, &clockServer);
 
 
     // /* Create IO Server. */
-    Create(PRIORITY_HIGH - 1, &trainIOServer);
-    Create(PRIORITY_HIGH - 1, &terminalIOServer);
+    Create(11, &trainIOServer);
+    Create(11, &terminalIOServer);
 
     Create(2, &testTask);
 
     /* Create Idle Task. */
-    // Create(0, &idleTask);
+    Create(0, &idleTask);
 
 
     Exit();

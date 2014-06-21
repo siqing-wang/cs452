@@ -317,7 +317,7 @@ void firstTestTask() {
     bwprintf(COM2,"Tests Start...\n\r");
 
     // Create NameServer
-    tid = Create(PRIORITY_HIGH, &nameServer);
+    tid = Create(15, &nameServer);
     assertEquals(NAMESERVER_TID, tid, "NameServer should be the first task.");
 
     // Test 0

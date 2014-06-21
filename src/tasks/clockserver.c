@@ -33,7 +33,7 @@ void clockNotifier() {
 void clockServer() {
     int msg = 0;
     /* Create notifier, and send a message to it. */
-    int notifierTid = Create(PRIORITY_HIGH, &clockNotifier);
+    int notifierTid = Create(14, &clockNotifier);
     Send(notifierTid, &msg, sizeof(msg), &msg, sizeof(msg));
 
     int tickCount = 0;

@@ -55,10 +55,6 @@
 
 #include <request.h>
 
-#define PRIORITY_LOW 3
-#define PRIORITY_MED 7
-#define PRIORITY_HIGH 11
-
 // Task Creation
 int Create(int priority, void (*code)());
 int MyTid();

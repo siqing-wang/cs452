@@ -44,10 +44,10 @@ void PeformanceSendTask() {
 
 void firstPmTask() {
     // Create NameServer
-    Create(PRIORITY_HIGH, &nameServer);
+    Create(10, &nameServer);
 
-    Create(PRIORITY_MED + 1, &PeformanceRecvTask);
-    Create(PRIORITY_MED + 3, &PeformanceSendTask);
+    Create(8, &PeformanceRecvTask);
+    Create(9, &PeformanceSendTask);
 
     Exit();
 }
