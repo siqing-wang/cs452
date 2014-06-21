@@ -93,8 +93,7 @@ void train() {
             moveCursor(TIMER_R, TIMER_C);
             displayTime(time);
             restoreCursor();
-       }
-
+        }
 
         /* READ INPUT & PARSE COMMAND */
 
