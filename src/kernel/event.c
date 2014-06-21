@@ -41,7 +41,7 @@ void event_blockTask(SharedVariables* sharedVariables, Task* active, int eventId
     event->task = active;
 }
 
-void event_unblockTask(SharedVariables* sharedVariables, int eventId) {
+void event_unblockTask(SharedVariables* sharedVariables, int eventId, char ch) {
     Event* event = (Event *)(sharedVariables->events + eventId);
     Task* task = event->task;
 
@@ -51,7 +51,6 @@ void event_unblockTask(SharedVariables* sharedVariables, int eventId) {
 
     Request *req = (Request *)(*(task->sp));
     switch(eventId) {
-        char ch;
         case EVENT_TERMINAL_SEND:
             io_putdata(COM2, req->data);
             io_interrupt_enable(COM2, TIEN_MASK);
@@ -63,11 +62,9 @@ void event_unblockTask(SharedVariables* sharedVariables, int eventId) {
             sharedVariables->com1TxReady = 0;
             break;
         case EVENT_TERMINAL_RECV:
-            ch = io_getdata(COM2);
             req->data = ch;
             break;
         case EVENT_TRAIN_RECV:
-            ch = io_getdata(COM1);
             req->data = ch;
             break;
     }

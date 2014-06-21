@@ -32,20 +32,24 @@ void interrupt_init(SharedVariables* sharedVariables) {
 }
 
 void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
+    char ch = 0;
+
     if (interrupt_check(INTERRUPT_TIMER)) {
         timer_clear();
-        event_unblockTask(sharedVariables, EVENT_TIMER);
+        event_unblockTask(sharedVariables, EVENT_TIMER, ch);
     }
     else if (interrupt_check(INTERRUPT_TERMINAL)) {
         int *interruptVal = (int *) (UART2_BASE + UART_INTR_OFFSET);
+
         switch((*interruptVal) & INTR_MASK) {
             case RIS_MASK:
-                event_unblockTask(sharedVariables, EVENT_TERMINAL_RECV);
+                ch = io_getdata(COM2);
+                event_unblockTask(sharedVariables, EVENT_TERMINAL_RECV, ch);
                 break;
             case TIS_MASK:
                 io_interrupt_disable(COM2, TIEN_MASK);
                 sharedVariables->com2TxReady = 1;
-                event_unblockTask(sharedVariables, EVENT_TERMINAL_SEND);
+                event_unblockTask(sharedVariables, EVENT_TERMINAL_SEND, ch);
                 break;
             default:
                 break;
@@ -58,18 +62,19 @@ void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
 
         switch((*interruptVal) & INTR_MASK) {
             case RIS_MASK:
-                event_unblockTask(sharedVariables, EVENT_TRAIN_RECV);
+                ch = io_getdata(COM1);
+                event_unblockTask(sharedVariables, EVENT_TRAIN_RECV, ch);
                 break;
             case TIS_MASK:
                 io_interrupt_disable(COM1, TIEN_MASK);
                 sharedVariables->com1TxReady = 1;
                 if (ctsStatus) {
-                    event_unblockTask(sharedVariables, EVENT_TRAIN_SEND);
+                    event_unblockTask(sharedVariables, EVENT_TRAIN_SEND, ch);
                 }
                 break;
             case MIS_MASK:
                 if (ctsStatus && sharedVariables->com1TxReady) {
-                    event_unblockTask(sharedVariables, EVENT_TRAIN_SEND);
+                    event_unblockTask(sharedVariables, EVENT_TRAIN_SEND, ch);
                 }
                 *interruptVal = (int)(*interruptVal) & (~MIS_MASK);
                 break;

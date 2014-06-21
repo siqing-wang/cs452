@@ -32,6 +32,6 @@ typedef struct Event
 
 void event_init(SharedVariables* sharedVariables);
 void event_blockTask(SharedVariables* sharedVariables, Task* active, int eventId, char data);
-void event_unblockTask(SharedVariables* sharedVariables, int eventId);
+void event_unblockTask(SharedVariables* sharedVariables, int eventId, char ch);
 
 #endif
