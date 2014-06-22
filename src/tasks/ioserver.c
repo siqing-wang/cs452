@@ -93,6 +93,7 @@ void terminalIOServer() {
 
     int requesterTid;
     int sendWaitingTid = -1;
+    int recvWaitingTid = -1;
     IOserverMessage message;
     char ch;
     for(;;) {
@@ -122,9 +123,11 @@ void terminalIOServer() {
                     case IOServerMSG_GETC :
                         if (!ioQueue_empty(&recvQueue)) {
                             ch = ioQueue_pop(&recvQueue);
+                            Reply(requesterTid, &ch, sizeof(ch));
                         }
-
-                        Reply(requesterTid, &ch, sizeof(ch));
+                        else {
+                            recvWaitingTid = requesterTid;
+                        }
                         break;
                     default :
                         warning("Unknown IOserver Syscall.");
@@ -138,6 +141,11 @@ void terminalIOServer() {
             ch = ioQueue_pop(&sendQueue);
             Reply(sendWaitingTid, &ch, sizeof(ch));
             sendWaitingTid = -1;
+        }
+        if (!ioQueue_empty(&recvQueue) && (recvWaitingTid >= 0)) {
+            ch = ioQueue_pop(&recvQueue);
+            Reply(recvWaitingTid, &ch, sizeof(ch));
+            recvWaitingTid = -1;
         }
     }
 }
@@ -161,6 +169,7 @@ void trainIOServer() {
 
     int requesterTid;
     int sendWaitingTid = -1;
+    int recvWaitingTid = -1;
     IOserverMessage message;
     char ch;
     for(;;) {
@@ -190,8 +199,11 @@ void trainIOServer() {
                     case IOServerMSG_GETC :
                         if (!ioQueue_empty(&recvQueue)) {
                             ch = ioQueue_pop(&recvQueue);
+                            Reply(requesterTid, &ch, sizeof(ch));
                         }
-                        Reply(requesterTid, &ch, sizeof(ch));
+                        else {
+                            recvWaitingTid = requesterTid;
+                        }
                         break;
                     default :
                         warning("Unknown IOserver Syscall.");
@@ -205,6 +217,11 @@ void trainIOServer() {
             ch = ioQueue_pop(&sendQueue);
             Reply(sendWaitingTid, &ch, sizeof(ch));
             sendWaitingTid = -1;
+        }
+        if (!ioQueue_empty(&recvQueue) && (recvWaitingTid >= 0)) {
+            ch = ioQueue_pop(&recvQueue);
+            Reply(recvWaitingTid, &ch, sizeof(ch));
+            recvWaitingTid = -1;
         }
     }
 }
