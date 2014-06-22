@@ -219,8 +219,6 @@ void trainset_init(TrainSetData *data) {
     data->sensorBit = 0;   // 0 or 1
     data->numSensorPast = 0;
 
-    /* TODO: do we still need a Getc here? */
-    Getc(COM1); // pull left over if any
     Putc(COM1, (char)SENSOR_RESET_MODE_ON);
 }
 
