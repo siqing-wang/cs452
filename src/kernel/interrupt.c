@@ -47,18 +47,15 @@ void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
     else if (interrupt_check(INTERRUPT_TERMINAL)) {
         int *interruptVal = (int *) (UART2_BASE + UART_INTR_OFFSET);
 
-        switch((*interruptVal) & INTR_MASK) {
-            case RIS_MASK:
-                ch = io_getdata(COM2);
-                event_unblockTask(sharedVariables, EVENT_TERMINAL_RECV, ch);
-                break;
-            case TIS_MASK:
-                io_interrupt_disable(COM2, TIEN_MASK);
-                sharedVariables->com2TxReady = 1;
-                event_unblockTask(sharedVariables, EVENT_TERMINAL_SEND, ch);
-                break;
-            default:
-                break;
+        int mask = ((*interruptVal) & INTR_MASK);
+        if (mask & RIS_MASK) {
+            ch = io_getdata(COM2);
+            event_unblockTask(sharedVariables, EVENT_TERMINAL_RECV, ch);
+        }
+        if (mask & TIS_MASK) {
+            io_interrupt_disable(COM2, TIEN_MASK);
+            sharedVariables->com2TxReady = 1;
+            event_unblockTask(sharedVariables, EVENT_TERMINAL_SEND, ch);
         }
     }
     else if (interrupt_check(INTERRUPT_TRAIN)) {
