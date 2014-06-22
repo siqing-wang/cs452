@@ -14,9 +14,9 @@ void initializeUI(TrainSetData *data) {
 
     /* Display header. */
     moveCursor(2, 1);
-    PutStr(COM2, "    CS 452 Real Time Train Control Station  (by Siqing & Yu Meng)");
+    Printf(COM2, "    CS 452 Real Time Train Control Station  (by Siqing & Yu Meng)");
     moveCursor(3, 1);
-    PutStr(COM2, "====================================================================");
+    Printf(COM2, "====================================================================");
 
 
     /* Display Timer Frame. */
@@ -25,26 +25,26 @@ void initializeUI(TrainSetData *data) {
 
     /* Display Switch Table Frame. */
     moveCursor(SWTABLE_R - 2, SWTABLE_C);
-    PutStr(COM2, "Switch State Table");
+    Printf(COM2, "Switch State Table");
     moveCursor(SWTABLE_R - 1, SWTABLE_C);
-    PutStr(COM2, "----------------------------------------------");
+    Printf(COM2, "----------------------------------------------");
     moveCursor(SWTABLE_R + 5, SWTABLE_C);
-    PutStr(COM2, "----------------------------------------------");
+    Printf(COM2, "----------------------------------------------");
     PutStr(COM2, TCS_RESET);
     printSwitchTable(data);
     PutStr(COM2, TCS_YELLOW);
 
     /* Display Sensor Table Frame. */
     moveCursor(SENTABLE_R - 1, SENTABLE_C - 6);
-    PutStr(COM2, "Sensors Past ");
+    Printf(COM2, "Sensors Past ");
     moveCursor(SENTABLE_R, SENTABLE_C - 6);
     Printf(COM2, "%sTotal 0:%s", TCS_WHITE, TCS_YELLOW);
 
     /* Command Frame. */
     moveCursor(CMD_R - 1, CMD_C - 3);
-    PutStr(COM2, "Type Your Command: ");
+    Printf(COM2, "Type Your Command: ");
     moveCursor(CMD_R, CMD_C - 2);
-    PutStr(COM2, "> ");
+    Printf(COM2, "> ");
 
     /* Tear Down. */
     PutStr(COM2, TCS_RESET);
@@ -127,9 +127,9 @@ void train() {
             /* Print user input with time stamp. */
             PutStr(COM2, TCS_CYAN);
             displayTime(Time() / 10, LOG_R, LOG_C);
-            moveCursor(LOG_R, LOG_C + 7);
+            moveCursor2(LOG_R, LOG_C + 7);
             Printf(COM2, ": %s%s", inputBuffer, TCS_RESET);
-            moveCursor(LOG_R + 1, LOG_C + 4);
+            moveCursor2(LOG_R + 1, LOG_C + 4);
             deleteFromCursorToEol();
 
             result = parseCommand(&trainsetData, inputBuffer);
@@ -140,19 +140,17 @@ void train() {
                     Printf(COM2, "%sERROR: Command not recognized!%s", TCS_RED, TCS_RESET);
                     break;
                 case CMD_PM_ON:
-                    moveCursor(PM_R, PM_C-14);
-                    PutStr(COM2, "Idle Percent: ...");
+                    PrintfAt(COM2, PM_R, PM_C-14, "Idle Percent: ...");
                     TurnMonitor(1);
                     break;
                 case CMD_PM_OFF:
                     TurnMonitor(0);
-                    moveCursor(PM_R, 0);
-                    deleteFromCursorToEol();
+                    PrintfAt(COM2, PM_R, 0, "%s", TCS_DELETE_TO_EOL);
                     break;
             }
 
             inputSize = 0;
-            moveCursor(CMD_R, CMD_C);
+            moveCursor2(CMD_R, CMD_C);
             deleteFromCursorToEol();
 
         } else if (c == '\b') {
@@ -160,10 +158,10 @@ void train() {
               continue;
             }
             inputSize--;
-            moveCursor(CMD_R, CMD_C + inputSize + 1);
+            moveCursor2(CMD_R, CMD_C + inputSize + 1);
             Putc(COM2, ' ');
         } else {
-            moveCursor(CMD_R, CMD_C + inputSize + 1);
+            moveCursor2(CMD_R, CMD_C + inputSize + 1);
             Putc(COM2, c);
 
            /* Read input into Buffer */
@@ -175,6 +173,6 @@ void train() {
 
     TearDown:
     trainset_stop();
-    moveCursor(END_R, 0);
+    moveCursor2(END_R, 0);
     ExitProgram();
 }

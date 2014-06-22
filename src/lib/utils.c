@@ -157,3 +157,22 @@ void i2a(int num, char *bf) {
     }
     ui2a( num, 10, bf );
 }
+
+int putwToBuffer(char *buf, int n, char fc, char *bf) {
+    char ch;
+    char *p = bf;
+    int size = 0;
+
+    while(*p++ && n > 0) {
+        n--;
+    }
+    while(n-- > 0) {
+        buf[size] = fc;
+        size++;
+    }
+    while((ch = *bf++)) {
+        buf[size] = ch;
+        size++;
+    }
+    return size;
+}

@@ -590,25 +590,6 @@ void format(int ioServerTid, char *fmt, va_list va) {
     }
 }
 
-int putwToBuffer(char *buf, int n, char fc, char *bf) {
-    char ch;
-    char *p = bf;
-    int size = 0;
-
-    while(*p++ && n > 0) {
-        n--;
-    }
-    while(n-- > 0) {
-        buf[size] = fc;
-        size++;
-    }
-    while((ch = *bf++)) {
-        buf[size] = ch;
-        size++;
-    }
-    return size;
-}
-
 int formatToBuffer(char *buf, char *fmt, va_list va) {
     char bf[12];
     char ch, lz;

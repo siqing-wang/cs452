@@ -41,6 +41,7 @@
 void clearScreen();
 void moveCursorToUpLeft();
 void moveCursor(int row, int col);
+void moveCursor2(int row, int col);
 void hideCursor();
 void deleteFromCursorToEol();
 void saveCursor();

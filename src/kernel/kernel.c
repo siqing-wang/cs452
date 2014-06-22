@@ -49,11 +49,6 @@ void hardware_init() {
  * Initialize kernel components.
  */
 void kernel_init(SharedVariables *sharedVariables) {
-    /* Setup BWIO */
-    // clearScreen();
-    // resetColor();
-    // moveCursorToUpLeft();
-
     /* Store kerent function's address in swi jump table. */
     int * addr = (int *) 0x28;
     *addr = (int)(sharedVariables->loadOffset) + (int)&kerent;

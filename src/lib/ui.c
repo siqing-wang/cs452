@@ -20,6 +20,31 @@ void moveCursor(int row, int col) {
     Printf(COM2, "\033[%u;%uH", row, col);
 }
 
+void moveCursor2(int row, int col) {
+    char buf[30];
+    char tmp[12];
+
+    buf[0] = '\033';
+    buf[1] = '[';
+    int size = 2;
+
+    ui2a(row, 10, tmp);
+    size += putwToBuffer(buf + size, 0, 0, tmp);
+
+    buf[size] = ';';
+    size ++;
+
+    ui2a(col, 10, tmp);
+    size += putwToBuffer(buf + size, 0, 0, tmp);
+
+    buf[size] = 'H';
+    size ++;
+
+    buf[size] = '\0';
+    size ++;
+    PutStr(COM2, buf);
+}
+
 void hideCursor() {
     PutStr(COM2, "\033[?25l");
 }

@@ -29,7 +29,6 @@ void updateSwitchTable(TrainSetData *data, int switch_number) {
     int switch_index = getSwitchIndex(switch_number);
     int line = switch_index / SWTABLE_NPERLINE;
     int posn = (switch_index % SWTABLE_NPERLINE) * 9;
-    moveCursor(SWTABLE_R + line, SWTABLE_C + posn);
 
     char dir;
     if (*(data->swtable + switch_index) == SWITCH_CURVE) {
@@ -38,12 +37,12 @@ void updateSwitchTable(TrainSetData *data, int switch_number) {
         dir = 'S';
     }
     if (switch_number < 10) {
-        PutStr(COM2, "  ");
+        PrintfAt(COM2, SWTABLE_R + line, SWTABLE_C + posn, "  %u - %c ", switch_number, dir);
     } else if (switch_number < 100) {
-        PutStr(COM2, " ");
+        PrintfAt(COM2, SWTABLE_R + line, SWTABLE_C + posn, " %u - %c ", switch_number, dir);
+    } else {
+        PrintfAt(COM2, SWTABLE_R + line, SWTABLE_C + posn, "%u - %c ", switch_number, dir);
     }
-    /* TODO: can avoid reprint switch number. */
-    Printf(COM2, "%u - %c ", switch_number, dir);
 }
 
 // busy wait print! so only use in initialization
