@@ -438,6 +438,34 @@ int PrintfAt(int channel, int row, int col, char *fmt, ...) {
     return SUCCESS;
 }
 
+int IOidle(int channel) {
+    int ioServerTid;
+    switch(channel) {
+        case 0:
+            ioServerTid = WhoIs("Train IO Server");
+            break;
+        case 1:
+            ioServerTid = WhoIs("Terminal IO Server");
+            break;
+        default:
+            return ERR_INVALID_TID;
+    }
+
+     /* Send message to IO Server. */
+    IOserverMessage message;
+    message.type = IOServerMSG_CLIENT;
+    message.syscall = IOServerMSG_IOIDEL;
+
+    int data;
+    int result = Send(ioServerTid, &message, sizeof(message), &data, sizeof(data));
+    if (result < 0) {
+        return ERR_INVALID_TID;
+    }
+    return SUCCESS;
+}
+
+/* Performance Monitor using idle task. */
+
 void IAmIdleTask() {
     Request request;
     request.syscall = SYS_IAM_IDLE_TASK;

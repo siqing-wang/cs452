@@ -94,6 +94,7 @@ void terminalIOServer() {
     int requesterTid;
     int sendWaitingTid = -1;
     int recvWaitingTid = -1;
+    int idelWaitingTid = -1;
     IOserverMessage message;
     char ch;
     int strPut;
@@ -138,6 +139,9 @@ void terminalIOServer() {
                             recvWaitingTid = requesterTid;
                         }
                         break;
+                    case IOServerMSG_IOIDEL :
+                        idelWaitingTid = requesterTid;
+                        break;
                     default :
                         warning("Unknown IOserver Syscall.");
                 }
@@ -155,6 +159,10 @@ void terminalIOServer() {
             ch = ioQueue_pop(&recvQueue);
             Reply(recvWaitingTid, &ch, sizeof(ch));
             recvWaitingTid = -1;
+        }
+        if (ioQueue_empty(&sendQueue) && (idelWaitingTid >= 0)) {
+            Reply(idelWaitingTid, &msg, sizeof(msg));
+            idelWaitingTid = -1;
         }
     }
 }
@@ -179,6 +187,7 @@ void trainIOServer() {
     int requesterTid;
     int sendWaitingTid = -1;
     int recvWaitingTid = -1;
+    int idelWaitingTid = -1;
     IOserverMessage message;
     char ch;
     for(;;) {
@@ -214,6 +223,9 @@ void trainIOServer() {
                             recvWaitingTid = requesterTid;
                         }
                         break;
+                    case IOServerMSG_IOIDEL :
+                        idelWaitingTid = requesterTid;
+                        break;
                     default :
                         warning("Unknown IOserver Syscall.");
                 }
@@ -231,6 +243,10 @@ void trainIOServer() {
             ch = ioQueue_pop(&recvQueue);
             Reply(recvWaitingTid, &ch, sizeof(ch));
             recvWaitingTid = -1;
+        }
+        if (ioQueue_empty(&sendQueue) && (idelWaitingTid >= 0)) {
+            Reply(idelWaitingTid, &msg, sizeof(msg));
+            idelWaitingTid = -1;
         }
     }
 }
