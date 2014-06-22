@@ -393,7 +393,10 @@ int PrintfAt(int channel, int row, int col, char *fmt, ...) {
 
     buf[0] = '\033';
     buf[1] = '[';
-    int size = 2;
+    buf[2] = 's';
+    buf[3] = '\033';
+    buf[4] = '[';
+    int size = 5;
 
     ui2a(row, 10, tmp);
     size += putwToBuffer(buf + size, 0, 0, tmp);
@@ -411,6 +414,11 @@ int PrintfAt(int channel, int row, int col, char *fmt, ...) {
     va_start(va,fmt);
     size += formatToBuffer(buf + size, fmt, va);
     va_end(va);
+
+    buf[size] = '\033';
+    buf[size + 1] = '[';
+    buf[size + 2] = 'u';
+    size += 3;
 
     /* Send message to IO Server. */
     IOserverMessage message;

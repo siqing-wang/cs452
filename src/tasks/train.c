@@ -50,16 +50,16 @@ void initializeUI(TrainSetData *data) {
     PutStr(COM2, TCS_RESET);
 }
 
-void displayTime(unsigned int timerCount) {
+void displayTime(unsigned int timerCount, int row, int col) {
 
     int tenthSecond = timerCount;
     int seconds = tenthSecond / 10;
     int minutes = seconds / 60;
-    Printf(COM2, "%u'%u.%u",
+    PrintfAt(COM2, row, col, "%u'%u.%u%s",
         minutes,
         seconds % 60,
-        tenthSecond % 10);
-    deleteFromCursorToEol();
+        tenthSecond % 10,
+        TCS_DELETE_TO_EOL);
 }
 
 void printTime() {
@@ -70,8 +70,7 @@ void printTime() {
         unsigned int newtime = Time() / 10;
         if (newtime > time) {
             time = newtime;
-            moveCursor(TIMER_R, TIMER_C);
-            displayTime(time);
+            displayTime(time, TIMER_R, TIMER_C);
         }
         Delay(12);
         if (idlePercentLastChecked + 10 < time) {
@@ -80,8 +79,7 @@ void printTime() {
 
             idlePercent = IdlePercent();
             if (idlePercent >= 0) {
-                moveCursor(PM_R, PM_C);
-                Printf(COM2, "%d.%d ", idlePercent/10, idlePercent%10);
+                PrintfAt(COM2, PM_R, PM_C, "%d.%d ", idlePercent/10, idlePercent%10);
             }
         }
     }
@@ -127,11 +125,10 @@ void train() {
             inputBuffer[inputSize] = '\0';
 
             /* Print user input with time stamp. */
-            moveCursor(LOG_R, LOG_C);
-            deleteFromCursorToEol();
             PutStr(COM2, TCS_CYAN);
-            displayTime(Time() / 10);
-            Printf(COM2, " : %s%s", inputBuffer, TCS_RESET);
+            displayTime(Time() / 10, LOG_R, LOG_C);
+            moveCursor(LOG_R, LOG_C + 7);
+            Printf(COM2, ": %s%s", inputBuffer, TCS_RESET);
             moveCursor(LOG_R + 1, LOG_C + 4);
             deleteFromCursorToEol();
 

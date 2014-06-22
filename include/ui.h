@@ -36,6 +36,8 @@
 #define TCS_CYAN    "\033[36m"
 #define TCS_WHITE   "\033[37m"
 
+#define TCS_DELETE_TO_EOL "\033[K"
+
 void clearScreen();
 void moveCursorToUpLeft();
 void moveCursor(int row, int col);
