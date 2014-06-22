@@ -29,6 +29,12 @@ void interrupt_init(SharedVariables* sharedVariables) {
     interrupt_enable(INTERRUPT_TIMER);
     interrupt_enable(INTERRUPT_TERMINAL);
     interrupt_enable(INTERRUPT_TRAIN);
+
+    int *flag = (int *) (UART1_BASE + UART_FLAG_OFFSET);
+    int ctsStatus = (*flag & CTS_MASK);
+    if (ctsStatus) {
+        sharedVariables->com1CtsReady = 1;
+    }
 }
 
 void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
@@ -62,9 +68,8 @@ void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
 
         int mask = ((*interruptVal) & INTR_MASK);
         if (mask & MIS_MASK) {
-            sharedVariables->com1CtsReady = ctsStatus;
-            if (ctsStatus && sharedVariables->com1TxReady) {
-                event_unblockTask(sharedVariables, EVENT_TRAIN_SEND, ch);
+            if (ctsStatus) {
+                sharedVariables->com1CtsReady = 1;
             }
             *interruptVal = (int)(*interruptVal) & (~MIS_MASK);
         }
@@ -75,10 +80,9 @@ void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
         if (mask & TIS_MASK) {
             io_interrupt_disable(COM1, TIEN_MASK);
             sharedVariables->com1TxReady = 1;
-            sharedVariables->com1CtsReady = ctsStatus;
-            if (sharedVariables->com1CtsReady) {
-                event_unblockTask(sharedVariables, EVENT_TRAIN_SEND, ch);
-            }
+        }
+        if ((sharedVariables->com1CtsReady) && (sharedVariables->com1TxReady)) {
+            event_unblockTask(sharedVariables, EVENT_TRAIN_SEND, ch);
         }
     }
     /* Add current interupted task back to scheduler. */

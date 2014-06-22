@@ -26,20 +26,13 @@ void event_blockTask(SharedVariables* sharedVariables, Task* active, int eventId
         sharedVariables->com2TxReady = 0;
         return;
     }
-    if ((eventId == EVENT_TRAIN_SEND) && (sharedVariables->com1TxReady)) {
-        if (!sharedVariables->com1CtsReady) {
-            int *flag = (int *) (UART1_BASE + UART_FLAG_OFFSET);
-            int ctsStatus = (*flag & CTS_MASK);
-            sharedVariables->com1CtsReady = ctsStatus;
-        }
 
-        if (sharedVariables->com1CtsReady) {
-            io_putdata(COM1, data);
-            io_interrupt_enable(COM1, TIEN_MASK);
-            sharedVariables->com1TxReady = 0;
-            sharedVariables->com1CtsReady = 0;
-            return;
-        }
+    if ((eventId == EVENT_TRAIN_SEND) && (sharedVariables->com1TxReady) && (sharedVariables->com1CtsReady)) {
+        io_putdata(COM1, data);
+        io_interrupt_enable(COM1, TIEN_MASK);
+        sharedVariables->com1TxReady = 0;
+        sharedVariables->com1CtsReady = 0;
+        return;
     }
 
     /* Find corresponding event. */
@@ -69,6 +62,7 @@ void event_unblockTask(SharedVariables* sharedVariables, int eventId, char ch) {
             io_putdata(COM1, req->data);
             io_interrupt_enable(COM1, TIEN_MASK);
             sharedVariables->com1TxReady = 0;
+            sharedVariables->com1CtsReady = 0;
             break;
         case EVENT_TERMINAL_RECV:
             req->data = ch;

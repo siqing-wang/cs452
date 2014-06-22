@@ -79,16 +79,18 @@ int bwputc( int channel, char c ) {
 		return -1;
 		break;
 	}
-	 while (( *flags & TXFF_MASK )) {
-        if ((channel == COM1) && !(*flags & CTS_MASK)) {
-            continue;
-        } else if (channel == COM2) {
-            continue;
-        } else if ((channel == COM1) && (*flags & TXBUSY_MASK)) {
-            continue;
-        }
-    }
-
+	for(;;) {
+		if (*flags & TXFF_MASK) {
+			continue;
+		}
+		if ((channel == COM1 ) && !(*flags & CTS_MASK)) {
+			continue;
+		}
+		if ((channel == COM1 ) && (*flags & TXBUSY_MASK)) {
+			continue;
+		}
+		break;
+	}
 	*data = c;
 	return 0;
 }
