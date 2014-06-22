@@ -104,10 +104,16 @@ void kernel_run() {
     sharedVariables.send_queues = send_queues;
     sharedVariables.free_list = &free_list;
     sharedVariables.events = events;
+    sharedVariables.idle = -1;  // see idle comment in shared variables
     sharedVariables.loadOffset = loadOffset;
     sharedVariables.com1TxReady = 0;
     sharedVariables.com1CtsReady = 0;
     sharedVariables.com2TxReady = 0;
+
+    /* Performance monitor. */
+    int idleTid = -1;               // idle task's tid
+    int idleCSCount = 0;            // context switches to idle task
+    int totalCSCount = 0;           // total context switches
 
     /* Start Kernel */
     kernel_init(&sharedVariables);
@@ -119,6 +125,24 @@ void kernel_run() {
             /* No available tasks from scheduler. */
             break;
         }
+
+        /* Performance monitor with idle task. */
+        if (idleTid == -1) {
+            idleTid = sharedVariables.idle;
+        } else if (idleTid == active->tid) {
+            idleCSCount++;
+            totalCSCount++;
+            /* x1000 to get xx.x% precision. */
+            sharedVariables.idle = 1000 * idleCSCount / totalCSCount;
+        } else {
+            totalCSCount++;
+        }
+        if (totalCSCount > 10000) {
+            totalCSCount = 0;
+            idleCSCount = 0;
+            sharedVariables.idle = 0;
+        }
+
         Request *request;
         /* Run user task and get user request in userspace. */
         activate(active, &request);

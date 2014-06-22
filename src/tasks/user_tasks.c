@@ -13,12 +13,14 @@
 #include <train.h>
 
 void idleTask() {
+    IAmIdleTask();
     for(;;) {
 
     }
 }
 
 void firstUserTask() {
+
     debugTimer_init();
 
     /* Create NameServer. */

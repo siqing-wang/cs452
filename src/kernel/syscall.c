@@ -373,6 +373,17 @@ void Printf(int channel, char *fmt, ...) {
     va_end(va);
 }
 
+void IAmIdleTask() {
+    Request request;
+    request.syscall = SYS_IAM_IDLE_TASK;
+    sendRequest(&request);
+}
+
+int IdlePercent() {
+    Request request;
+    request.syscall = SYS_IDLE_PERCENT;
+    return sendRequest(&request);
+}
 
 /* Internal helper */
 

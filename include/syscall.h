@@ -88,4 +88,8 @@ int Putc(int channel, char ch);
 int PutStr(int channel, char *str);
 void Printf(int channel, char *fmt, ...);
 
+// Performance Monitor using idle task.
+void IAmIdleTask();
+int IdlePercent();
+
 #endif

@@ -59,6 +59,16 @@ int request_handle(SharedVariables* sharedVariables, Task* active, Request *requ
             break;
         case SYS_EXIT_PROGRAM:
             return 1;
+        case SYS_IAM_IDLE_TASK:
+            sharedVariables->idle = active->tid;
+            request->retVal = SUCCESS;
+            break;
+        case SYS_IDLE_PERCENT:
+            request->retVal = sharedVariables->idle;
+            if (request->retVal < 0) {
+                request->retVal = 0;
+            }
+            break;
         default:
             /* Unrecognized syscall. */
             request->retVal = ERR_UNKNOWN_SYSCALL;

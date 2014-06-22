@@ -22,6 +22,9 @@ typedef struct SharedVariables
     struct TaskQueue* free_list;    // queue of free task descriptors
     /* Event */
     struct Event* events;           // event table
+    /* Performance Monitor */
+    int idle;                       // contains idle tid or (after it is set)
+                                    // contains idle run percentage
     /* Global */
     int loadOffset;                 // stack base (0x00218000) it should be added
                                     // to any memory addresses.
