@@ -91,5 +91,6 @@ void Printf(int channel, char *fmt, ...);
 // Performance Monitor using idle task.
 void IAmIdleTask();
 int IdlePercent();
+void TurnMonitor(int onOrOff);
 
 #endif

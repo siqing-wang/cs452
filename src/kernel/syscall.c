@@ -385,6 +385,14 @@ int IdlePercent() {
     return sendRequest(&request);
 }
 
+void TurnMonitor(int onOrOff) {
+    Request request;
+    request.syscall = SYS_TURN_MONITOR;
+    /* Using the event id field directly to avoid creating a new field for this.*/
+    request.eventId = onOrOff;
+    sendRequest(&request);
+}
+
 /* Internal helper */
 
 int sendRequest(Request* request) {

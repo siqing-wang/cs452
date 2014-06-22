@@ -65,8 +65,17 @@ int request_handle(SharedVariables* sharedVariables, Task* active, Request *requ
             break;
         case SYS_IDLE_PERCENT:
             request->retVal = sharedVariables->idle;
-            if (request->retVal < 0) {
-                request->retVal = 0;
+            break;
+        case SYS_TURN_MONITOR:
+            if (request->eventId) {
+                /* Turn on monitor, using event id field here to avoid creating new field. */
+                if (sharedVariables->idle == -1) {
+                    /* Currently off, must turn on only when currently off,
+                     * see kernel.c implementation */
+                    sharedVariables->idle = 0;
+                }
+            } else {
+                sharedVariables->idle = -1;
             }
             break;
         default:

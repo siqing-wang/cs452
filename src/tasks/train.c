@@ -65,6 +65,8 @@ void displayTime(unsigned int timerCount) {
 
 void printTime() {
     unsigned int time = 0;          // timer
+    int idlePercent;                // performance monitor
+    int idlePercentLastChecked = 0;
     for (;;) {
         unsigned int newtime = Time() / 10;
         if (newtime > time) {
@@ -72,7 +74,16 @@ void printTime() {
             moveCursor(TIMER_R, TIMER_C);
             displayTime(time);
         }
-        Delay(10);
+        Delay(12);
+        if (idlePercentLastChecked + 10 < time) {
+            idlePercentLastChecked = time;
+
+            idlePercent = IdlePercent();
+            if (idlePercent >= 0) {
+                moveCursor(PM_R, PM_C);
+                Printf(COM2, "%d.%d ", idlePercent/10, idlePercent%10);
+            }
+        }
     }
 }
 
@@ -83,9 +94,6 @@ void train() {
     trainset_init(&trainsetData);
     initializeUI(&trainsetData);
 
-    /* Variables. */
-    int pm_on = 1;                  // performance monitor on or off
-
     /* Input Initialization. */
     char inputBuffer[256];
     int inputSize = 0;
@@ -93,26 +101,19 @@ void train() {
 
     Create(1, &printTime);
 
-    int loopCount = 0;
-    for (; ; loopCount = (loopCount + 1) % 50000) {
-        moveCursor(30,30);
-        Printf(COM2, "LOOP COUNT: %d", loopCount);
+    for ( ;; ) {
+
         /* READ INPUT & PARSE COMMAND */
         int result = Getc(COM2);
-
-        if (result == 0 ) {
-            /* No input yet. */
-            continue;
-        }
-
         c = (char) result;
 
         /* Input available */
         if (c == '\r') {
             Printf(COM2, "\n\r");
-            /* return pressed, parse input */
+            /* Return pressed, parse input */
             inputBuffer[inputSize] = '\0';
 
+            /* Print user input with time stamp. */
             moveCursor(LOG_R, LOG_C);
             deleteFromCursorToEol();
             PutStr(COM2, TCS_CYAN);
@@ -122,32 +123,38 @@ void train() {
             deleteFromCursorToEol();
 
             result = parseCommand(&trainsetData, inputBuffer);
-            if (result == CMD_HALT) {
-                goto TearDown;
-            } else if (result == CMD_FAILED) {
-                Printf(COM2, "%sERROR: Command not recognized!%s", TCS_RED, TCS_RESET);
-            } else if (result == CMD_PM_ON) {
-                pm_on = 1;
-                moveCursor(PM_R, PM_C-14);
-                PutStr(COM2, "Idle Percent:");
-            } else if (result == CMD_PM_OFF) {
-                moveCursor(PM_R, 0);
-                deleteFromCursorToEol();
-                pm_on = 0;
+            switch(result) {
+                case CMD_HALT:
+                    goto TearDown;
+                case CMD_FAILED:
+                    Printf(COM2, "%sERROR: Command not recognized!%s", TCS_RED, TCS_RESET);
+                    break;
+                case CMD_PM_ON:
+                    moveCursor(PM_R, PM_C-14);
+                    PutStr(COM2, "Idle Percent: ...");
+                    TurnMonitor(1);
+                    break;
+                case CMD_PM_OFF:
+                    TurnMonitor(0);
+                    moveCursor(PM_R, 0);
+                    deleteFromCursorToEol();
+                    break;
             }
+
             inputSize = 0;
             moveCursor(CMD_R, CMD_C);
             deleteFromCursorToEol();
+
         } else if (c == '\b') {
             if (inputSize == 0) {
               continue;
             }
             inputSize--;
             moveCursor(CMD_R, CMD_C + inputSize + 1);
-            deleteFromCursorToEol();
+            Putc(COM2, ' ');
         } else {
             moveCursor(CMD_R, CMD_C + inputSize + 1);
-            Printf(COM2, "%c", c);
+            Putc(COM2, c);
 
            /* Read input into Buffer */
             inputBuffer[inputSize] = c;

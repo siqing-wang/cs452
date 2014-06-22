@@ -23,7 +23,8 @@
 void hardware_init();
 void kernel_init(SharedVariables* sharedVariables);
 void activate(Task *active, Request **request);
-
+void taskMonitor(SharedVariables *sharedVariables, int *idleTid, int *idleMonitorOn,
+        int *idleCSCount, int *totalCSCount, int activeTid);
 /*
  * Initialize hardware related things such as cache & interrupt.
  */
@@ -112,6 +113,7 @@ void kernel_run() {
 
     /* Performance monitor. */
     int idleTid = -1;               // idle task's tid
+    int idleMonitorOn = 0;          // do we turn idle monitor on
     int idleCSCount = 0;            // context switches to idle task
     int totalCSCount = 0;           // total context switches
 
@@ -127,21 +129,8 @@ void kernel_run() {
         }
 
         /* Performance monitor with idle task. */
-        if (idleTid == -1) {
-            idleTid = sharedVariables.idle;
-        } else if (idleTid == active->tid) {
-            idleCSCount++;
-            totalCSCount++;
-            /* x1000 to get xx.x% precision. */
-            sharedVariables.idle = 1000 * idleCSCount / totalCSCount;
-        } else {
-            totalCSCount++;
-        }
-        if (totalCSCount > 10000) {
-            totalCSCount = 0;
-            idleCSCount = 0;
-            sharedVariables.idle = 0;
-        }
+        taskMonitor(&sharedVariables, &idleTid, &idleMonitorOn,
+            &idleCSCount, &totalCSCount, active->tid);
 
         Request *request;
         /* Run user task and get user request in userspace. */
@@ -159,6 +148,50 @@ void kernel_run() {
 
     interrupt_reset();
     bwprintf(COM2, "Finished\n\r");
+}
+
+
+void taskMonitor(SharedVariables *sharedVariables, int *idleTid, int *idleMonitorOn,
+        int *idleCSCount, int *totalCSCount, int activeTid) {
+
+    if (*idleTid == -1) {
+        /* Idle task tid not known yet. Try get it. */
+        *idleTid = sharedVariables->idle;
+        sharedVariables->idle = -1;
+        return;
+    }
+    if (!(*idleMonitorOn)) {
+        if (sharedVariables->idle >= 0) {
+            *idleMonitorOn = 1;
+        }
+        return;
+    }
+
+    if (sharedVariables->idle < 0) {
+        /* Turn off idle monitor. */
+        *idleMonitorOn = 0;
+        *totalCSCount = 0;
+        *idleCSCount = 0;
+        sharedVariables->idle = -1;
+        return;
+
+    }
+
+    /* Idle monitor is currently turned on. */
+    *totalCSCount = *totalCSCount + 1;
+    if (*idleTid == activeTid) {
+        *idleCSCount = *idleCSCount + 1;
+    }
+    if (*totalCSCount % 100 == 0) {
+        /* x1000 to get xx.x% precision. */
+        sharedVariables->idle = 1000 * (*idleCSCount) / (*totalCSCount);
+    }
+    if (*totalCSCount > 10000) {
+        *totalCSCount = 0;
+        *idleCSCount = 0;
+        sharedVariables->idle = 0;
+    }
+
 }
 
 /*
