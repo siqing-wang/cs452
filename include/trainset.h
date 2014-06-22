@@ -32,13 +32,16 @@ typedef struct TrainSetData {
 
     /* Switch Table. */
     int swtable[SWITCH_TOTAL];
+} TrainSetData;
 
+
+typedef struct TrainSetSensorData {
     /* Sensor List */
     int sentable[SENTABLE_SIZE];
     int sensorGroup; // ABCDE
     int sensorBit;   // 0 or 1
     int numSensorPast;
-} TrainSetData;
+} TrainSetSensorData;
 
 void trainset_init(TrainSetData *data);
 void trainset_go();
@@ -48,7 +51,7 @@ void trainset_reverse(TrainSetData *data, int train_number);
 void trainset_turnSwitch(TrainSetData *data, int switch_number, int switch_direction);
 void updateSwitchTable(TrainSetData *data, int switch_number);
 void trainset_subscribeSensorFeeds();
-int trainset_pullSensorFeeds();
+int trainset_pullSensorFeeds(TrainSetSensorData *data);
 
 void printSwitchTable(TrainSetData *data);
 

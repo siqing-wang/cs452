@@ -87,6 +87,19 @@ void printTime() {
     }
 }
 
+void pullSensorFeed() {
+    /* Sensor */
+    TrainSetSensorData data;
+    data.sensorGroup = 0; // ABCDE
+    data.sensorBit = 0;   // 0 or 1
+    data.numSensorPast = 0;
+
+    for (;;) {
+        trainset_pullSensorFeeds(&data);
+        Delay(10);
+    }
+}
+
 void train() {
 
     /* Trainset Initialization. */
@@ -100,6 +113,7 @@ void train() {
     char c;
 
     Create(1, &printTime);
+    Create(2, &pullSensorFeed);
 
     for ( ;; ) {
 

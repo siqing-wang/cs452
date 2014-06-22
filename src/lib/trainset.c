@@ -87,7 +87,7 @@ void sensorIntToName(int code, char* name) {
 
 }
 
-void printSensorTable(TrainSetData *data) {
+void printSensorTable(TrainSetSensorData *data) {
     saveCursor(COM2);
     moveCursor(SENTABLE_R, SENTABLE_C);
 
@@ -138,7 +138,7 @@ void trainset_subscribeSensorFeeds() {
     Putc(COM1, (char)SENSOR_SUBSCRIBE_ALL);
 }
 
-int trainset_pullSensorFeeds(TrainSetData *data) {
+int trainset_pullSensorFeeds(TrainSetSensorData *data) {
     int result = (int) Getc(COM1);
 
     if (result == -1) {
@@ -213,11 +213,6 @@ void trainset_init(TrainSetData *data) {
         }
         trainset_turnSwitch(data, getSwitchNumber(i), *(swtable + i));
     }
-
-    /* Sensor */
-    data->sensorGroup = 0; // ABCDE
-    data->sensorBit = 0;   // 0 or 1
-    data->numSensorPast = 0;
 
     Putc(COM1, (char)SENSOR_RESET_MODE_ON);
 }
