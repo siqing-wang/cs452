@@ -48,7 +48,6 @@ void initializeUI(TrainSetData *data) {
 
     /* Tear Down. */
     PutStr(COM2, TCS_RESET);
-
 }
 
 void displayTime(unsigned int timerCount) {
@@ -76,6 +75,7 @@ void printTime() {
         }
         Delay(12);
         if (idlePercentLastChecked + 10 < time) {
+
             idlePercentLastChecked = time;
 
             idlePercent = IdlePercent();
@@ -90,13 +90,12 @@ void printTime() {
 void pullSensorFeed() {
     /* Sensor */
     TrainSetSensorData data;
-    data.sensorGroup = 0; // ABCDE
-    data.sensorBit = 0;   // 0 or 1
     data.numSensorPast = 0;
 
     for (;;) {
+        trainset_subscribeSensorFeeds();
+        // Delay(5);
         trainset_pullSensorFeeds(&data);
-        Delay(10);
     }
 }
 

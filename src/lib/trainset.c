@@ -90,6 +90,7 @@ void sensorIntToName(int code, char* name) {
 void printSensorTable(TrainSetSensorData *data) {
     saveCursor(COM2);
     moveCursor(SENTABLE_R, SENTABLE_C);
+    deleteFromCursorToEol();
 
     int start = 0;
     int numSensorPast = data->numSensorPast;
@@ -102,6 +103,7 @@ void printSensorTable(TrainSetSensorData *data) {
     }
 
     Printf(COM2, "%d: ", numSensorPast);
+
     int i = start + numberOfItemsPrinted - 1;
     for (; i >= start; i--) {
         char sensorName[5];
@@ -138,44 +140,46 @@ void trainset_subscribeSensorFeeds() {
     Putc(COM1, (char)SENSOR_SUBSCRIBE_ALL);
 }
 
-int trainset_pullSensorFeeds(TrainSetSensorData *data) {
-    int result = (int) Getc(COM1);
-
-    if (result == -1) {
-        // No feed
+/* Return if table has been changed. */
+int trainset_addToSensorTable(TrainSetSensorData *data, int sensorGroup, int sensorNum) {
+    int sensorCode = sensorNameToInt(sensorGroup, sensorNum);
+    int numSensorPast = data->numSensorPast;
+    int lastSensorIndex = (numSensorPast - 1) % SENTABLE_SIZE;
+    int lastSensorCode = *(data->sentable + lastSensorIndex);
+    if (numSensorPast > 0 && lastSensorCode == sensorCode) {
+        /* Same as last sensor code */
         return 0;
     }
+    data->sentable[numSensorPast % SENTABLE_SIZE] = sensorCode;
+    data->numSensorPast = numSensorPast + 1;
+    return 1;
+}
 
-    int bitPosn = 0;
-    int sensorBit = data->sensorBit;
-    int sensorGroup = data->sensorGroup;
-    int numSensorPast = data->numSensorPast;
-    for ( ; bitPosn < 8; bitPosn++) {
-        int mask = 1 << ( 7 - bitPosn );
-        if (result & mask) {
-            /* Bit is set. */
-            int sensorCode = sensorNameToInt(sensorGroup, sensorBit * 8 + bitPosn + 1);
-            int lastSensorCode = *(data->sentable + (numSensorPast - 1) % SENTABLE_SIZE);
-            if (numSensorPast > 0 && lastSensorCode == sensorCode) {
-                /* Same as last sensor code */
-                continue;
+int trainset_pullSensorFeeds(TrainSetSensorData *data) {
+
+    int sensorBit = 0;          // 0 (for 1-8) or 1 (for 9-16)
+    int sensorGroup = 0;        // ABCDE
+
+    int changed = 0;    // do not reprint if not chanegd
+
+    int i;
+    for (i=0; i<10; i++) {
+        sensorBit = i % 2;
+        sensorGroup = i / 2;
+        int bitPosn = 0;
+        int result = (int) Getc(COM1);
+        for ( ; bitPosn < 8; bitPosn++) {
+            int mask = 1 << ( 7 - bitPosn );
+            if (result & mask) {
+                /* Bit is set. */
+                changed = trainset_addToSensorTable(data, sensorGroup, sensorBit * 8 + bitPosn + 1);
             }
-            data->sentable[numSensorPast % SENTABLE_SIZE] = sensorCode;
-            numSensorPast++;
-            printSensorTable(data);
         }
     }
-
-    sensorBit++;
-    if (sensorBit > 1) {
-        sensorBit = 0;
-        sensorGroup = (sensorGroup + 1) % 5;
+    if (changed) {
+        printSensorTable(data);
     }
 
-    /* Update data. */
-    data->sensorBit = sensorBit;
-    data->sensorGroup = sensorGroup;
-    data->numSensorPast = numSensorPast;
     return 1;
 }
 

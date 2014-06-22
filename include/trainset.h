@@ -38,8 +38,6 @@ typedef struct TrainSetData {
 typedef struct TrainSetSensorData {
     /* Sensor List */
     int sentable[SENTABLE_SIZE];
-    int sensorGroup; // ABCDE
-    int sensorBit;   // 0 or 1
     int numSensorPast;
 } TrainSetSensorData;
 
