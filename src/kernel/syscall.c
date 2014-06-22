@@ -286,7 +286,7 @@ int Getc(int channel) {
             return ERR_INVALID_TID;
     }
 
-     /* Send message to IO Server. */
+    /* Send message to IO Server. */
     IOserverMessage message;
     message.type = IOServerMSG_CLIENT;
     message.syscall = IOServerMSG_GETC;
@@ -312,7 +312,7 @@ int Putc(int channel, char ch) {
             return ERR_INVALID_TID;
     }
 
-     /* Send message to IO Server. */
+    /* Send message to IO Server. */
     IOserverMessage message;
     message.type = IOServerMSG_CLIENT;
     message.syscall = IOServerMSG_PUTC;
@@ -339,19 +339,27 @@ int PutStr(int channel, char *str) {
             return ERR_INVALID_TID;
     }
 
-     /* Send message to IO Server. */
+    int size = 0;
+    char *s = str;
+    while(*s) {
+        size++;
+        s++;
+    }
+
+    /* Send message to IO Server. */
     IOserverMessage message;
     message.type = IOServerMSG_CLIENT;
-    message.syscall = IOServerMSG_PUTC;
+    message.syscall = IOServerMSG_PUTSTR;
+    message.str = str;
+    message.strSize = size;
 
-    int result, data;
-    while(*str) {
-        message.data = *str;
-        result = Send(ioServerTid, &message, sizeof(message), &data, sizeof(data));
-        if (result < 0) {
-            return result;
-        }
-        str++;
+    int strPut;
+    int result = Send(ioServerTid, &message, sizeof(message), &strPut, sizeof(strPut));
+    if (result < 0) {
+        return ERR_INVALID_TID;
+    }
+    if (strPut < size) {
+        return ERR_NOT_COMPLETE_SEND;
     }
     return SUCCESS;
 }
