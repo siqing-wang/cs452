@@ -71,27 +71,26 @@ int sensorNameToInt(int group, int num) {
     return group * 100 + num;
 }
 
-void sensorIntToName(int code, char* name) {
+void sensorIntToName(int code, char** name) {
     int group = code / 100;
     int num = code % 100;
     assert(num <= 16, "SensorIntToName: Invalid sensor code.");
-    *name = (char) ('A' + group);
-    if (num < 10) {
-        *(name + 1) = (char) ('0' + num);
-        *(name + 2) = '\0';
-    } else {
-        *(name + 1) = '1';
-        *(name + 2) = (char) ('0' + num % 10);
-        *(name + 3) = '\0';
-    }
+    char *cur = *name;
 
+    *cur = (char) ('A' + group);
+    if (num < 10) {
+        *(cur + 1) = (char) ('0' + num);
+        *(cur + 2) = ' ';
+        *name = *name + 3;
+    } else {
+        *(cur + 1) = '1';
+        *(cur + 2)= (char) ('0' + num % 10);
+        *(cur + 3) = ' ';
+        *name = *name + 4;
+    }
 }
 
 void printSensorTable(TrainSetSensorData *data) {
-    saveCursor(COM2);
-    moveCursor(SENTABLE_R, SENTABLE_C);
-    deleteFromCursorToEol();
-
     int start = 0;
     int numSensorPast = data->numSensorPast;
     int numberOfItemsPrinted = numSensorPast;
@@ -102,16 +101,16 @@ void printSensorTable(TrainSetSensorData *data) {
         numberOfItemsPrinted = SENTABLE_SIZE;
     }
 
-    Printf(COM2, "%d: ", numSensorPast);
-
     int i = start + numberOfItemsPrinted - 1;
+    char printBuffer[ 4 * SENTABLE_SIZE+1];
+    char *cur = printBuffer;
     for (; i >= start; i--) {
-        char sensorName[5];
-        sensorIntToName(*(sentable + i % SENTABLE_SIZE), sensorName);
-        Printf(COM2, "%s ", sensorName);
+        /* Print backwards. */
+        sensorIntToName(*(sentable + i % SENTABLE_SIZE), &cur);
 
     }
-    restoreCursor(COM2);
+    *cur = '\0';
+    PrintfAt(COM2, SENTABLE_R, SENTABLE_C, "%s%d: %s", TCS_DELETE_TO_EOL, numSensorPast, printBuffer);
 }
 
 /* execute commands */
