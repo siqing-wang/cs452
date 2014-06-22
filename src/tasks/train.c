@@ -102,6 +102,10 @@ void train() {
     /* Trainset Initialization. */
     TrainSetData trainsetData;
     trainset_init(&trainsetData);
+    clearScreen();
+    PrintfAt(COM2, 10, 10, "Initializing ... Please wait for a few seconds. ");
+    IOidle(COM1);       // wait until initialization is done, i.e. IO idle.
+
     initializeUI(&trainsetData);
 
     /* Input Initialization. */
