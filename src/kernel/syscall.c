@@ -16,6 +16,8 @@
 int sendRequest(Request* request);
 void Putw(int ioServerTid, int n, char fc, char *bf);
 void format(int ioServerTid, char *fmt, va_list va);
+int putwToBuffer(char *buf, int n, char fc, char *bf);
+int formatToBuffer(char *buf, char *fmt, va_list va);
 
 /* Task Creation */
 
@@ -373,6 +375,61 @@ void Printf(int channel, char *fmt, ...) {
     va_end(va);
 }
 
+int PrintfAt(int channel, int row, int col, char *fmt, ...) {
+    int ioServerTid;
+    switch(channel) {
+        case 0:
+            ioServerTid = WhoIs("Train IO Server");
+            break;
+        case 1:
+            ioServerTid = WhoIs("Terminal IO Server");
+            break;
+        default:
+            return ERR_NOT_IOSERVER;
+    }
+
+    char buf[PRINTF_MAX_LENGTH];
+    char tmp[12];
+
+    buf[0] = '\033';
+    buf[1] = '[';
+    int size = 2;
+
+    ui2a(row, 10, tmp);
+    size += putwToBuffer(buf + size, 0, 0, tmp);
+
+    buf[size] = ';';
+    size ++;
+
+    ui2a(col, 10, tmp);
+    size += putwToBuffer(buf + size, 0, 0, tmp);
+
+    buf[size] = 'H';
+    size ++;
+
+    va_list va;
+    va_start(va,fmt);
+    size += formatToBuffer(buf + size, fmt, va);
+    va_end(va);
+
+    /* Send message to IO Server. */
+    IOserverMessage message;
+    message.type = IOServerMSG_CLIENT;
+    message.syscall = IOServerMSG_PUTSTR;
+    message.str = buf;
+    message.strSize = size;
+
+    int strPut;
+    int result = Send(ioServerTid, &message, sizeof(message), &strPut, sizeof(strPut));
+    if (result < 0) {
+        return ERR_INVALID_TID;
+    }
+    if (strPut < size) {
+        return ERR_NOT_COMPLETE_SEND;
+    }
+    return SUCCESS;
+}
+
 void IAmIdleTask() {
     Request request;
     request.syscall = SYS_IAM_IDLE_TASK;
@@ -487,4 +544,84 @@ void format(int ioServerTid, char *fmt, va_list va) {
             }
         }
     }
+}
+
+int putwToBuffer(char *buf, int n, char fc, char *bf) {
+    char ch;
+    char *p = bf;
+    int size = 0;
+
+    while(*p++ && n > 0) {
+        n--;
+    }
+    while(n-- > 0) {
+        buf[size] = fc;
+        size++;
+    }
+    while((ch = *bf++)) {
+        buf[size] = ch;
+        size++;
+    }
+    return size;
+}
+
+int formatToBuffer(char *buf, char *fmt, va_list va) {
+    char bf[12];
+    char ch, lz;
+    int w;
+
+    int size = 0;
+    while ((ch = *(fmt++))) {
+        if (ch != '%') {
+            buf[size] = ch;
+            size ++;
+        }
+        else {
+            lz = 0; w = 0;
+            ch = *(fmt++);
+            switch ( ch ) {
+                case '0':
+                    lz = 1; ch = *(fmt++);
+                    break;
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                case '9':
+                    ch = a2i( ch, &fmt, 10, &w );
+                    break;
+            }
+            switch( ch ) {
+                case 0: return size;;
+                case 'c':
+                    buf[size] = va_arg(va, char);
+                    size ++;
+                    break;
+                case 's':
+                    size += putwToBuffer(buf + size, w, 0, va_arg(va, char*));
+                    break;
+                case 'u':
+                    ui2a(va_arg(va, unsigned int), 10, bf);
+                    size += putwToBuffer(buf + size, w, lz, bf);
+                    break;
+                case 'd':
+                    i2a(va_arg(va, int ), bf);
+                    size += putwToBuffer(buf + size, w, lz, bf);
+                    break;
+                case 'x':
+                    ui2a(va_arg(va, unsigned int), 16, bf );
+                    size += putwToBuffer(buf + size, w, lz, bf);
+                    break;
+                case '%':
+                    buf[size] = ch;
+                    size ++;
+                    break;
+            }
+        }
+    }
+    return size;
 }

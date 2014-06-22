@@ -55,6 +55,8 @@
 
 #include <request.h>
 
+#define PRINTF_MAX_LENGTH 128
+
 // Task Creation
 int Create(int priority, void (*code)());
 int MyTid();
@@ -87,6 +89,7 @@ int Getc(int channel);
 int Putc(int channel, char ch);
 int PutStr(int channel, char *str);
 void Printf(int channel, char *fmt, ...);
+int PrintfAt(int channel, int row, int col, char *fmt, ...);
 
 // Performance Monitor using idle task.
 void IAmIdleTask();

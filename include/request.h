@@ -40,9 +40,7 @@
 #define ERR_NOT_NAMESERVER -2
 #define ERR_NOT_CLOCKSERVER -2
 #define ERR_NOT_IOSERVER -2
-
-#define NO_RECEIVED_MSG 0
-#define HAS_RECEIVED_MSG 1
+#define ERR_NOT_COMPLETE_SEND -3
 
 #define SUCCESS 0
 

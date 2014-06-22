@@ -13,6 +13,7 @@
 /* IOserverMessage.syscall */
 #define IOServerMSG_PUTC            1
 #define IOServerMSG_GETC            2
+#define IOServerMSG_PUTSTR          3
 
 /* Message sent/received by IO server. */
 typedef struct IOserverMessage
@@ -20,6 +21,8 @@ typedef struct IOserverMessage
     int type;           // Notifier/Client
     int syscall;        // PutC, GetC
     char data;
+    char *str;
+    int strSize;
 
 } IOserverMessage;
 
