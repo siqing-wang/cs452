@@ -3,39 +3,39 @@
  */
 
 #include <ui.h>
-#include <bwio.h>
 #include <utils.h>
+#include <syscall.h>
 
 /* Display */
 
 void clearScreen() {
-    bwputstr(COM2, "\033[2J");
+    PutStr(COM2, "\033[2J");
 }
 
 void moveCursorToUpLeft() {
-    bwputstr(COM2, "\033[H");
+    PutStr(COM2, "\033[H");
 }
 
 void moveCursor(int row, int col) {
-    bwprintf(COM2, "\033[%u;%uH", row, col);
+    Printf(COM2, "\033[%u;%uH", row, col);
 }
 
 void hideCursor() {
-    bwputstr(COM2, "\033[?25l");
+    PutStr(COM2, "\033[?25l");
 }
 
 void deleteFromCursorToEol() {
-    bwputstr(COM2, "\033[K");
+    PutStr(COM2, "\033[K");
 }
 
 void saveCursor() {
-    bwputstr(COM2, "\033[s");
+    PutStr(COM2, "\033[s");
 }
 
 void restoreCursor() {
-    bwputstr(COM2, "\033[u");
+    PutStr(COM2, "\033[u");
 }
 
 void resetColor() {
-    bwputstr(COM2, TCS_RESET);
+    PutStr(COM2, TCS_RESET);
 }

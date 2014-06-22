@@ -14,7 +14,7 @@ void initializeUI(TrainSetData *data) {
 
     /* Display header. */
     moveCursor(2, 1);
-    PutStr(COM2, "      CS 452 Real Time Train Control Station  (Yu Meng Zhang)");
+    PutStr(COM2, "    CS 452 Real Time Train Control Station  (by Siqing & Yu Meng)");
     moveCursor(3, 1);
     PutStr(COM2, "====================================================================");
 
