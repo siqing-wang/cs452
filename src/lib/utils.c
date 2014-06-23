@@ -69,6 +69,24 @@ int computeHash(const char *str) {
     return hash;
 }
 
+int stringStartWith(char* s1, char* s2) {
+    for(;;) {
+        if (*s2 == '\0') {
+            return 1;
+        }
+        else if (*s1 == '\0') {
+            return 0;
+        }
+        else if (*s1 != *s2) {
+            return 0;
+        }
+        else {
+            s1 ++;
+            s2 ++;
+        }
+    }
+}
+
 int stringEquals(char* s1, char* s2) {
     for(;;) {
         if ((*s1 == '\0') && (*s2 == '\0')) {

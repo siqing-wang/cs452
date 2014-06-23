@@ -23,16 +23,17 @@ int parsePerformanceMonitor(char* input);
 
 /* Parser Helper */
 int readNum(char** input) {
-    if (a2d(**input) == -1) {
+    char* cur = *input;
+    if (a2d(*cur) == -1) {
         /* First digit is invalid number */
         return -1;
     }
 
     int base = 10;
-    if (readToken(input, "0x")) {
+    if (stringStartWith(cur, "0x")) {
         base = 16;
+        cur += 2;
     }
-    char* cur = *input;
 
     int num = 0;
     int digit;
