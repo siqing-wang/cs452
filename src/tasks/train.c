@@ -178,5 +178,7 @@ void train() {
     TearDown:
     trainset_stop();
     moveCursor2(END_R, 0);
+    IOidle(COM1);
+    IOidle(COM2);
     ExitProgram();
 }
