@@ -160,7 +160,7 @@ void terminalIOServer() {
             Reply(recvWaitingTid, &ch, sizeof(ch));
             recvWaitingTid = -1;
         }
-        if (ioQueue_empty(&sendQueue) && (idelWaitingTid >= 0)) {
+        if ((sendWaitingTid >= 0) && (idelWaitingTid >= 0)) {
             Reply(idelWaitingTid, &msg, sizeof(msg));
             idelWaitingTid = -1;
         }
@@ -244,7 +244,7 @@ void trainIOServer() {
             Reply(recvWaitingTid, &ch, sizeof(ch));
             recvWaitingTid = -1;
         }
-        if (ioQueue_empty(&sendQueue) && (idelWaitingTid >= 0)) {
+        if ((sendWaitingTid >= 0) && (idelWaitingTid >= 0)) {
             Reply(idelWaitingTid, &msg, sizeof(msg));
             idelWaitingTid = -1;
         }
