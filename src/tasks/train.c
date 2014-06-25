@@ -92,6 +92,10 @@ void pullSensorFeed() {
     data.val = 0;
     data.data = 0;
     data.count = 0;
+    int i = 0;
+    for(i = 0; i < 10; i++) {
+        data.lastByte[i] = 0;
+    }
 
     for (;;) {
         trainset_subscribeSensorFeeds();
