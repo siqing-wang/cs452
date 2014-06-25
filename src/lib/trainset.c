@@ -139,18 +139,11 @@ void trainset_subscribeSensorFeeds() {
 }
 
 /* Return if table has been changed. */
-int trainset_addToSensorTable(TrainSetSensorData *data, int sensorGroup, int sensorNum) {
+void trainset_addToSensorTable(TrainSetSensorData *data, int sensorGroup, int sensorNum) {
     int sensorCode = sensorNameToInt(sensorGroup, sensorNum);
     int numSensorPast = data->numSensorPast;
-    int lastSensorIndex = (numSensorPast - 1) % SENTABLE_SIZE;
-    int lastSensorCode = *(data->sentable + lastSensorIndex);
-    if (numSensorPast > 0 && lastSensorCode == sensorCode) {
-        /* Same as last sensor code */
-        return 0;
-    }
     data->sentable[numSensorPast % SENTABLE_SIZE] = sensorCode;
     data->numSensorPast = numSensorPast + 1;
-    return 1;
 }
 
 int trainset_pullSensorFeeds(TrainSetSensorData *data) {
@@ -166,11 +159,16 @@ int trainset_pullSensorFeeds(TrainSetSensorData *data) {
         sensorGroup = i / 2;
         int bitPosn = 0;
         int result = (int) Getc(COM1);
+        if(data->lastByte[i] == result) {
+            continue;
+        }
+        data->lastByte[i] = result;
+        changed = 1;
         for ( ; bitPosn < 8; bitPosn++) {
             int mask = 1 << ( 7 - bitPosn );
             if (result & mask) {
                 /* Bit is set. */
-                changed = trainset_addToSensorTable(data, sensorGroup, sensorBit * 8 + bitPosn + 1);
+                trainset_addToSensorTable(data, sensorGroup, sensorBit * 8 + bitPosn + 1);
             }
         }
     }
