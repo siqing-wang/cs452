@@ -89,6 +89,9 @@ void pullSensorFeed() {
     /* Sensor */
     TrainSetSensorData data;
     data.numSensorPast = 0;
+    data.val = 0;
+    data.data = 0;
+    data.count = 0;
 
     for (;;) {
         trainset_subscribeSensorFeeds();

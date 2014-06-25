@@ -4,6 +4,7 @@
 #include <ui.h>
 #include <syscall.h>
 #include <utils.h>
+#include <timer.h>
 
 /* execute commands helpers */
 int getSwitchIndex(int switch_number) {
@@ -171,6 +172,18 @@ int trainset_pullSensorFeeds(TrainSetSensorData *data) {
             if (result & mask) {
                 /* Bit is set. */
                 changed = trainset_addToSensorTable(data, sensorGroup, sensorBit * 8 + bitPosn + 1);
+                // B16
+                if (changed && (sensorGroup == 1) && ((sensorBit * 8 + bitPosn + 1) == 16)) {
+                    data->val = debugTimer_getVal();
+                }
+                // C10
+                if (changed && (sensorGroup == 2) && ((sensorBit * 8 + bitPosn + 1) == 10)) {
+                    int newVal = debugTimer_getVal() - data->val;
+                    data->data = (data->data * data->count + newVal)/(data->count + 1);
+                    data->count = data->count + 1;
+                    PrintfAt(COM2, CMD_R + 3, 1, "new = %d avg = %d count = %d%s\n", newVal, data->data, data->count, TCS_DELETE_TO_EOL);
+                    data->val = 0;
+                }
             }
         }
     }
@@ -215,6 +228,12 @@ void trainset_init(TrainSetData *data) {
         }
         trainset_turnSwitch(data, getSwitchNumber(i), *(swtable + i));
     }
+
+    trainset_turnSwitch(data, 6, SWITCH_STRAIGHT);
+    trainset_turnSwitch(data, 7, SWITCH_STRAIGHT);
+    trainset_turnSwitch(data, 8, SWITCH_STRAIGHT);
+    trainset_turnSwitch(data, 10, SWITCH_STRAIGHT);
+
 
     Putc(COM1, (char)SENSOR_RESET_MODE_ON);
 }
