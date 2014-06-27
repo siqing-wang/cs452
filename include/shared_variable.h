@@ -23,8 +23,8 @@ typedef struct SharedVariables
     /* Event */
     struct Event* events;           // event table
     /* Performance Monitor */
-    int idle;                       // contains idle tid or (after it is set)
-                                    // contains idle run percentage
+    int idleTid;                    // contains idle tid or (after it is set)
+    int idlePercent;                // contains idle run percentage
     /* Global */
     int loadOffset;                 // stack base (0x00218000) it should be added
                                     // to any memory addresses.

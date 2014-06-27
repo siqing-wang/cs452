@@ -99,8 +99,8 @@ void pullSensorFeed() {
 
     for (;;) {
         trainset_subscribeSensorFeeds();
-        // Delay(5);
         trainset_pullSensorFeeds(&data);
+        Delay(1);
     }
 }
 
@@ -114,6 +114,7 @@ void train() {
     IOidle(COM1);       // wait until initialization is done, i.e. IO idle.
 
     initializeUI(&trainsetData);
+    IOidle(COM2);       // wait until initialization is done, i.e. IO idle.
 
     /* Input Initialization. */
     char inputBuffer[256];

@@ -18,6 +18,7 @@
 #include <syscall.h>
 #include <bwio.h>
 #include <ui.h>
+#include <timer.h>
 #include <utils.h>
 
 void hardware_init();
@@ -100,17 +101,18 @@ void kernel_run() {
     sharedVariables.send_queues = send_queues;
     sharedVariables.free_list = &free_list;
     sharedVariables.events = events;
-    sharedVariables.idle = -1;  // see idle comment in shared variables
+    sharedVariables.idleTid = -1;
+    sharedVariables.idlePercent = -1;
     sharedVariables.loadOffset = loadOffset;
     sharedVariables.com1TxReady = 0;
     sharedVariables.com1CtsReady = 0;
     sharedVariables.com2TxReady = 0;
 
     /* Performance monitor. */
-    int idleTid = -1;               // idle task's tid
-    int idleMonitorOn = 0;          // do we turn idle monitor on
-    int idleCSCount = 0;            // context switches to idle task
-    int totalCSCount = 0;           // total context switches
+    int idleTid = -1;
+    int idleStartTime = 0;
+    int idleEndTime = 0;
+    int lastIdleEndTime = 0;
 
     /* Start Kernel */
     kernel_init(&sharedVariables);
@@ -123,13 +125,24 @@ void kernel_run() {
             break;
         }
 
-        /* Performance monitor with idle task. */
-        taskMonitor(&sharedVariables, &idleTid, &idleMonitorOn,
-            &idleCSCount, &totalCSCount, active->tid);
+        idleTid = sharedVariables.idleTid;
+        if (active->tid == idleTid) {
+            idleStartTime = debugTimer_getVal();
+        }
 
         Request *request;
         /* Run user task and get user request in userspace. */
         activate(active, &request);
+
+        if (active->tid == idleTid) {
+            idleEndTime = debugTimer_getVal();
+
+            if ((sharedVariables.idlePercent >= 0) && (lastIdleEndTime > 0)) {
+                sharedVariables.idlePercent = (idleEndTime - idleStartTime) * 1000 / (idleEndTime - lastIdleEndTime);
+            }
+            lastIdleEndTime = idleEndTime;
+        }
+
         if (request == (Request*)0) {
             /* No request, so it must be a hwi.(see context switch) */
             interrupt_handle(&sharedVariables, active);
@@ -143,50 +156,6 @@ void kernel_run() {
 
     interrupt_reset();
     bwprintf(COM2, "Finished\n\r");
-}
-
-
-void taskMonitor(SharedVariables *sharedVariables, int *idleTid, int *idleMonitorOn,
-        int *idleCSCount, int *totalCSCount, int activeTid) {
-
-    if (*idleTid == -1) {
-        /* Idle task tid not known yet. Try get it. */
-        *idleTid = sharedVariables->idle;
-        sharedVariables->idle = -1;
-        return;
-    }
-    if (!(*idleMonitorOn)) {
-        if (sharedVariables->idle >= 0) {
-            *idleMonitorOn = 1;
-        }
-        return;
-    }
-
-    if (sharedVariables->idle < 0) {
-        /* Turn off idle monitor. */
-        *idleMonitorOn = 0;
-        *totalCSCount = 0;
-        *idleCSCount = 0;
-        sharedVariables->idle = -1;
-        return;
-
-    }
-
-    /* Idle monitor is currently turned on. */
-    *totalCSCount = *totalCSCount + 1;
-    if (*idleTid == activeTid) {
-        *idleCSCount = *idleCSCount + 1;
-    }
-    if (*totalCSCount % 100 == 0) {
-        /* x1000 to get xx.x% precision. */
-        sharedVariables->idle = 1000 * (*idleCSCount) / (*totalCSCount);
-    }
-    if (*totalCSCount > 10000) {
-        *totalCSCount = 0;
-        *idleCSCount = 0;
-        sharedVariables->idle = 0;
-    }
-
 }
 
 /*
