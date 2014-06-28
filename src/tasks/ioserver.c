@@ -94,7 +94,7 @@ void terminalIOServer() {
     int requesterTid;
     int sendWaitingTid = -1;
     int recvWaitingTid = -1;
-    int idelWaitingTid = -1;
+    int idleWaitingTid = -1;
     IOserverMessage message;
     char ch;
     int strPut;
@@ -139,8 +139,8 @@ void terminalIOServer() {
                             recvWaitingTid = requesterTid;
                         }
                         break;
-                    case IOServerMSG_IOIDEL :
-                        idelWaitingTid = requesterTid;
+                    case IOServerMSG_IOIDLE :
+                        idleWaitingTid = requesterTid;
                         break;
                     default :
                         warning("Unknown IOserver Syscall.");
@@ -160,9 +160,9 @@ void terminalIOServer() {
             Reply(recvWaitingTid, &ch, sizeof(ch));
             recvWaitingTid = -1;
         }
-        if ((sendWaitingTid >= 0) && (idelWaitingTid >= 0)) {
-            Reply(idelWaitingTid, &msg, sizeof(msg));
-            idelWaitingTid = -1;
+        if ((sendWaitingTid >= 0) && (idleWaitingTid >= 0)) {
+            Reply(idleWaitingTid, &msg, sizeof(msg));
+            idleWaitingTid = -1;
         }
     }
 }
@@ -187,7 +187,7 @@ void trainIOServer() {
     int requesterTid;
     int sendWaitingTid = -1;
     int recvWaitingTid = -1;
-    int idelWaitingTid = -1;
+    int idleWaitingTid = -1;
     IOserverMessage message;
     char ch;
     for(;;) {
@@ -223,8 +223,8 @@ void trainIOServer() {
                             recvWaitingTid = requesterTid;
                         }
                         break;
-                    case IOServerMSG_IOIDEL :
-                        idelWaitingTid = requesterTid;
+                    case IOServerMSG_IOIDLE :
+                        idleWaitingTid = requesterTid;
                         break;
                     default :
                         warning("Unknown IOserver Syscall.");
@@ -244,9 +244,9 @@ void trainIOServer() {
             Reply(recvWaitingTid, &ch, sizeof(ch));
             recvWaitingTid = -1;
         }
-        if ((sendWaitingTid >= 0) && (idelWaitingTid >= 0)) {
-            Reply(idelWaitingTid, &msg, sizeof(msg));
-            idelWaitingTid = -1;
+        if ((sendWaitingTid >= 0) && (idleWaitingTid >= 0)) {
+            Reply(idleWaitingTid, &msg, sizeof(msg));
+            idleWaitingTid = -1;
         }
     }
 }

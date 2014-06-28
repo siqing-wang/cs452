@@ -462,7 +462,7 @@ int IOidle(int channel) {
      /* Send message to IO Server. */
     IOserverMessage message;
     message.type = IOServerMSG_CLIENT;
-    message.syscall = IOServerMSG_IOIDEL;
+    message.syscall = IOServerMSG_IOIDLE;
 
     int data;
     int result = Send(ioServerTid, &message, sizeof(message), &data, sizeof(data));
