@@ -5,6 +5,7 @@
 #include <ui.h>
 #include <syscall.h>
 #include <trainset.h>
+#include <track.h>
 
 /* Parser Helper */
 int readNum(char** input);
@@ -185,15 +186,15 @@ int parseTurnSwitchCommand(TrainSetData *data, char* input) {
 
     /* read switch direction */
     if(readToken(&input, "S") || readToken(&input, "s")) {
-        switch_direction = SWITCH_STRAIGHT;
+        switch_direction = DIR_STRAIGHT;
     } else if (readToken(&input, "C") || readToken(&input, "c")) {
-        switch_direction = SWITCH_CURVE;
+        switch_direction = DIR_CURVED;
     } else {
         return CMD_FAILED;
     }
 
     Printf(COM2, "%sTurn switch %u", TCS_GREEN, switch_number);
-    if (switch_direction == SWITCH_STRAIGHT) {
+    if (switch_direction == DIR_STRAIGHT) {
         Printf(COM2, " straight");
     } else {
         Printf(COM2, " curve");

@@ -7,6 +7,16 @@
 #include <timer.h>
 #include <track.h>
 
+/* For train control. */
+#define STOP 0
+#define REVERSE 15
+
+/* for switches */
+#define SWITCH_TURN_OUT 32
+#define SWITCH_STRAIGHT 33
+#define SWITCH_CURVE 34
+
+
 /* execute commands helpers */
 int getSwitchIndex(int switch_number) {
     if (switch_number <= 18) {
@@ -33,7 +43,7 @@ void updateSwitchTable(TrainSetData *data, int switch_number) {
     int posn = (switch_index % SWTABLE_NPERLINE) * 9;
 
     char dir;
-    if (*(data->swtable + switch_index) == SWITCH_CURVE) {
+    if (*(data->swtable + switch_index) == DIR_CURVED) {
         dir = 'C';
     } else {
         dir = 'S';
@@ -135,7 +145,14 @@ void trainset_reverse(TrainSetData *data, int train_number) {
 }
 
 void trainset_turnSwitch(TrainSetData *data, int switch_number, int switch_direction) {
-    Putc(COM1, (char)switch_direction);
+    if (switch_direction == DIR_STRAIGHT) {
+        Putc(COM1, (char)SWITCH_STRAIGHT);
+    } else if (switch_direction == DIR_CURVED) {
+        Putc(COM1, (char)SWITCH_CURVE);
+    } else {
+        Putc(COM1, (char)SWITCH_STRAIGHT);
+        warning("trainset_turnSwitch: Invalid switch direction, using straight instead.");
+    }
     Putc(COM1, (char)switch_number);
     Putc(COM1, (char)SWITCH_TURN_OUT);
     *(data->swtable + getSwitchIndex(switch_number)) = switch_direction;
@@ -155,7 +172,8 @@ void trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNu
     data->sentable[numSensorPast % SENTABLE_SIZE] = node;
     data->numSensorPast = numSensorPast + 1;
 
-    PrintfAt(COM2, SENEXPECT_R, SENEXPECT_C, "%s ", node->edge[0].dest->name);
+    track_node *nextSensor = nextSensorOrExit(data, node);
+    PrintfAt(COM2, SENEXPECT_R, SENEXPECT_C, "%s ", nextSensor->name);
     PrintfAt(COM2, SENLAST_R, SENLAST_C, "%s ", node->name);
     displayTime(Time()/10, SENLAST_R, SENLAST_C + 12);
 }
@@ -238,18 +256,18 @@ void trainset_init(TrainSetData *data) {
     i=0;
     for ( ;i <SWITCH_TOTAL; i++){
         if (i == 18 || i == 20 ) {
-            *(swtable + i) = SWITCH_STRAIGHT;
+            *(swtable + i) = DIR_STRAIGHT;
         } else {
-            *(swtable + i) = SWITCH_CURVE;
+            *(swtable + i) = DIR_CURVED;
         }
         trainset_turnSwitch(data, getSwitchNumber(i), *(swtable + i));
     }
 
-    trainset_turnSwitch(data, 6, SWITCH_STRAIGHT);
-    trainset_turnSwitch(data, 7, SWITCH_STRAIGHT);
-    trainset_turnSwitch(data, 8, SWITCH_STRAIGHT);
-    trainset_turnSwitch(data, 10, SWITCH_STRAIGHT);
-    trainset_turnSwitch(data, 15, SWITCH_STRAIGHT);
+    trainset_turnSwitch(data, 6, DIR_STRAIGHT);
+    trainset_turnSwitch(data, 7, DIR_STRAIGHT);
+    trainset_turnSwitch(data, 8, DIR_STRAIGHT);
+    trainset_turnSwitch(data, 10, DIR_STRAIGHT);
+    trainset_turnSwitch(data, 15, DIR_STRAIGHT);
 
 
     Putc(COM1, (char)SENSOR_RESET_MODE_ON);

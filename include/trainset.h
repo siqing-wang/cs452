@@ -8,17 +8,9 @@
 #include <ts7200.h>
 #include <io.h>
 #include <ui.h>
-#include <track.h>
-
-/* For train control. */
-#define STOP 0
-#define REVERSE 15
 
 /* for switches */
 #define SWITCH_TOTAL 22
-#define SWITCH_TURN_OUT 32
-#define SWITCH_STRAIGHT 33
-#define SWITCH_CURVE 34
 
 /* for sensors */
 #define SENTABLE_SIZE 6
@@ -26,6 +18,7 @@
 #define SENSOR_SUBSCRIBE_ALL 133
 
 
+struct track_node;
 
 typedef struct TrainSetData {
     /* Train Speed Table. */
@@ -35,18 +28,19 @@ typedef struct TrainSetData {
     int swtable[SWITCH_TOTAL];
 
     /* Sensor List */
-    track_node* sentable[SENTABLE_SIZE];
+    struct track_node* sentable[SENTABLE_SIZE];
     int numSensorPast;
     int lastByte[10];
 
     /* Track graph. */
-    track_node *trackNode;
+    struct track_node *trackNode;
 
     int val;
     int data;
     int count;
 } TrainSetData;
 
+/* Trainset Control Functons. */
 void trainset_init(TrainSetData *data);
 void trainset_go();
 void trainset_stop();
@@ -57,6 +51,9 @@ void updateSwitchTable(TrainSetData *data, int switch_number);
 void trainset_subscribeSensorFeeds();
 int trainset_pullSensorFeeds(TrainSetData *data);
 
+/* Helper Functions. */
+int getSwitchIndex(int switch_number);
+int getSwitchNumber(int index);
 void printSwitchTable(TrainSetData *data);
 
 #endif

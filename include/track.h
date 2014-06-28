@@ -3,7 +3,7 @@
 
 #define TRACK_MAX 144
 
-
+/* Data structures */
 typedef enum {
   NODE_NONE,
   NODE_SENSOR,
@@ -35,7 +35,10 @@ struct track_node {
   track_edge edge[2];
 };
 
-
+/* Functions. */
+struct TrainSetData;
+track_node *nextNode(struct TrainSetData *data, track_node *node);
+track_node *nextSensorOrExit(struct TrainSetData *data, track_node *node);
 void init_tracka(track_node *track);
 void init_trackb(track_node *track);
 

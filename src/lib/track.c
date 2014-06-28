@@ -1,6 +1,29 @@
 /* THIS FILE IS GENERATED CODE -- DO NOT EDIT */
 
-#include "track.h"
+#include <track.h>
+#include <trainset.h>
+
+track_node *nextNode(struct TrainSetData *data, track_node *node) {
+  if (node->type != NODE_BRANCH) {
+    return node->edge[0].dest;
+  }
+  /* Branch's dest depends on switch state. */
+  int *swtable = data->swtable;
+  int corresSwNo = node->num;   // branch number and switch number are 1-1
+  int direction = *(swtable + getSwitchIndex(corresSwNo));
+  return node->edge[direction].dest;
+}
+
+track_node *nextSensorOrExit(struct TrainSetData *data, track_node *node) {
+  track_node *next = node;
+  for (;;) {
+    next = nextNode(data, next);
+    if (next->type == NODE_SENSOR || next->type == NODE_EXIT) {
+      break;
+    }
+  }
+  return next;
+}
 
 void init_tracka(track_node *track) {
   track[0].name = "A1";
