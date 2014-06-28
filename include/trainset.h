@@ -8,6 +8,7 @@
 #include <ts7200.h>
 #include <io.h>
 #include <ui.h>
+#include <track.h>
 
 /* For train control. */
 #define STOP 0
@@ -32,19 +33,19 @@ typedef struct TrainSetData {
 
     /* Switch Table. */
     int swtable[SWITCH_TOTAL];
-} TrainSetData;
 
-
-typedef struct TrainSetSensorData {
     /* Sensor List */
-    int sentable[SENTABLE_SIZE];
+    track_node* sentable[SENTABLE_SIZE];
     int numSensorPast;
     int lastByte[10];
+
+    /* Track graph. */
+    track_node *trackNode;
 
     int val;
     int data;
     int count;
-} TrainSetSensorData;
+} TrainSetData;
 
 void trainset_init(TrainSetData *data);
 void trainset_go();
@@ -54,7 +55,7 @@ void trainset_reverse(TrainSetData *data, int train_number);
 void trainset_turnSwitch(TrainSetData *data, int switch_number, int switch_direction);
 void updateSwitchTable(TrainSetData *data, int switch_number);
 void trainset_subscribeSensorFeeds();
-int trainset_pullSensorFeeds(TrainSetSensorData *data);
+int trainset_pullSensorFeeds(TrainSetData *data);
 
 void printSwitchTable(TrainSetData *data);
 

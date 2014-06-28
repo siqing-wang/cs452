@@ -5,6 +5,7 @@
 #include <syscall.h>
 #include <utils.h>
 #include <timer.h>
+#include <track.h>
 
 /* execute commands helpers */
 int getSwitchIndex(int switch_number) {
@@ -67,9 +68,9 @@ void printSwitchTable(TrainSetData *data) {
     }
 }
 
-
-int sensorNameToInt(int group, int num) {
-    return group * 100 + num;
+track_node *getSensorTrackNode(TrainSetData *data, int group, int num) {
+    track_node *trackNode = data->trackNode;
+    return trackNode + group * 16 + num - 1;
 }
 
 void sensorIntToName(int code, char** name) {
@@ -91,24 +92,28 @@ void sensorIntToName(int code, char** name) {
     }
 }
 
-void printSensorTable(TrainSetSensorData *data) {
+void printSensorTable(TrainSetData *data) {
     int start = 0;
     int numSensorPast = data->numSensorPast;
-    int numberOfItemsPrinted = numSensorPast;
-    int *sentable = data->sentable;
+    int numItemsToPrint = numSensorPast;
+    track_node **sentable = data->sentable;
 
     if (numSensorPast > SENTABLE_SIZE) {
         start = numSensorPast - SENTABLE_SIZE;
-        numberOfItemsPrinted = SENTABLE_SIZE;
+        numItemsToPrint = SENTABLE_SIZE;
     }
 
-    int i = start + numberOfItemsPrinted - 1;
-    char printBuffer[ 4 * SENTABLE_SIZE+1];
+    int i = start + numItemsToPrint - 1;
+    char printBuffer[4 * SENTABLE_SIZE + 1];
     char *cur = printBuffer;
+
     for (; i >= start; i--) {
         /* Print backwards. */
-        sensorIntToName(*(sentable + i % SENTABLE_SIZE), &cur);
-
+        track_node *node = *(sentable + i % SENTABLE_SIZE);
+        int nodeNameLen = stringLen(node->name);
+        memcopy(cur, node->name, nodeNameLen);
+        *(cur + nodeNameLen) = ' ';
+        cur = cur + nodeNameLen + 1;    // +1 for \0 because \0 not included in string length.
     }
     *cur = '\0';
     PrintfAt(COM2, SENTABLE_R, SENTABLE_C, "%s%d: %s", TCS_DELETE_TO_EOL, numSensorPast, printBuffer);
@@ -141,15 +146,21 @@ void trainset_subscribeSensorFeeds() {
 }
 
 /* Return if table has been changed. */
-void trainset_addToSensorTable(TrainSetSensorData *data, int sensorGroup, int sensorNum) {
-    int sensorCode = sensorNameToInt(sensorGroup, sensorNum);
+void trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum) {
+    track_node *node = getSensorTrackNode(data, sensorGroup, sensorNum);
     int numSensorPast = data->numSensorPast;
-    data->sentable[numSensorPast % SENTABLE_SIZE] = sensorCode;
+
+    assert(node->type == NODE_SENSOR, "trainset_addToSensorTable: adding Node that is not a sensor.");
+
+    data->sentable[numSensorPast % SENTABLE_SIZE] = node;
     data->numSensorPast = numSensorPast + 1;
+
+    PrintfAt(COM2, SENEXPECT_R, SENEXPECT_C, "%s ", node->edge[0].dest->name);
+    PrintfAt(COM2, SENLAST_R, SENLAST_C, "%s ", node->name);
+    displayTime(Time()/10, SENLAST_R, SENLAST_C + 12);
 }
 
-int trainset_pullSensorFeeds(TrainSetSensorData *data) {
-
+int trainset_pullSensorFeeds(TrainSetData *data) {
     int sensorBit = 0;          // 0 (for 1-8) or 1 (for 9-16)
     int sensorGroup = 0;        // ABCDE
 
@@ -202,7 +213,6 @@ int trainset_pullSensorFeeds(TrainSetSensorData *data) {
 
 void trainset_go() {
     Putc(COM1, (char)96);
-
 }
 
 void trainset_init(TrainSetData *data) {

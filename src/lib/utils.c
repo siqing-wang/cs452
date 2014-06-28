@@ -5,6 +5,7 @@
 #include <utils.h>
 #include <bwio.h>
 #include <ui.h>
+#include <syscall.h>
 
 void assert(int cond, char* msg) {
     if (!cond) {
@@ -42,6 +43,17 @@ void warning(char *msg) {
     bwputstr(COM2, TCS_RESET);
 }
 
+void displayTime(unsigned int timerCount, int row, int col) {
+
+    int tenthSecond = timerCount;
+    int seconds = tenthSecond / 10;
+    int minutes = seconds / 60;
+    PrintfAt(COM2, row, col, "%u'%u.%u  ",
+        minutes,
+        seconds % 60,
+        tenthSecond % 10);
+}
+
 void memcopy(char *dest, const char *src, int size) {
     int i;
     unsigned long *destll = (unsigned long*) dest;
@@ -60,14 +72,6 @@ void memcopy(char *dest, const char *src, int size) {
     }
 }
 
-int computeHash(const char *str) {
-    int hash = 0;
-    while(*str != '\0') {
-        hash = (hash * 29 + (int)(*str)) % HASH_TABLE_SIZE;
-        str++;
-    }
-    return hash;
-}
 
 int stringStartWith(char* s1, char* s2) {
     for(;;) {
@@ -85,6 +89,19 @@ int stringStartWith(char* s1, char* s2) {
             s2 ++;
         }
     }
+}
+
+int stringLen(const char *s) {
+    int len = 0;            // \0 not included in length
+    while (*s != '\0') {
+        len++;
+        s = s+1;
+        if (len > 500) {
+            warning("stringLen: string length > 500, \\0 included? returning -1...");
+            return -1;
+        }
+    }
+    return len;
 }
 
 int stringEquals(char* s1, char* s2) {
@@ -119,14 +136,6 @@ void stringCopy(char *dest, char* src, int len) {
         src++;
     }
     *dest = '\0';
-}
-
-/* XoR shift random. */
-unsigned long rand(unsigned long x) {
-    x ^= x >> 12; // a
-    x ^= x << 25; // b
-    x ^= x >> 27; // c
-    return x * 2685821657736338717LL;
 }
 
 int a2d(char ch) {
@@ -193,4 +202,22 @@ int putwToBuffer(char *buf, int n, char fc, char *bf) {
         size++;
     }
     return size;
+}
+
+
+/* XoR shift random. */
+unsigned long rand(unsigned long x) {
+    x ^= x >> 12; // a
+    x ^= x << 25; // b
+    x ^= x >> 27; // c
+    return x * 2685821657736338717LL;
+}
+
+int computeHash(const char *str) {
+    int hash = 0;
+    while(*str != '\0') {
+        hash = (hash * 29 + (int)(*str)) % HASH_TABLE_SIZE;
+        str++;
+    }
+    return hash;
 }

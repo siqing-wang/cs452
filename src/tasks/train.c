@@ -5,6 +5,9 @@
 #include <parser.h>
 #include <trainset.h>
 #include <utils.h>
+#include <track.h>
+
+void drawTrack();
 
 void initializeUI(TrainSetData *data) {
     /* Initialize. */
@@ -14,9 +17,9 @@ void initializeUI(TrainSetData *data) {
 
     /* Display header. */
     moveCursor(2, 1);
-    Printf(COM2, "    CS 452 Real Time Train Control Station  (by Siqing & Yu Meng)");
+    Printf(COM2, "     CS 452 Real Time Train Control Station  (by Siqing & Yu Meng)");
     moveCursor(3, 1);
-    Printf(COM2, "====================================================================");
+    Printf(COM2, "======================================================================");
 
 
     /* Display Timer Frame. */
@@ -25,20 +28,22 @@ void initializeUI(TrainSetData *data) {
 
     /* Display Switch Table Frame. */
     moveCursor(SWTABLE_R - 2, SWTABLE_C);
-    Printf(COM2, "Switch State Table");
-    moveCursor(SWTABLE_R - 1, SWTABLE_C);
-    Printf(COM2, "----------------------------------------------");
-    moveCursor(SWTABLE_R + 5, SWTABLE_C);
-    Printf(COM2, "----------------------------------------------");
+    Printf(COM2, "Switch Table\n    ----------------------------------------------------");
+    moveCursor(SWTABLE_R + 4, SWTABLE_C);
+    Printf(COM2, "----------------------------------------------------");
     PutStr(COM2, TCS_RESET);
     printSwitchTable(data);
     PutStr(COM2, TCS_YELLOW);
 
     /* Display Sensor Table Frame. */
-    moveCursor(SENTABLE_R - 1, SENTABLE_C - 6);
-    Printf(COM2, "Sensors Past ");
+    moveCursor(SENTABLE_R, SWTABLE_C);
+    Printf(COM2, "Sensors Past");
     moveCursor(SENTABLE_R, SENTABLE_C - 6);
     Printf(COM2, "%sTotal 0:%s", TCS_WHITE, TCS_YELLOW);
+    moveCursor(SENEXPECT_R, SWTABLE_C);
+    Printf(COM2, "Expecting                at");
+    moveCursor(SENLAST_R, SWTABLE_C);
+    Printf(COM2, "Last Sensor         past at          (expected           )");
 
     /* Command Frame. */
     moveCursor(CMD_R - 1, CMD_C - 3);
@@ -48,18 +53,6 @@ void initializeUI(TrainSetData *data) {
 
     /* Tear Down. */
     PutStr(COM2, TCS_RESET);
-}
-
-void displayTime(unsigned int timerCount, int row, int col) {
-
-    int tenthSecond = timerCount;
-    int seconds = tenthSecond / 10;
-    int minutes = seconds / 60;
-    PrintfAt(COM2, row, col, "%u'%u.%u%s",
-        minutes,
-        seconds % 60,
-        tenthSecond % 10,
-        TCS_DELETE_TO_EOL);
 }
 
 void printTime() {
@@ -86,28 +79,62 @@ void printTime() {
 }
 
 void pullSensorFeed() {
+    /* Initialize shared data. */
+    TrainSetData *data;
+    int parentTid;
+    Receive(&parentTid, &data, sizeof(data));
+    Reply(parentTid, &parentTid, sizeof(parentTid));
+
+    /* Initialize track*/
+    init_tracka(data->trackNode);
+
+    drawTrack();
+
     /* Sensor */
-    TrainSetSensorData data;
-    data.numSensorPast = 0;
-    data.val = 0;
-    data.data = 0;
-    data.count = 0;
     int i = 0;
     for(i = 0; i < 10; i++) {
-        data.lastByte[i] = 0;
+        data->lastByte[i] = 0;
     }
 
     for (;;) {
         trainset_subscribeSensorFeeds();
-        trainset_pullSensorFeeds(&data);
+        trainset_pullSensorFeeds(data);
         Delay(1);
     }
 }
 
+
+void drawTrack() {
+    moveCursor(TRACK_R, TRACK_C);       Printf(COM2,  "*******************************************************");
+    moveCursor(TRACK_R+1, TRACK_C);     Printf(COM2,  "             *     *                                     *");
+    moveCursor(TRACK_R+2, TRACK_C);     Printf(COM2,  "************     *   ***********************************   *");
+    moveCursor(TRACK_R+3, TRACK_C);     Printf(COM2,  "          *     * *              *         *              * *");
+    moveCursor(TRACK_R+4, TRACK_C);     Printf(COM2,  " ********      **                  *  *  *                  **");
+    moveCursor(TRACK_R+5, TRACK_C);     Printf(COM2,  "               *                    * * *                    *");
+    moveCursor(TRACK_R+6, TRACK_C);     Printf(COM2,  "              *                      ***                      *");
+    moveCursor(TRACK_R+7, TRACK_C);     Printf(COM2,  "              *                       *                       *");
+    moveCursor(TRACK_R+8, TRACK_C);     Printf(COM2,  "              *                      ***                      *");
+    moveCursor(TRACK_R+9, TRACK_C);     Printf(COM2,  "              **                    * * *                    **");
+    moveCursor(TRACK_R+10, TRACK_C);    Printf(COM2,  " ********     * *                  *  *  *                  * *");
+    moveCursor(TRACK_R+11, TRACK_C);    Printf(COM2,  "         *     *  *              *         *              *  *");
+    moveCursor(TRACK_R+12, TRACK_C);    Printf(COM2,  " **********     *    ************************************   *");
+    moveCursor(TRACK_R+13, TRACK_C);    Printf(COM2,  "            *     *                                       *");
+    moveCursor(TRACK_R+14, TRACK_C);    Printf(COM2,  "**************      *************************************");
+    moveCursor(TRACK_R+15, TRACK_C);    Printf(COM2,  "              *            *                     *");
+    moveCursor(TRACK_R+16, TRACK_C);    Printf(COM2,  "************************************************************* ");
+}
+
 void train() {
+    /* Trainset data initialization. */
+    TrainSetData trainsetData;
+    trainsetData.numSensorPast = 0;
+    trainsetData.val = 0;
+    trainsetData.data = 0;
+    trainsetData.count = 0;
+    track_node trackNode[TRACK_MAX];
+    trainsetData.trackNode = trackNode;
 
     /* Trainset Initialization. */
-    TrainSetData trainsetData;
     trainset_init(&trainsetData);
     clearScreen();
     PrintfAt(COM2, 10, 10, "Initializing ... Please wait for a few seconds. ");
@@ -121,8 +148,14 @@ void train() {
     int inputSize = 0;
     char c;
 
+    /* Create Children tasks. */
     Create(1, &printTime);
-    Create(2, &pullSensorFeed);
+
+    int childTid = Create(2, &pullSensorFeed);
+    int sendResult;
+    TrainSetData *dataPtr = &trainsetData;
+    Send(childTid, &dataPtr, sizeof(dataPtr), &sendResult, sizeof(sendResult));
+
 
     for ( ;; ) {
 
@@ -140,7 +173,7 @@ void train() {
             PutStr(COM2, TCS_CYAN);
             displayTime(Time() / 10, LOG_R, LOG_C);
             moveCursor2(LOG_R, LOG_C + 7);
-            Printf(COM2, ": %s%s", inputBuffer, TCS_RESET);
+            Printf(COM2, ": %s%s%s", inputBuffer, TCS_RESET, TCS_DELETE_TO_EOL);
             moveCursor2(LOG_R + 1, LOG_C + 4);
             deleteFromCursorToEol();
 

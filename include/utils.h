@@ -31,24 +31,32 @@ typedef char *va_list;
 #define ON      1
 #define OFF     0
 
+/* Printing */
 void assert(int cond, char* msg);
 void assertEquals(int expected, int actual, char* msg);
 void debug(char *msg);
 void warning(char *msg);
+void displayTime(unsigned int timerCount, int row, int col);
 
+/* Memory */
 void memcopy(char *dest, const char *src, int size);
 
-int computeHash(const char *str);
+/* String */
 int stringStartWith(char* s1, char* s2);
+int stringLen(const char *s);                     // NOTE: length does not include \0
 int stringEquals(char* s1, char* s2);
 void stringCopy(char *dest, char* src, int len);
 
-unsigned long rand(unsigned long x);
-
+/* Numbers */
 int a2d(char ch);
 char a2i(char ch, char **src, int base, int *nump);
 void ui2a(unsigned int num, unsigned int base, char *bf);
 void i2a(int num, char *bf);
+
+/* Misc */
 int putwToBuffer(char *buf, int n, char fc, char *bf);
+int computeHash(const char *str);
+unsigned long rand(unsigned long x);
+
 
 #endif
