@@ -139,7 +139,7 @@ void terminalIOServer() {
                             recvWaitingTid = requesterTid;
                         }
                         break;
-                    case IOServerMSG_IOIDEL :
+                    case IOServerMSG_IOIDLE :
                         idleWaitingTid = requesterTid;
                         break;
                     default :
@@ -223,7 +223,7 @@ void trainIOServer() {
                             recvWaitingTid = requesterTid;
                         }
                         break;
-                    case IOServerMSG_IOIDEL :
+                    case IOServerMSG_IOIDLE :
                         idleWaitingTid = requesterTid;
                         break;
                     default :
