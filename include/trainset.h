@@ -34,10 +34,6 @@ typedef struct TrainSetData {
 
     /* Track graph. */
     struct track_node *trackNode;
-
-    int val;
-    int data;
-    int count;
 } TrainSetData;
 
 /* Trainset Control Functons. */

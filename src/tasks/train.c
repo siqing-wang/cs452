@@ -128,9 +128,6 @@ void train() {
     /* Trainset data initialization. */
     TrainSetData trainsetData;
     trainsetData.numSensorPast = 0;
-    trainsetData.val = 0;
-    trainsetData.data = 0;
-    trainsetData.count = 0;
     track_node trackNode[TRACK_MAX];
     trainsetData.trackNode = trackNode;
 

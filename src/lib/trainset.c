@@ -200,25 +200,6 @@ int trainset_pullSensorFeeds(TrainSetData *data) {
             if (result & mask) {
                 /* Bit is set. */
                 trainset_addToSensorTable(data, sensorGroup, sensorBit * 8 + bitPosn + 1);
-
-                // C15
-                if ((sensorGroup == 2) && ((sensorBit * 8 + bitPosn + 1) == 15)) {
-                    Putc(COM1, (char)0);
-                    Putc(COM1, (char)49);
-                }
-
-                // // B16
-                // if ((sensorGroup == 1) && ((sensorBit * 8 + bitPosn + 1) == 16)) {
-                //     data->val = debugTimer_getVal();
-                // }
-                // // C10
-                // if ((sensorGroup == 2) && ((sensorBit * 8 + bitPosn + 1) == 10)) {
-                //     int newVal = debugTimer_getVal() - data->val;
-                //     data->data = (data->data * data->count + newVal)/(data->count + 1);
-                //     data->count = data->count + 1;
-                //     PrintfAt(COM2, CMD_R + 3, 1, "new = %d avg = %d count = %d%s\n", newVal, data->data, data->count, TCS_DELETE_TO_EOL);
-                //     data->val = 0;
-                // }
             }
         }
     }
@@ -262,13 +243,6 @@ void trainset_init(TrainSetData *data) {
         }
         trainset_turnSwitch(data, getSwitchNumber(i), *(swtable + i));
     }
-
-    trainset_turnSwitch(data, 6, DIR_STRAIGHT);
-    trainset_turnSwitch(data, 7, DIR_STRAIGHT);
-    trainset_turnSwitch(data, 8, DIR_STRAIGHT);
-    trainset_turnSwitch(data, 10, DIR_STRAIGHT);
-    trainset_turnSwitch(data, 15, DIR_STRAIGHT);
-
 
     Putc(COM1, (char)SENSOR_RESET_MODE_ON);
 }
