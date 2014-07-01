@@ -127,7 +127,13 @@ void drawTrack() {
 void train() {
     /* Trainset data initialization. */
     TrainSetData trainsetData;
+    TrainSpeedData trainSpeedData[TRAIN_NUM];
+    int i = 0;
+    for(i = 0; i < TRAIN_NUM; i++) {
+        trainsetData.tstable[i] = &trainSpeedData[i];
+    }
     trainsetData.numSensorPast = 0;
+    trainsetData.expectTimetick = 0;
     track_node trackNode[TRACK_MAX];
     trainsetData.trackNode = trackNode;
 

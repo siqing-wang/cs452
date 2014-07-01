@@ -6,6 +6,7 @@
 #include <utils.h>
 #include <timer.h>
 #include <track.h>
+#include <train_data.h>
 
 /* For train control. */
 #define STOP 0
@@ -134,13 +135,33 @@ void printSensorTable(TrainSetData *data) {
 void trainset_setSpeed(TrainSetData *data, int train_number, int train_speed) {
     Putc(COM1, (char)train_speed);
     Putc(COM1, (char)train_number);
-    *(data->tstable + train_number - 1) = train_speed;
+    int i = 0;
+    for( ; i < TRAIN_NUM ; i++) {
+        if (data->tstable[i]->trainNum == train_number) {
+            data->tstable[i]->lastSpeed = data->tstable[i]->targetSpeed;
+            data->tstable[i]->targetSpeed = train_speed;
+            data->tstable[i]->timetick = 0;
+            data->tstable[i]->timeRequiredToAchieveSpeed = calculate_delayToAchieveSpeed(data, i);
+            break;
+        }
+    }
 }
 
 void trainset_reverse(TrainSetData *data, int train_number) {
+    trainset_setSpeed(data, train_number, 0);
+
+    int train_speed = 0;
+    int i = 0;
+    for( ; i < TRAIN_NUM ; i++) {
+        if (data->tstable[i]->trainNum == train_number) {
+            Delay(data->tstable[i]->timeRequiredToAchieveSpeed);
+            train_speed = data->tstable[i]->lastSpeed;
+            break;
+        }
+    }
+
     Putc(COM1, (char)REVERSE);
     Putc(COM1, (char)train_number);
-    int train_speed = *(data->tstable + train_number - 1);
     trainset_setSpeed(data, train_number, train_speed);
 }
 
@@ -175,7 +196,14 @@ void trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNu
     track_node *nextSensor = nextSensorOrExit(data, node);
     PrintfAt(COM2, SENEXPECT_R, SENEXPECT_C, "%s ", nextSensor->name);
     PrintfAt(COM2, SENLAST_R, SENLAST_C, "%s ", node->name);
-    displayTime(Time()/10, SENLAST_R, SENLAST_C + 12);
+
+    int timetick = Time();
+    displayTime(timetick/10, SENLAST_R, SENLAST_C + 12);
+    displayTime((data->expectTimetick)/10, SENLAST_R, SENLAST_C + 31);
+
+    int timeInterval = expectSensorArrivalTimeDuration(data, 0, node);
+    data->expectTimetick = timetick + timeInterval;
+    displayTime((data->expectTimetick)/10, SENEXPECT_R, SENEXPECT_C + 12);
 }
 
 int trainset_pullSensorFeeds(TrainSetData *data) {
@@ -215,26 +243,26 @@ void trainset_go() {
 }
 
 void trainset_init(TrainSetData *data) {
-
-    int *tstable = data->tstable;
+    int i = 0;
+    for( ; i<TRAIN_NUM; i++) {
+        data->tstable[i]->lastSpeed = 0;
+        data->tstable[i]->targetSpeed = 0;
+        data->tstable[i]->timetick = 0;
+        data->tstable[i]->timeRequiredToAchieveSpeed = 0;
+    }
+    data->tstable[0]->trainNum = 49;
     int *swtable = data->swtable;
 
     trainset_go();
 
     /* Train Speed Table init. */
-    int i=0;
-    for ( ; i<80; i++){
-        *(tstable+i) = 0;
-
-    }
     i = 40;
     for ( ; i<55; i++) {
         trainset_setSpeed(data, i, 0);
     }
 
-
     /* Switch Direction Table */
-    i=0;
+    i = 0;
     for ( ;i <SWITCH_TOTAL; i++){
         if (i == 18 || i == 20 ) {
             *(swtable + i) = DIR_STRAIGHT;

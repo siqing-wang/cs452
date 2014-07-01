@@ -17,12 +17,21 @@
 #define SENSOR_RESET_MODE_ON 192
 #define SENSOR_SUBSCRIBE_ALL 133
 
+#define TRAIN_NUM 1
 
 struct track_node;
 
+typedef struct TrainSpeedData {
+    int trainNum;
+    int lastSpeed;
+    int targetSpeed;
+    int timetick;
+    int timeRequiredToAchieveSpeed;
+} TrainSpeedData;
+
 typedef struct TrainSetData {
     /* Train Speed Table. */
-    int tstable[80];
+    TrainSpeedData *tstable[TRAIN_NUM];
 
     /* Switch Table. */
     int swtable[SWITCH_TOTAL];
@@ -31,6 +40,7 @@ typedef struct TrainSetData {
     struct track_node* sentable[SENTABLE_SIZE];
     int numSensorPast;
     int lastByte[10];
+    int expectTimetick;
 
     /* Track graph. */
     struct track_node *trackNode;
