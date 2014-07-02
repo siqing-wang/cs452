@@ -205,7 +205,12 @@ void trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNu
 
     int timetick = Time();
     displayTime(timetick/10, SENLAST_R, SENLAST_C + 12);
-    displayTime((data->expectTimetick)/10, SENLAST_R, SENLAST_C + 31);
+    displayTime((data->expectTimetick)/10, SENLAST_R, SENLAST_C + 30);
+    int diff = timetick / 10 - data->expectTimetick / 10;
+    if (diff < 0) {
+        diff = 0 - diff;
+    }
+    displayTime(diff, SENLAST_R, SENLAST_C + 44);
 
     int timeInterval = expectSensorArrivalTimeDuration(data, 0, node);
     data->expectTimetick = timetick + timeInterval;

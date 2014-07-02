@@ -43,7 +43,7 @@ void initializeUI(TrainSetData *data) {
     moveCursor(SENEXPECT_R, SWTABLE_C);
     Printf(COM2, "Expecting                at");
     moveCursor(SENLAST_R, SWTABLE_C);
-    Printf(COM2, "Last Sensor         past at          (expected           )");
+    Printf(COM2, "Last Sensor         past at          expected          diff");
 
     /* Command Frame. */
     moveCursor(CMD_R - 1, CMD_C - 3);
