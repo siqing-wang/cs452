@@ -54,9 +54,9 @@ int nextSensorDistance(struct TrainSetData *data, track_node *node) {
     return dist;
 }
 
-int expectSensorArrivalTimeDuration(struct TrainSetData *data, int trainNum, track_node *node) {
+int expectSensorArrivalTimeDuration(struct TrainSetData *data, int trainNum, track_node *node, double restriction) {
     int dist = nextSensorDistance(data, node);
-    int timeInterval = calculate_expectArrivalDuration(data, trainNum, dist);
+    int timeInterval = calculate_expectArrivalDuration(data, trainNum, dist, restriction);
     return timeInterval;
 }
 
@@ -1241,6 +1241,35 @@ void init_tracka(track_node *track) {
     track[143].name = "EX10";
     track[143].type = NODE_EXIT;
     track[143].reverse = &track[142];
+    int i = 0;
+    for( ; i < TRACK_MAX; i++) {
+        track[i].restriction = 1;
+    }
+    track[3].restriction = 1.012;
+    track[17].restriction = 1.984;
+    track[20].restriction = 1.075;
+    track[29].restriction = 1.048;
+    track[30].restriction = 1.044;
+    track[31].restriction = 1.016;
+    track[36].restriction = 1.064;
+    track[37].restriction = 1.113;
+    track[40].restriction = 1.061;
+    track[42].restriction = 1.920;
+    track[44].restriction = 1.101;
+    track[46].restriction = 1.022;
+    track[52].restriction = 1.211;
+    track[55].restriction = 1.073;
+    track[56].restriction = 1.117;
+    track[58].restriction = 1.025;
+    track[60].restriction = 1.071;
+    track[62].restriction = 0.912;
+    track[63].restriction = 0.918;
+    track[66].restriction = 1.112;
+    track[68].restriction = 1.027;
+    track[69].restriction = 1.039;
+    track[73].restriction = 1.148;
+    track[74].restriction = 1.022;
+    track[79].restriction = 1.043;
 }
 
 void init_trackb(track_node *track) {
@@ -2404,4 +2433,36 @@ void init_trackb(track_node *track) {
     track[139].name = "EX10";
     track[139].type = NODE_EXIT;
     track[139].reverse = &track[138];
+    int i = 0;
+    for( ; i < TRACK_MAX; i++) {
+        track[i].restriction = 1;
+    }
+    track[3].restriction = 1.084;
+    track[10].restriction = 1.024;
+    track[14].restriction = 1.022;
+    track[18].restriction = 1.056;
+    track[31].restriction = 1.028;
+    track[36].restriction = 1.107;
+    track[37].restriction = 1.041;
+    track[38].restriction = 1.013;
+    track[41].restriction = 1.091;
+    track[42].restriction = 1.018;
+    track[43].restriction = 1.042;
+    track[44].restriction = 1.025;
+    track[45].restriction = 0.983;
+    track[46].restriction = 1.031;
+    track[52].restriction = 1.138;
+    track[55].restriction = 1.061;
+    track[56].restriction = 1.032;
+    track[57].restriction = 0.989;
+    track[62].restriction = 0.955;
+    track[63].restriction = 0.942;
+    track[65].restriction = 1.087;
+    track[66].restriction = 1.100;
+    track[68].restriction = 1.012;
+    track[71].restriction = 1.154;
+    track[73].restriction = 1.037;
+    track[74].restriction = 1.103;
+    track[76].restriction = 0.985;
+    track[79].restriction = 1.043;
 }

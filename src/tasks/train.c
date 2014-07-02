@@ -240,6 +240,18 @@ void train() {
     TearDown:
     trainset_stop();
     moveCursor2(END_R, 0);
+
+    i = 0;
+    Printf(COM2, "Restriction factor \n");
+    for( ; i < TRACK_MAX ; i++) {
+        track_node *node= (track_node *)(trainsetData.trackNode + i);
+        Printf(COM2, "%d:%d ", i, (int)(1000 *node->restriction));
+        if ((i % 10 == 0) && (i != 0)) {
+            Printf(COM2, "\n");
+        }
+    }
+
+
     IOidle(COM1);
     IOidle(COM2);
     ExitProgram();

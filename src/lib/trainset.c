@@ -204,6 +204,10 @@ void trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNu
     PrintfAt(COM2, SENLAST_R, SENLAST_C, "%s ", node->name);
 
     int timetick = Time();
+    if (data->expectTimetick != 0) {
+        node->restriction = node->restriction * 0.3 + node->restriction * timetick / data->expectTimetick * 0.7;
+    }
+
     displayTime(timetick/10, SENLAST_R, SENLAST_C + 12);
     displayTime((data->expectTimetick)/10, SENLAST_R, SENLAST_C + 30);
     int diff = timetick / 10 - data->expectTimetick / 10;
@@ -212,7 +216,7 @@ void trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNu
     }
     displayTime(diff, SENLAST_R, SENLAST_C + 44);
 
-    int timeInterval = expectSensorArrivalTimeDuration(data, 0, node);
+    int timeInterval = expectSensorArrivalTimeDuration(data, 0, node, nextSensor->restriction);
     data->expectTimetick = timetick + timeInterval;
     displayTime((data->expectTimetick)/10, SENEXPECT_R, SENEXPECT_C + 12);
 }

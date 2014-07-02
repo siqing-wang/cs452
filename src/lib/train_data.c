@@ -151,7 +151,7 @@ int calculate_delayToAchieveSpeed(TrainSetData *trainSetData, int trainIndex) {
     return ((2 * distance) / (lastVelocity + targetVelocity));
 }
 
-int calculate_expectArrivalDuration(TrainSetData *trainSetData, int trainIndex, int distance) {
+int calculate_expectArrivalDuration(TrainSetData *trainSetData, int trainIndex, int distance, double restriction) {
     TrainSpeedData *trainSpeedData = trainSetData->tstable[trainIndex];
     int trainNum = trainSpeedData->trainNum;
     int targetSpeed = trainSpeedData->targetSpeed;
@@ -170,7 +170,7 @@ int calculate_expectArrivalDuration(TrainSetData *trainSetData, int trainIndex, 
         if ((timetick + tick) >= timeRequired) {
             break;
         }
-        currentVelocity = calculate_currentVelocity(trainSetData, trainIndex, (timetick+ tick));
+        currentVelocity = calculate_currentVelocity(trainSetData, trainIndex, (timetick+ tick)) * restriction;
         currentDistance += currentVelocity;
         tick ++;
     }
@@ -179,7 +179,7 @@ int calculate_expectArrivalDuration(TrainSetData *trainSetData, int trainIndex, 
         return 0;
     }
     if (currentDistance < distance) {
-        tick += ((distance - currentDistance) / targetVelocity);
+        tick += ((distance - currentDistance) / (targetVelocity * restriction));
     }
 
     return tick;
@@ -195,5 +195,5 @@ int calculate_delayToStop(TrainSetData *trainSetData, int trainIndex, int distan
         return -1;
     }
 
-    return calculate_expectArrivalDuration(trainSetData, trainIndex, (distance - minDistance));
+    return calculate_expectArrivalDuration(trainSetData, trainIndex, (distance - minDistance), 1);
 }
