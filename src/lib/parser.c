@@ -18,7 +18,8 @@ int readToken(char** input, char* token);
 /* Commands */
 int parseSetSpeedCommand(TrainSetData *data, char* input);
 int parseReverseDirectionCommand(TrainSetData *data, char* input);
-int parseTurnSwitchCommand(TrainSetData *data, char* input) ;
+int parseTurnSwitchCommand(TrainSetData *data, char* input);
+int parseStopCommand(TrainSetData *data, char* input);
 int parseHaltCommand(char* input);
 int parsePerformanceMonitor(char* input);
 
@@ -100,6 +101,31 @@ int readToken(char** input, char* token) {
     return 1;
 }
 
+int readString( char** input, char* result ) {
+    char* cur = *input;
+
+    int i = 0;
+    for (; ;i++) {
+        if (*cur == '\0') {
+            break;
+        }
+        if (*cur == ' ') {
+            break;
+        }
+        result[i] = *cur;
+        cur ++;
+    }
+    result[i] = '\0';
+
+    if (*cur != '\0' && !isWhiteSpace(*cur)) {
+        /* Has to be a whitespace (or end) after token */
+        return 0;
+    }
+    skipWhiteSpace(&cur);
+    *input = cur;
+    return 1;
+}
+
 int parseCommand(TrainSetData *data, char* input) {
 
     switch (input[0]) {
@@ -108,7 +134,12 @@ int parseCommand(TrainSetData *data, char* input) {
         case 'r':
             return parseReverseDirectionCommand(data, input);
         case 's':
-            return parseTurnSwitchCommand(data, input);
+            switch (input[1]) {
+                case 'w':
+                    return parseTurnSwitchCommand(data, input);
+                case 't':
+                    return parseStopCommand(data, input);
+            }
         case 'q':
             return parseHaltCommand(input);
         case 'p':
@@ -205,6 +236,30 @@ int parseTurnSwitchCommand(TrainSetData *data, char* input) {
     trainset_turnSwitch(data, switch_number, switch_direction);
     updateSwitchTable(data, switch_number);
 
+    return CMD_SUCCEED;
+}
+
+int parseStopCommand(TrainSetData *data, char* input) {
+    /* read sw */
+    if(!readToken(&input, "stop")) {
+        return CMD_FAILED;
+    }
+
+    char location[5];
+    if(!readString(&input, location)) {
+        return CMD_FAILED;
+    }
+
+    int offset = 0;
+    if(readToken(&input, "+")) {
+        offset = 1;
+    }
+    else if (readToken(&input, "-")) {
+        offset = -1;
+    }
+    offset *= readNum(&input);
+
+    Printf(COM2, "%sStop at %s with offset %d", TCS_GREEN, location, offset);
     return CMD_SUCCEED;
 }
 
