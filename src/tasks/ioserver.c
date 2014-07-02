@@ -190,6 +190,8 @@ void trainIOServer() {
     int idleWaitingTid = -1;
     IOserverMessage message;
     char ch;
+    int strPut;
+    char *str;
     for(;;) {
         ch = 0;
         /* Receive msg. */
@@ -213,6 +215,13 @@ void trainIOServer() {
                     case IOServerMSG_PUTC :
                         ioQueue_push(&sendQueue, message.data);
                         Reply(requesterTid, &msg, sizeof(msg));
+                        break;
+                    case IOServerMSG_PUTSTR :
+                        str = message.str;
+                        for(strPut = 0; strPut < message.strSize; strPut++) {
+                            ioQueue_push(&sendQueue, *(str + strPut));
+                        }
+                        Reply(requesterTid, &strPut, sizeof(strPut));
                         break;
                     case IOServerMSG_GETC :
                         if (!ioQueue_empty(&recvQueue)) {

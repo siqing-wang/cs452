@@ -103,6 +103,22 @@ void pullSensorFeed() {
     }
 }
 
+void updateSpeedTable() {
+    /* Initialize shared data. */
+    TrainSetData *data;
+    int parentTid;
+    Receive(&parentTid, &data, sizeof(data));
+    Reply(parentTid, &parentTid, sizeof(parentTid));
+
+    int i = 0;
+    for (;;) {
+        for(i = 0; i < TRAIN_NUM; i++) {
+            data->tstable[i]->timetick = data->tstable[i]->timetick + 1;
+        }
+        Delay(1);
+    }
+}
+
 
 void drawTrack() {
     moveCursor(TRACK_R, TRACK_C);       Printf(COM2,  "*******************************************************");
@@ -154,11 +170,12 @@ void train() {
     /* Create Children tasks. */
     Create(1, &printTime);
 
-    int childTid = Create(2, &pullSensorFeed);
+    int childTid1 = Create(2, &pullSensorFeed);
+    int childTid2 = Create(2, &updateSpeedTable);
     int sendResult;
     TrainSetData *dataPtr = &trainsetData;
-    Send(childTid, &dataPtr, sizeof(dataPtr), &sendResult, sizeof(sendResult));
-
+    Send(childTid1, &dataPtr, sizeof(dataPtr), &sendResult, sizeof(sendResult));
+    Send(childTid2, &dataPtr, sizeof(dataPtr), &sendResult, sizeof(sendResult));
 
     for ( ;; ) {
 
@@ -171,6 +188,10 @@ void train() {
             Printf(COM2, "\n\r");
             /* Return pressed, parse input */
             inputBuffer[inputSize] = '\0';
+
+            inputSize = 0;
+            moveCursor2(CMD_R, CMD_C);
+            deleteFromCursorToEol();
 
             /* Print user input with time stamp. */
             PutStr(COM2, TCS_CYAN);
@@ -197,9 +218,6 @@ void train() {
                     break;
             }
 
-            inputSize = 0;
-            moveCursor2(CMD_R, CMD_C);
-            deleteFromCursorToEol();
 
         } else if (c == '\b') {
             if (inputSize == 0) {

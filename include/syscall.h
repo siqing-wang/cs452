@@ -88,6 +88,7 @@ int DelayUntil(int ticks);
 int Getc(int channel);
 int Putc(int channel, char ch);
 int PutStr(int channel, char *str);
+int PutSizedStr(int channel, char *str, int size);
 void Printf(int channel, char *fmt, ...);
 int PrintfAt(int channel, int row, int col, char *fmt, ...);
 int IOidle(int channel);

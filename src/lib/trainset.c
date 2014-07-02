@@ -133,8 +133,10 @@ void printSensorTable(TrainSetData *data) {
 /* execute commands */
 
 void trainset_setSpeed(TrainSetData *data, int train_number, int train_speed) {
-    Putc(COM1, (char)train_speed);
-    Putc(COM1, (char)train_number);
+    char cmd[2];
+    cmd[0] = (char)train_speed;
+    cmd[1] = (char)train_number;
+    PutSizedStr(COM1, cmd, 2);
     int i = 0;
     for( ; i < TRAIN_NUM ; i++) {
         if (data->tstable[i]->trainNum == train_number) {
@@ -160,22 +162,26 @@ void trainset_reverse(TrainSetData *data, int train_number) {
         }
     }
 
-    Putc(COM1, (char)REVERSE);
-    Putc(COM1, (char)train_number);
+    char cmd[2];
+    cmd[0] = (char)REVERSE;
+    cmd[1] = (char)train_number;
+    PutSizedStr(COM1, cmd, 2);
     trainset_setSpeed(data, train_number, train_speed);
 }
 
 void trainset_turnSwitch(TrainSetData *data, int switch_number, int switch_direction) {
+    char cmd[4];
     if (switch_direction == DIR_STRAIGHT) {
-        Putc(COM1, (char)SWITCH_STRAIGHT);
+        cmd[0] = (char)SWITCH_STRAIGHT;
     } else if (switch_direction == DIR_CURVED) {
-        Putc(COM1, (char)SWITCH_CURVE);
+        cmd[0] = (char)SWITCH_CURVE;
     } else {
-        Putc(COM1, (char)SWITCH_STRAIGHT);
+        cmd[0] = (char)SWITCH_STRAIGHT;
         warning("trainset_turnSwitch: Invalid switch direction, using straight instead.");
     }
-    Putc(COM1, (char)switch_number);
-    Putc(COM1, (char)SWITCH_TURN_OUT);
+    cmd[1] = (char)switch_number;
+    cmd[2] = (char)SWITCH_TURN_OUT;
+    PutSizedStr(COM1, cmd, 3);
     *(data->swtable + getSwitchIndex(switch_number)) = switch_direction;
 }
 
