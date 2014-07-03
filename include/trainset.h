@@ -43,7 +43,7 @@ typedef struct TrainSetData {
     int expectTimetick;
 
     /* Track graph. */
-    struct track_node *trackNode;
+    struct track_node *track;
 } TrainSetData;
 
 /* Trainset Control Functons. */

@@ -6,6 +6,7 @@
 #include <trainset.h>
 #include <utils.h>
 #include <track.h>
+#include <track_graph.h>
 
 void drawTrack();
 
@@ -85,11 +86,6 @@ void pullSensorFeed() {
     Receive(&parentTid, &data, sizeof(data));
     Reply(parentTid, &parentTid, sizeof(parentTid));
 
-    /* Initialize track*/
-    init_tracka(data->trackNode);
-
-    drawTrack();
-
     /* Sensor */
     int i = 0;
     for(i = 0; i < 10; i++) {
@@ -119,27 +115,6 @@ void updateSpeedTable() {
     }
 }
 
-
-void drawTrack() {
-    moveCursor(TRACK_R, TRACK_C);       Printf(COM2,  "*******************************************************");
-    moveCursor(TRACK_R+1, TRACK_C);     Printf(COM2,  "             *     *                                     *");
-    moveCursor(TRACK_R+2, TRACK_C);     Printf(COM2,  "************     *   ***********************************   *");
-    moveCursor(TRACK_R+3, TRACK_C);     Printf(COM2,  "          *     * *              *         *              * *");
-    moveCursor(TRACK_R+4, TRACK_C);     Printf(COM2,  " ********      **                  *  *  *                  **");
-    moveCursor(TRACK_R+5, TRACK_C);     Printf(COM2,  "               *                    * * *                    *");
-    moveCursor(TRACK_R+6, TRACK_C);     Printf(COM2,  "              *                      ***                      *");
-    moveCursor(TRACK_R+7, TRACK_C);     Printf(COM2,  "              *                       *                       *");
-    moveCursor(TRACK_R+8, TRACK_C);     Printf(COM2,  "              *                      ***                      *");
-    moveCursor(TRACK_R+9, TRACK_C);     Printf(COM2,  "              **                    * * *                    **");
-    moveCursor(TRACK_R+10, TRACK_C);    Printf(COM2,  " ********     * *                  *  *  *                  * *");
-    moveCursor(TRACK_R+11, TRACK_C);    Printf(COM2,  "         *     *  *              *         *              *  *");
-    moveCursor(TRACK_R+12, TRACK_C);    Printf(COM2,  " **********     *    ************************************   *");
-    moveCursor(TRACK_R+13, TRACK_C);    Printf(COM2,  "            *     *                                       *");
-    moveCursor(TRACK_R+14, TRACK_C);    Printf(COM2,  "**************      *************************************");
-    moveCursor(TRACK_R+15, TRACK_C);    Printf(COM2,  "              *            *                     *");
-    moveCursor(TRACK_R+16, TRACK_C);    Printf(COM2,  "************************************************************* ");
-}
-
 void train() {
     /* Trainset data initialization. */
     TrainSetData trainsetData;
@@ -150,8 +125,8 @@ void train() {
     }
     trainsetData.numSensorPast = 0;
     trainsetData.expectTimetick = 0;
-    track_node trackNode[TRACK_MAX];
-    trainsetData.trackNode = trackNode;
+    track_node track[TRACK_MAX];
+    trainsetData.track = track;
 
     /* Trainset Initialization. */
     trainset_init(&trainsetData);
@@ -161,6 +136,7 @@ void train() {
 
     initializeUI(&trainsetData);
     IOidle(COM2);       // wait until initialization is done, i.e. IO idle.
+    init_tracka(trainsetData.track);
 
     /* Input Initialization. */
     char inputBuffer[256];
@@ -168,14 +144,16 @@ void train() {
     char c;
 
     /* Create Children tasks. */
-    Create(1, &printTime);
-
-    int childTid1 = Create(2, &pullSensorFeed);
-    int childTid2 = Create(2, &updateSpeedTable);
-    int sendResult;
+    int childTid, sendResult;
     TrainSetData *dataPtr = &trainsetData;
-    Send(childTid1, &dataPtr, sizeof(dataPtr), &sendResult, sizeof(sendResult));
-    Send(childTid2, &dataPtr, sizeof(dataPtr), &sendResult, sizeof(sendResult));
+
+    Create(1, &printTime);                      // Task to print time.
+
+    childTid = Create(2, &pullSensorFeed);      // Task to pull sensor feed.
+    Send(childTid, &dataPtr, sizeof(dataPtr), &sendResult, sizeof(sendResult));
+
+    childTid = Create(2, &updateSpeedTable);    // Task to update speed table.
+    Send(childTid, &dataPtr, sizeof(dataPtr), &sendResult, sizeof(sendResult));
 
     for ( ;; ) {
 
@@ -244,7 +222,7 @@ void train() {
     i = 0;
     Printf(COM2, "Restriction factor \n");
     for( ; i < TRACK_MAX ; i++) {
-        track_node *node= (track_node *)(trainsetData.trackNode + i);
+        track_node *node= (track_node *)(trainsetData.track + i);
         Printf(COM2, "%d:%d ", i, (int)(1000 *node->restriction));
         if ((i % 10 == 0) && (i != 0)) {
             Printf(COM2, "\n");

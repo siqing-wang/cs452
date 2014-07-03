@@ -3,6 +3,7 @@
 #include <track.h>
 #include <trainset.h>
 #include <train_data.h>
+#include <track_graph.h>
 
 track_node *nextNode(struct TrainSetData *data, track_node *node) {
     if (node->type != NODE_BRANCH) {
@@ -1241,6 +1242,8 @@ void init_tracka(track_node *track) {
     track[143].name = "EX10";
     track[143].type = NODE_EXIT;
     track[143].reverse = &track[142];
+
+    /* Friction Data. */
     int i = 0;
     for( ; i < TRACK_MAX; i++) {
         track[i].restriction = 1;
@@ -1270,6 +1273,9 @@ void init_tracka(track_node *track) {
     track[73].restriction = 1.148;
     track[74].restriction = 1.022;
     track[79].restriction = 1.043;
+
+    /* Initialize graph data. */
+    trackGraph_init(track);
 }
 
 void init_trackb(track_node *track) {

@@ -2,6 +2,7 @@
 #define __TRACK_H__
 
 #define TRACK_MAX 144
+#define TRACK_GRAPH_NODES_MAX 20
 
 /* Data structures */
 typedef enum {
@@ -25,6 +26,8 @@ struct track_edge {
   track_edge *reverse;
   track_node *src, *dest;
   int dist;             /* in millimetres */
+  int numGraphNodes;
+  unsigned int graphNodes[TRACK_GRAPH_NODES_MAX];
 };
 
 struct track_node {

@@ -7,6 +7,7 @@
 #include <timer.h>
 #include <track.h>
 #include <train_data.h>
+#include <track_graph.h>
 
 /* For train control. */
 #define STOP 0
@@ -80,8 +81,8 @@ void printSwitchTable(TrainSetData *data) {
 }
 
 track_node *getSensorTrackNode(TrainSetData *data, int group, int num) {
-    track_node *trackNode = data->trackNode;
-    return trackNode + group * 16 + num - 1;
+    track_node *track = data->track;
+    return track + group * 16 + num - 1;
 }
 
 void sensorIntToName(int code, char** name) {
@@ -196,21 +197,23 @@ void trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNu
 
     assert(node->type == NODE_SENSOR, "trainset_addToSensorTable: adding Node that is not a sensor.");
 
+    track_node *lastNode = data->sentable[(numSensorPast - 1) % SENTABLE_SIZE];
     data->sentable[numSensorPast % SENTABLE_SIZE] = node;
-    data->numSensorPast = numSensorPast + 1;
+    numSensorPast++;
 
     track_node *nextSensor = nextSensorOrExit(data, node);
     PrintfAt(COM2, SENEXPECT_R, SENEXPECT_C, "%s ", nextSensor->name);
     PrintfAt(COM2, SENLAST_R, SENLAST_C, "%s ", node->name);
 
+    /* Train Calibration Monitor. */
     int timetick = Time();
     if (data->expectTimetick != 0) {
         node->restriction = node->restriction * 0.3 + node->restriction * timetick / data->expectTimetick * 0.7;
     }
 
-    displayTime(timetick/10, SENLAST_R, SENLAST_C + 12);
-    displayTime((data->expectTimetick)/10, SENLAST_R, SENLAST_C + 30);
-    int diff = timetick / 10 - data->expectTimetick / 10;
+    displayTime(timetick/10, SENLAST_R, SENLAST_C + 12);                // Display current time hitting this sensor
+    displayTime((data->expectTimetick)/10, SENLAST_R, SENLAST_C + 30);  // Display expected time for hitting this sensor
+    int diff = timetick / 10 - data->expectTimetick / 10;               // Their difference
     if (diff < 0) {
         diff = 0 - diff;
     }
@@ -219,6 +222,14 @@ void trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNu
     int timeInterval = expectSensorArrivalTimeDuration(data, 0, node, nextSensor->restriction);
     data->expectTimetick = timetick + timeInterval;
     displayTime((data->expectTimetick)/10, SENEXPECT_R, SENEXPECT_C + 12);
+
+    /* Update realtime graph. */
+    if (numSensorPast > 1) {
+        trackGraph_colorTillNextSensor(data, lastNode, 37);
+    }
+    trackGraph_colorTillNextSensor(data, node, 31);
+
+    data->numSensorPast = numSensorPast;
 }
 
 int trainset_pullSensorFeeds(TrainSetData *data) {
