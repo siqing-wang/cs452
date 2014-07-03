@@ -147,6 +147,9 @@ int calculate_delayToAchieveSpeed(TrainSetData *trainSetData, int trainIndex) {
     if (distance < 0) {
         distance = 0 - distance;
     }
+    else if (distance == 0) {
+        return 0;
+    }
 
     return ((2 * distance) / (lastVelocity + targetVelocity));
 }

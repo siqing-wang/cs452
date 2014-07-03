@@ -4,8 +4,8 @@
 #include <utils.h>
 #include <ui.h>
 #include <syscall.h>
-#include <trainset.h>
 #include <track.h>
+#include <train_control.h>
 
 /* Parser Helper */
 int readNum(char** input);
@@ -16,11 +16,11 @@ int skipWhiteSpace(char** input);
 int readToken(char** input, char* token);
 
 /* Commands */
-int parseSetSpeedCommand(TrainSetData *data, char* input);
-int parseReverseDirectionCommand(TrainSetData *data, char* input);
-int parseTurnSwitchCommand(TrainSetData *data, char* input);
-int parseStopCommand(TrainSetData *data, char* input);
-int parseHaltCommand(char* input);
+int parseSetSpeedCommand(int trainCtrlTid, char* input);
+int parseReverseDirectionCommand(int trainCtrlTid, char* input);
+int parseTurnSwitchCommand(int trainCtrlTid, char* input);
+int parseStopCommand(int trainCtrlTid, char* input);
+int parseHaltCommand(int trainCtrlTid, char* input);
 int parsePerformanceMonitor(char* input);
 
 /* Parser Helper */
@@ -126,22 +126,22 @@ int readString( char** input, char* result ) {
     return 1;
 }
 
-int parseCommand(TrainSetData *data, char* input) {
+int parseCommand(int trainCtrlTid, char* input) {
 
     switch (input[0]) {
         case 't':
-            return parseSetSpeedCommand(data, input);
+            return parseSetSpeedCommand(trainCtrlTid, input);
         case 'r':
-            return parseReverseDirectionCommand(data, input);
+            return parseReverseDirectionCommand(trainCtrlTid, input);
         case 's':
             switch (input[1]) {
                 case 'w':
-                    return parseTurnSwitchCommand(data, input);
+                    return parseTurnSwitchCommand(trainCtrlTid, input);
                 case 't':
-                    return parseStopCommand(data, input);
+                    return parseStopCommand(trainCtrlTid, input);
             }
         case 'q':
-            return parseHaltCommand(input);
+            return parseHaltCommand(trainCtrlTid, input);
         case 'p':
             return parsePerformanceMonitor(input);
         default:
@@ -152,7 +152,7 @@ int parseCommand(TrainSetData *data, char* input) {
 
 
 /* Parse commands */
-int parseSetSpeedCommand(TrainSetData *data, char* input){
+int parseSetSpeedCommand(int trainCtrlTid, char* input){
 
     int train_number, train_speed;
 
@@ -173,13 +173,19 @@ int parseSetSpeedCommand(TrainSetData *data, char* input){
         return CMD_FAILED;
     }
 
-    Printf(COM2, "%sSet speed of train %u to %u.%s", TCS_GREEN, train_number, train_speed, TCS_RESET);
-    trainset_setSpeed(data, train_number, train_speed);
+    PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%sSet speed of train %u to %u.%s", TCS_GREEN, train_number, train_speed, TCS_RESET);
+
+    TrainControlMessage message;
+    message.type = TRAINCTRL_TR_SETSPEED;
+    message.num = train_number;
+    message.data = train_speed;
+    int msg = 0;
+    Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
 
     return CMD_SUCCEED;
 }
 
-int parseReverseDirectionCommand(TrainSetData *data, char* input) {
+int parseReverseDirectionCommand(int trainCtrlTid, char* input) {
 
     int train_number;
 
@@ -194,12 +200,18 @@ int parseReverseDirectionCommand(TrainSetData *data, char* input) {
         return CMD_FAILED;
     }
 
-    Printf(COM2, "%sReverse train %u%s", TCS_GREEN, train_number, TCS_RESET);
-    trainset_reverse(data, train_number);
+    PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%sReverse train %u%s", TCS_GREEN, train_number, TCS_RESET);
+
+    TrainControlMessage message;
+    message.type = TRAINCTRL_TR_REVERSE;
+    message.num = train_number;
+    int msg = 0;
+    Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
+
     return CMD_SUCCEED;
 }
 
-int parseTurnSwitchCommand(TrainSetData *data, char* input) {
+int parseTurnSwitchCommand(int trainCtrlTid, char* input) {
 
     int switch_number;
     int switch_direction;
@@ -224,32 +236,42 @@ int parseTurnSwitchCommand(TrainSetData *data, char* input) {
         return CMD_FAILED;
     }
 
-    Printf(COM2, "%sTurn switch %u", TCS_GREEN, switch_number);
     if (switch_direction == DIR_STRAIGHT) {
-        Printf(COM2, " straight");
+        PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%sTurn switch %u straight", TCS_GREEN, switch_number);
     } else {
-        Printf(COM2, " curve");
-
+        PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%sTurn switch %u curve", TCS_GREEN, switch_number);
     }
     PutStr(COM2, TCS_RESET);
 
-    trainset_turnSwitch(data, switch_number, switch_direction);
-    updateSwitchTable(data, switch_number);
+    TrainControlMessage message;
+    message.type = TRAINCTRL_SW_CHANGE;
+    message.num = switch_number;
+    message.data = switch_direction;
+    int msg = 0;
+    Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
 
     return CMD_SUCCEED;
 }
 
-int parseStopCommand(TrainSetData *data, char* input) {
-    /* read sw */
+int parseStopCommand(int trainCtrlTid, char* input) {
+    /* read stop */
     if(!readToken(&input, "stop")) {
         return CMD_FAILED;
     }
 
+    /* read train number */
+    int train_number = readNum(&input);
+    if(train_number < 0) {
+        return CMD_FAILED;
+    }
+
+    /* read stop location */
     char location[5];
     if(!readString(&input, location)) {
         return CMD_FAILED;
     }
 
+    /* read location offset */
     int offset = 0;
     if(readToken(&input, "+")) {
         offset = 1;
@@ -259,16 +281,31 @@ int parseStopCommand(TrainSetData *data, char* input) {
     }
     offset *= readNum(&input);
 
-    Printf(COM2, "%sStop at %s with offset %d", TCS_GREEN, location, offset);
+    PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%sStop train%d at %s with offset %d%s", TCS_GREEN, train_number, location, offset, TCS_RESET);
+
+    TrainControlMessage message;
+    message.type = TRAINCTRL_TR_STOPAT;
+    message.num = train_number;
+    message.location = location;
+    message.data = offset;
+    int msg = 0;
+    Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
+
     return CMD_SUCCEED;
 }
 
-int parseHaltCommand(char* input) {
+int parseHaltCommand(int trainCtrlTid, char* input) {
     /* read sw */
     if(!readToken(&input, "q")) {
         return CMD_FAILED;
     }
-    Printf(COM2, "%sProgram terminated\n\r%s", TCS_RED, TCS_RESET);
+    PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%sProgram terminated\n\r%s", TCS_RED, TCS_RESET);
+
+    TrainControlMessage message;
+    message.type = TRAINCTRL_HALT;
+    int msg = 0;
+    Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
+
     return CMD_HALT;
 }
 
@@ -279,10 +316,10 @@ int parsePerformanceMonitor(char* input) {
     }
 
     if (readToken(&input, "on")) {
-        Printf(COM2, "%sTurn ON performance monitor\n\r%s", TCS_GREEN, TCS_RESET);
+        PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%sTurn ON performance monitor\n\r%s", TCS_GREEN, TCS_RESET);
         return CMD_PM_ON;
     } else if (readToken(&input, "off")) {
-        Printf(COM2, "%sTurn OFF performance monitor\n\r%s", TCS_GREEN, TCS_RESET);
+        PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%sTurn OFF performance monitor\n\r%s", TCS_GREEN, TCS_RESET);
         return CMD_PM_OFF;
     } else {
         return CMD_FAILED;

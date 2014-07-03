@@ -17,7 +17,7 @@
 #define SENSOR_RESET_MODE_ON 192
 #define SENSOR_SUBSCRIBE_ALL 133
 
-#define TRAIN_NUM 1
+#define TRAIN_NUM 2
 
 struct track_node;
 
@@ -50,10 +50,10 @@ typedef struct TrainSetData {
 void trainset_init(TrainSetData *data);
 void trainset_go();
 void trainset_stop();
-void trainset_setSpeed(TrainSetData *data, int train_number, int train_speed);
-void trainset_reverse(TrainSetData *data, int train_number);
-void trainset_turnSwitch(TrainSetData *data, int switch_number, int switch_direction);
-void updateSwitchTable(TrainSetData *data, int switch_number);
+void trainset_setSpeed(int train_number, int train_speed);
+void trainset_reverse(int train_number);
+void trainset_turnSwitch(int switch_number, int switch_direction);
+void updateSwitchTable(int switch_number, int switch_direction);
 void trainset_subscribeSensorFeeds();
 int trainset_pullSensorFeeds(TrainSetData *data);
 

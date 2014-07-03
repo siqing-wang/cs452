@@ -11,8 +11,7 @@
 #define CMD_PM_ON       3
 #define CMD_PM_OFF      4
 
-#include <trainset.h>
-
 /* Parse Commands. */
-int parseCommand(TrainSetData *data, char* input);
+int parseCommand(int trainCtrlTid, char* input);
+
 #endif

@@ -4,10 +4,8 @@
 #include <ui.h>
 #include <syscall.h>
 #include <utils.h>
-#include <timer.h>
 #include <track.h>
 #include <train_calibration.h>
-#include <track_graph.h>
 
 /* For train control. */
 #define STOP 0
@@ -41,13 +39,13 @@ int getSwitchNumber(int index) {
 }
 
 /* Update a single item in switch table, to minimize output. */
-void updateSwitchTable(TrainSetData *data, int switch_number) {
+void updateSwitchTable(int switch_number, int switch_direction) {
     int switch_index = getSwitchIndex(switch_number);
     int line = switch_index / SWTABLE_NPERLINE;
     int posn = (switch_index % SWTABLE_NPERLINE) * 9;
 
     char dir;
-    if (*(data->swtable + switch_index) == DIR_CURVED) {
+    if (switch_direction == DIR_CURVED) {
         dir = 'C';
     } else {
         dir = 'S';
@@ -68,10 +66,12 @@ void printSwitchTable(TrainSetData *data) {
     /* print header */
     int i = 0;
     deleteFromCursorToEol(COM2);
-    for ( ; i < SWITCH_TOTAL; i++) {
 
-        int switch_number = getSwitchNumber(i);
-        updateSwitchTable(data, switch_number);
+    int switch_number, switch_direction;
+    for ( ; i < SWITCH_TOTAL; i++) {
+        switch_number = getSwitchNumber(i);
+        switch_direction = *(data->swtable + i);
+        updateSwitchTable(switch_number, switch_direction);
 
         if ((i + 1) % SWTABLE_NPERLINE == 0) {
             swtable_r++;
@@ -135,44 +135,21 @@ void printSensorTable(TrainSetData *data) {
 
 /* execute commands */
 
-void trainset_setSpeed(TrainSetData *data, int train_number, int train_speed) {
+void trainset_setSpeed(int train_number, int train_speed) {
     char cmd[2];
     cmd[0] = (char)train_speed;
     cmd[1] = (char)train_number;
     PutSizedStr(COM1, cmd, 2);
-    int i = 0;
-    for( ; i < TRAIN_NUM ; i++) {
-        if (data->tstable[i]->trainNum == train_number) {
-            data->tstable[i]->lastSpeed = data->tstable[i]->targetSpeed;
-            data->tstable[i]->targetSpeed = train_speed;
-            data->tstable[i]->timetick = 0;
-            data->tstable[i]->timeRequiredToAchieveSpeed = calculate_delayToAchieveSpeed(data, i);
-            break;
-        }
-    }
 }
 
-void trainset_reverse(TrainSetData *data, int train_number) {
-    trainset_setSpeed(data, train_number, 0);
-
-    int train_speed = 0;
-    int i = 0;
-    for( ; i < TRAIN_NUM ; i++) {
-        if (data->tstable[i]->trainNum == train_number) {
-            Delay(data->tstable[i]->timeRequiredToAchieveSpeed);
-            train_speed = data->tstable[i]->lastSpeed;
-            break;
-        }
-    }
-
+void trainset_reverse(int train_number) {
     char cmd[2];
     cmd[0] = (char)REVERSE;
     cmd[1] = (char)train_number;
     PutSizedStr(COM1, cmd, 2);
-    trainset_setSpeed(data, train_number, train_speed);
 }
 
-void trainset_turnSwitch(TrainSetData *data, int switch_number, int switch_direction) {
+void trainset_turnSwitch(int switch_number, int switch_direction) {
     char cmd[4];
     if (switch_direction == DIR_STRAIGHT) {
         cmd[0] = (char)SWITCH_STRAIGHT;
@@ -185,10 +162,6 @@ void trainset_turnSwitch(TrainSetData *data, int switch_number, int switch_direc
     cmd[1] = (char)switch_number;
     cmd[2] = (char)SWITCH_TURN_OUT;
     PutSizedStr(COM1, cmd, 3);
-
-    int oldDir = *(data->swtable + getSwitchIndex(switch_number));
-    *(data->swtable + getSwitchIndex(switch_number)) = switch_direction;
-    trackGraph_turnSw(data, switch_number, oldDir, switch_direction);
 }
 
 void trainset_subscribeSensorFeeds() {
@@ -198,13 +171,11 @@ void trainset_subscribeSensorFeeds() {
 /* Return if table has been changed. */
 void trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum) {
     track_node *node = getSensorTrackNode(data, sensorGroup, sensorNum);
-    int numSensorPast = data->numSensorPast;
 
     assert(node->type == NODE_SENSOR, "trainset_addToSensorTable: adding Node that is not a sensor.");
 
-    track_node *lastNode = data->sentable[(numSensorPast - 1) % SENTABLE_SIZE];
-    data->sentable[numSensorPast % SENTABLE_SIZE] = node;
-    numSensorPast++;
+    data->sentable[data->numSensorPast % SENTABLE_SIZE] = node;
+    data->numSensorPast = data->numSensorPast + 1;
 
     track_node *nextSensor = nextSensorOrExit(data, node);
     PrintfAt(COM2, SENEXPECT_R, SENEXPECT_C, "%s ", nextSensor->name);
@@ -227,14 +198,6 @@ void trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNu
     int timeInterval = expectSensorArrivalTimeDuration(data, 0, node, nextSensor->friction);
     data->expectTimetick = timetick + timeInterval;
     displayTime((data->expectTimetick)/10, SENEXPECT_R, SENEXPECT_C + 12);
-
-    /* Update realtime graph. */
-    if (numSensorPast > 1) {
-        trackGraph_unhighlightSenPath(data, lastNode);
-    }
-    trackGraph_highlightSenPath(data, node);
-
-    data->numSensorPast = numSensorPast;
 }
 
 int trainset_pullSensorFeeds(TrainSetData *data) {
@@ -266,7 +229,7 @@ int trainset_pullSensorFeeds(TrainSetData *data) {
         printSensorTable(data);
     }
 
-    return 1;
+    return changed;
 }
 
 void trainset_go() {
@@ -282,6 +245,13 @@ void trainset_init(TrainSetData *data) {
         data->tstable[i]->timeRequiredToAchieveSpeed = 0;
     }
     data->tstable[0]->trainNum = 49;
+    data->tstable[1]->trainNum = 50;
+    for(i = 0; i < 10; i++) {
+        data->lastByte[i] = 0;
+    }
+    data->numSensorPast = 0;
+    data->expectTimetick = 0;
+
     int *swtable = data->swtable;
 
     trainset_go();
@@ -289,7 +259,7 @@ void trainset_init(TrainSetData *data) {
     /* Train Speed Table init. */
     i = 40;
     for ( ; i<55; i++) {
-        trainset_setSpeed(data, i, 0);
+        trainset_setSpeed(i, 0);
     }
 
     /* Switch Direction Table */
@@ -300,7 +270,7 @@ void trainset_init(TrainSetData *data) {
         } else {
             *(swtable + i) = DIR_CURVED;
         }
-        trainset_turnSwitch(data, getSwitchNumber(i), *(swtable + i));
+        trainset_turnSwitch(getSwitchNumber(i), *(swtable + i));
     }
 
     Putc(COM1, (char)SENSOR_RESET_MODE_ON);

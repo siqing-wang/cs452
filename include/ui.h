@@ -32,7 +32,7 @@
 #define TRACK_R     17
 #define TRACK_C     5
 
-#define END_R       48          // end
+#define END_R       42          // end
 
 /* Color Terminal control sequence */
 #define TCS_RESET   "\033[0m"
