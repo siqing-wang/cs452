@@ -1,6 +1,6 @@
-/* train_data.c - All data(speed/distance) related with train */
+/* train_calibration.c - All data(speed/distance) related with train */
 
-#include <train_data.h>
+#include <train_calibration.h>
 
 double calculate_trainVelocity(int trainNum, int speed) {
     if (speed == 0) {

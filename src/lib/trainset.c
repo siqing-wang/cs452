@@ -6,7 +6,7 @@
 #include <utils.h>
 #include <timer.h>
 #include <track.h>
-#include <train_data.h>
+#include <train_calibration.h>
 #include <track_graph.h>
 
 /* For train control. */
@@ -208,7 +208,7 @@ void trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNu
     /* Train Calibration Monitor. */
     int timetick = Time();
     if (data->expectTimetick != 0) {
-        node->restriction = node->restriction * 0.3 + node->restriction * timetick / data->expectTimetick * 0.7;
+        node->friction = node->friction * 0.3 + node->friction * timetick / data->expectTimetick * 0.7;
     }
 
     displayTime(timetick/10, SENLAST_R, SENLAST_C + 12);                // Display current time hitting this sensor
@@ -219,7 +219,7 @@ void trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNu
     }
     displayTime(diff, SENLAST_R, SENLAST_C + 44);
 
-    int timeInterval = expectSensorArrivalTimeDuration(data, 0, node, nextSensor->restriction);
+    int timeInterval = expectSensorArrivalTimeDuration(data, 0, node, nextSensor->friction);
     data->expectTimetick = timetick + timeInterval;
     displayTime((data->expectTimetick)/10, SENEXPECT_R, SENEXPECT_C + 12);
 

@@ -223,7 +223,7 @@ void train() {
     Printf(COM2, "Restriction factor \n");
     for( ; i < TRACK_MAX ; i++) {
         track_node *node= (track_node *)(trainsetData.track + i);
-        Printf(COM2, "%d:%d ", i, (int)(1000 *node->restriction));
+        Printf(COM2, "%d:%d ", i, (int)(1000 *node->friction));
         if ((i % 10 == 0) && (i != 0)) {
             Printf(COM2, "\n");
         }

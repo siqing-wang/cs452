@@ -36,7 +36,7 @@ struct track_node {
   int num;              /* sensor or switch number */
   track_node *reverse;  /* same location, but opposite direction */
   track_edge edge[2];
-  double restriction;
+  double friction;
 };
 
 /* Functions. */
@@ -45,7 +45,7 @@ track_node *nextNode(struct TrainSetData *data, track_node *node);
 track_node *nextSensorOrExit(struct TrainSetData *data, track_node *node);
 int nextDistance(struct TrainSetData *data, track_node *node);
 int nextSensorDistance(struct TrainSetData *data, track_node *node);
-int expectSensorArrivalTimeDuration(struct TrainSetData *data, int trainNum, track_node *node, double restriction);
+int expectSensorArrivalTimeDuration(struct TrainSetData *data, int trainNum, track_node *node, double friction);
 void init_tracka(track_node *track);
 void init_trackb(track_node *track);
 

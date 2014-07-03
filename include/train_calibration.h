@@ -1,10 +1,10 @@
 /*
- * train_data.h
+ * train_calibration.h
  *  All data(speed/distance) related with train
  */
 
-#ifndef __TRAIN_DATA_H__
-#define __TRAIN_DATA_H__
+#ifndef __TRAIN_CALIBRATION_H__
+#define __TRAIN_CALIBRATION_H__
 
 #include <trainset.h>
 
