@@ -3,8 +3,8 @@
 
 #include <track.h>
 
-void trackGraph_init(track_node *track);
-void trackGraph_colorEdge(track_edge *edge, int color);
-void trackGraph_colorTillNextSensor(struct TrainSetData *data, track_node *node, int color);
-
+void trackGraph_init(struct TrainSetData *data, track_node *track);
+void trackGraph_highlightSenPath(struct TrainSetData *data, track_node *node);
+void trackGraph_unhighlightSenPath(struct TrainSetData *data, track_node *node);
+void trackGraph_turnSw(struct TrainSetData *data, int switchNumber, int oldDir, int newDir);
 #endif

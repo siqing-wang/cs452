@@ -137,6 +137,7 @@ void train() {
     initializeUI(&trainsetData);
     IOidle(COM2);       // wait until initialization is done, i.e. IO idle.
     init_tracka(trainsetData.track);
+    trackGraph_init(&trainsetData, trainsetData.track);
 
     /* Input Initialization. */
     char inputBuffer[256];

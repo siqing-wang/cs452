@@ -26,6 +26,7 @@ int getSwitchIndex(int switch_number) {
     } else if (switch_number >= 153 && switch_number <= 156) {
         return switch_number - 153 + 18;
     }
+    warning("getSwitchIndex: invalid switch number");
     return -1;
 }
 
@@ -35,6 +36,7 @@ int getSwitchNumber(int index) {
     } else if (index < SWITCH_TOTAL) {
         return index - 18 + 153;
     }
+    warning("getSwitchNumber: invalid index");
     return -1;
 }
 
@@ -51,12 +53,12 @@ void updateSwitchTable(TrainSetData *data, int switch_number) {
         dir = 'S';
     }
     if (switch_number < 10) {
-        PrintfAt(COM2, SWTABLE_R + line, SWTABLE_C + posn, "  %u - %c ", switch_number, dir);
+        posn += 2;
     } else if (switch_number < 100) {
-        PrintfAt(COM2, SWTABLE_R + line, SWTABLE_C + posn, " %u - %c ", switch_number, dir);
-    } else {
-        PrintfAt(COM2, SWTABLE_R + line, SWTABLE_C + posn, "%u - %c ", switch_number, dir);
+        posn += 1;
     }
+    PrintfAt(COM2, SWTABLE_R + line, SWTABLE_C + posn, "%u - %c ", switch_number, dir);
+
 }
 
 // busy wait print! so only use in initialization
@@ -183,7 +185,10 @@ void trainset_turnSwitch(TrainSetData *data, int switch_number, int switch_direc
     cmd[1] = (char)switch_number;
     cmd[2] = (char)SWITCH_TURN_OUT;
     PutSizedStr(COM1, cmd, 3);
+
+    int oldDir = *(data->swtable + getSwitchIndex(switch_number));
     *(data->swtable + getSwitchIndex(switch_number)) = switch_direction;
+    trackGraph_turnSw(data, switch_number, oldDir, switch_direction);
 }
 
 void trainset_subscribeSensorFeeds() {
@@ -225,9 +230,9 @@ void trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNu
 
     /* Update realtime graph. */
     if (numSensorPast > 1) {
-        trackGraph_colorTillNextSensor(data, lastNode, 37);
+        trackGraph_unhighlightSenPath(data, lastNode);
     }
-    trackGraph_colorTillNextSensor(data, node, 31);
+    trackGraph_highlightSenPath(data, node);
 
     data->numSensorPast = numSensorPast;
 }

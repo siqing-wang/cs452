@@ -1273,9 +1273,6 @@ void init_tracka(track_node *track) {
     track[73].friction = 1.148;
     track[74].friction = 1.022;
     track[79].friction = 1.043;
-
-    /* Initialize graph data. */
-    trackGraph_init(track);
 }
 
 void init_trackb(track_node *track) {
