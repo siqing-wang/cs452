@@ -35,10 +35,10 @@ void switchTask() {
 
 void trainTask() {
     int serverTid, courierTid;
-    TrainSetData *data;
+    int trainIndex;
     int msg = 0;
 
-    Receive(&serverTid, &data, sizeof(data));
+    Receive(&serverTid, &trainIndex, sizeof(trainIndex));
     Reply(serverTid, &msg, sizeof(msg));
 
     TrainControlMessage message;
@@ -47,18 +47,26 @@ void trainTask() {
         switch (message.type) {
             case TRAINCTRL_TR_SETSPEED:
                 trainset_setSpeed(message.num, message.data);
+                PrintfAt(COM2, TR_R + trainIndex, TRSPEED_C, "%d ", message.data);
                 break;
             case TRAINCTRL_TR_REVERSE:
                 trainset_setSpeed(message.num, 0);
-                Delay(message.data2);
+                PrintfAt(COM2, TR_R + trainIndex, TRSPEED_C, "0 ");
+                Delay(message.delay);
                 trainset_reverse(message.num);
                 trainset_setSpeed(message.num, message.data);
+                PrintfAt(COM2, TR_R + trainIndex, TRSPEED_C, "%d ", message.data);
                 break;
             case TRAINCTRL_TR_STOPAT:
                 break;
             case TRAINCTRL_HALT:
                 Reply(courierTid, &msg, sizeof(msg));
                 trainset_setSpeed(message.num, 0);
+                PrintfAt(COM2, TR_R + trainIndex, TRSPEED_C, "0 ");
+                Delay(message.delay);
+
+                message.type = TRAINCTRL_HALT_COMPLETE;
+                Send(serverTid, &message, sizeof(message), &msg, sizeof(msg));
                 Exit();
                 break;
             default :
@@ -95,8 +103,41 @@ void updateSpeedTable() {
     TrainControlMessage message;
     message.type = TRAINCTRL_UPDATE_TSTABLE;
     for (;;) {
-        Delay(1);
         Send(serverTid, &message, sizeof(message), &msg, sizeof(msg));
+        Delay(1);
+    }
+}
+
+void displayCurrentPosition() {
+    TrainSetData *data;
+    int serverTid;
+    int msg = 0;
+    Receive(&serverTid, &data, sizeof(data));
+    Reply(serverTid, &msg, sizeof(msg));
+
+    track_node *node, *nextSensor;
+    for (;;) {
+        if (data->numSensorPast > 0) {
+            node = data->sentable[(data->numSensorPast - 1) % SENTABLE_SIZE];
+            nextSensor = nextSensorOrExit(data, node);
+            int distance = calculate_expectTravelledDistance(data, 0, nextSensor->friction);
+
+            for(;;) {
+                int passed = nextDistance(data, node);
+                if (passed > distance) {
+                    break;
+                }
+                if (node == nextSensor) {
+                    distance = 0;
+                    break;
+                }
+                distance = distance - passed;
+                node = nextNode(data, node);
+            }
+            PrintfAt(COM2, TR_R, TRLOCATION_SENSOR_C, "%s  ", node->name);
+            PrintfAt(COM2, TR_R, TRLOCATION_OFFSET_C, "%d ", distance / 10);
+        }
+        Delay(1);
     }
 }
 
@@ -199,6 +240,7 @@ void trainControlServer() {
 
     int parentTid, childTid;
     int msg = 0;
+    int trainIndex = -1;
 
     Receive(&parentTid, &msg, sizeof(msg));
 
@@ -213,6 +255,9 @@ void trainControlServer() {
     Send(undrawTrackTid, &data, sizeof(data), &msg, sizeof(msg));
     Send(drawTrackTid, &data, sizeof(data), &msg, sizeof(msg));
 
+    childTid = Create(2, &displayCurrentPosition);    // Task to update speed table.
+    Send(childTid, &data, sizeof(data), &msg, sizeof(msg));
+
     for(i = 0; i < COURIER_NUM_MAX; i++) {
         childTid = Create(3, &courier);
         Send(childTid, &msg, sizeof(msg), &msg, sizeof(msg));
@@ -222,17 +267,19 @@ void trainControlServer() {
     Send(switchTid, &msg, sizeof(msg), &msg, sizeof(msg));
 
     int train49Tid = Create(5, &trainTask);
-    Send(train49Tid, &data, sizeof(data), &msg, sizeof(msg));
+    trainIndex = 0;
+    Send(train49Tid, &trainIndex, sizeof(trainIndex), &msg, sizeof(msg));
 
     int train50Tid = Create(5, &trainTask);
-    Send(train50Tid, &data, sizeof(data), &msg, sizeof(msg));
+    trainIndex = 1;
+    Send(train50Tid, &trainIndex, sizeof(trainIndex), &msg, sizeof(msg));
 
     Reply(parentTid, &msg, sizeof(msg));
 
     int requesterTid;
     int trainTid = -1;
-    int trainIndex = -1;
-    int maxDelay = 0;
+    int haltingCount = 0;
+    int haltingTid = -1;
 
     CouriersStatus couriersStatus;
     couriersStatus.courierStartIndex = 0;
@@ -259,7 +306,10 @@ void trainControlServer() {
                 if (trainIndex >= 0) {
                     data->tstable[trainIndex]->lastSpeed = data->tstable[trainIndex]->targetSpeed;
                     data->tstable[trainIndex]->targetSpeed = message.data;
+                    data->tstable[trainIndex]->lastSpeedDuration = data->tstable[trainIndex]->timetick - data->tstable[trainIndex]->timetickWhenHittingSensor;
+                    assert((data->tstable[trainIndex]->lastSpeedDuration >= 0), "LastSpeed duration is negative");
                     data->tstable[trainIndex]->timetick = 0;
+                    data->tstable[trainIndex]->timetickWhenHittingSensor = 0;
                     data->tstable[trainIndex]->timeRequiredToAchieveSpeed = calculate_delayToAchieveSpeed(data, trainIndex);
                 }
                 sentTo(trainTid, &message, &couriersStatus);
@@ -269,18 +319,19 @@ void trainControlServer() {
 
                 message.type = TRAINCTRL_TR_REVERSE;
                 message.data = 0;
-                message.data2 = 0;
+                message.delay = 0;
                 if (trainIndex >= 0) {
                     data->tstable[trainIndex]->lastSpeed = data->tstable[trainIndex]->targetSpeed;
                     data->tstable[trainIndex]->targetSpeed = 0;
                     data->tstable[trainIndex]->timetick = 0;
                     data->tstable[trainIndex]->timeRequiredToAchieveSpeed = calculate_delayToAchieveSpeed(data, trainIndex);
                     message.data = data->tstable[trainIndex]->lastSpeed;
-                    message.data2 = data->tstable[trainIndex]->timeRequiredToAchieveSpeed;
+                    message.delay = data->tstable[trainIndex]->timeRequiredToAchieveSpeed;
                     data->tstable[trainIndex]->targetSpeed = message.data;
                     data->tstable[trainIndex]->lastSpeed = 0;
-                    data->tstable[trainIndex]->timetick = 0 - message.data2;
-                    data->tstable[trainIndex]->timeRequiredToAchieveSpeed = message.data2;
+                    data->tstable[trainIndex]->timetick = 0 - message.delay;
+                    data->tstable[trainIndex]->timetickWhenHittingSensor = 0 - message.delay;
+                    data->tstable[trainIndex]->timeRequiredToAchieveSpeed = message.delay;
                 }
                 sentTo(trainTid, &message, &couriersStatus);
                 break;
@@ -321,16 +372,18 @@ void trainControlServer() {
                 }
                 break;
             case TRAINCTRL_HALT:
+                haltingTid = requesterTid;
                 message.type = TRAINCTRL_HALT;
                 for(i = 0; i < TRAIN_NUM; i++) {
                     data->tstable[i]->lastSpeed = data->tstable[i]->targetSpeed;
                     data->tstable[i]->targetSpeed = 0;
+                    data->tstable[i]->lastSpeedDuration = data->tstable[i]->timetick - data->tstable[i]->timetickWhenHittingSensor;
+                    assert((data->tstable[i]->lastSpeedDuration >= 0), "LastSpeed duration is negative");
                     data->tstable[i]->timetick = 0;
+                    data->tstable[i]->timetickWhenHittingSensor = 0;
                     data->tstable[i]->timeRequiredToAchieveSpeed = calculate_delayToAchieveSpeed(data, i);
-                    if (maxDelay < data->tstable[i]->timeRequiredToAchieveSpeed) {
-                        maxDelay = data->tstable[i]->timeRequiredToAchieveSpeed;
-                    }
                     message.num = data->tstable[i]->trainNum;
+                    message.delay = data->tstable[i]->timeRequiredToAchieveSpeed;
                     switch (message.num) {
                         case 49:
                             trainTid = train49Tid;
@@ -341,10 +394,15 @@ void trainControlServer() {
                     }
                     sentTo(trainTid, &message, &couriersStatus);
                 }
-                Delay(maxDelay);
-                trainset_stop();
-
+                break;
+            case TRAINCTRL_HALT_COMPLETE:
                 Reply(requesterTid, &msg, sizeof(msg));
+
+                haltingCount = haltingCount + 1;
+                if (haltingCount == TRAIN_NUM) {
+                    trainset_stop();
+                    Reply(haltingTid, &msg, sizeof(msg));
+                }
                 break;
             case TRAINCTRL_COURIER_FREE:
                 couriersStatus.courierTable[(couriersStatus.courierStartIndex + couriersStatus.courierAvailable) % COURIER_NUM_MAX] = requesterTid;
@@ -388,6 +446,13 @@ void initializeUI(TrainSetData *data) {
     Printf(COM2, "Sensors Past");
     moveCursor(SENTABLE_R, SENTABLE_C - 6);
     Printf(COM2, "%sTotal 0:%s", TCS_WHITE, TCS_YELLOW);
+
+    int i = 0;
+    for(i = 0; i < TRAIN_NUM; i++) {
+        moveCursor(TR_R + i, TR_C);
+        Printf(COM2, "Train%d  Speed : 0   Location :        +    cm", data->tstable[i]->trainNum);
+    }
+
     moveCursor(SENEXPECT_R, SWTABLE_C);
     Printf(COM2, "Expecting                at");
     moveCursor(SENLAST_R, SWTABLE_C);

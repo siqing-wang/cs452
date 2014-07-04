@@ -116,6 +116,10 @@ double calculate_currentVelocity(TrainSetData *trainSetData, int trainIndex, int
         return -1;
     }
 
+    if (timetick > trainSpeedData->timeRequiredToAchieveSpeed) {
+        return targetVelocity;
+    }
+
     double distance = calculate_stopDistance(trainNum, targetSpeed) - calculate_stopDistance(trainNum, lastSpeed);
     if (distance < 0) {
         distance = 0 - distance;
@@ -154,7 +158,7 @@ int calculate_delayToAchieveSpeed(TrainSetData *trainSetData, int trainIndex) {
     return ((2 * distance) / (lastVelocity + targetVelocity));
 }
 
-int calculate_expectArrivalDuration(TrainSetData *trainSetData, int trainIndex, int distance, double restriction) {
+int calculate_expectArrivalDuration(TrainSetData *trainSetData, int trainIndex, int distance, double friction) {
     TrainSpeedData *trainSpeedData = trainSetData->tstable[trainIndex];
     int trainNum = trainSpeedData->trainNum;
     int targetSpeed = trainSpeedData->targetSpeed;
@@ -173,7 +177,7 @@ int calculate_expectArrivalDuration(TrainSetData *trainSetData, int trainIndex, 
         if ((timetick + tick) >= timeRequired) {
             break;
         }
-        currentVelocity = calculate_currentVelocity(trainSetData, trainIndex, (timetick+ tick)) * restriction;
+        currentVelocity = calculate_currentVelocity(trainSetData, trainIndex, (timetick+ tick)) * friction;
         currentDistance += currentVelocity;
         tick ++;
     }
@@ -182,10 +186,45 @@ int calculate_expectArrivalDuration(TrainSetData *trainSetData, int trainIndex, 
         return 0;
     }
     if (currentDistance < distance) {
-        tick += ((distance - currentDistance) / (targetVelocity * restriction));
+        tick += ((distance - currentDistance) / (targetVelocity * friction));
     }
 
     return tick;
+}
+
+int calculate_expectTravelledDistance(TrainSetData *trainSetData, int trainIndex, double friction) {
+    TrainSpeedData *trainSpeedData = trainSetData->tstable[trainIndex];
+    int trainNum = trainSpeedData->trainNum;
+    int lastSpeed = trainSpeedData->lastSpeed;
+    int targetSpeed = trainSpeedData->targetSpeed;
+    int timetick = trainSpeedData->timetick;
+    int timeRequired = trainSpeedData->timeRequiredToAchieveSpeed;
+    int timetickWhenHittingSensor = trainSpeedData->timetickWhenHittingSensor;
+    int lastSpeedDuration = trainSpeedData->lastSpeedDuration;
+
+    double lastVelocity = calculate_trainVelocity(trainNum, lastSpeed);
+    double targetVelocity = calculate_trainVelocity(trainNum, targetSpeed);
+    double currentVelocity = 0;
+    double currentDistance = lastSpeedDuration * (lastVelocity * friction);
+
+    int tick = timetickWhenHittingSensor;
+    for(;;) {
+        if (tick >= timeRequired) {
+            break;
+        }
+        if (tick >= timetick) {
+            break;
+        }
+        currentVelocity = calculate_currentVelocity(trainSetData, trainIndex, tick) * friction;
+        currentDistance += currentVelocity;
+        tick ++;
+    }
+
+    if (tick < timetick) {
+        currentDistance += (timetick - tick) * (targetVelocity * friction);
+    }
+
+    return (int)currentDistance + 20;
 }
 
 int calculate_delayToStop(TrainSetData *trainSetData, int trainIndex, int distance) {

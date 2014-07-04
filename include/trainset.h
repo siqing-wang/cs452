@@ -17,7 +17,7 @@
 #define SENSOR_RESET_MODE_ON 192
 #define SENSOR_SUBSCRIBE_ALL 133
 
-#define TRAIN_NUM 2
+#define TRAIN_NUM 1
 
 struct track_node;
 
@@ -27,6 +27,8 @@ typedef struct TrainSpeedData {
     int targetSpeed;
     int timetick;
     int timeRequiredToAchieveSpeed;
+    int timetickWhenHittingSensor;
+    int lastSpeedDuration;
 } TrainSpeedData;
 
 typedef struct TrainSetData {

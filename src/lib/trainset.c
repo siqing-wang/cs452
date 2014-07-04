@@ -186,6 +186,11 @@ void trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNu
     if (data->expectTimetick != 0) {
         node->friction = node->friction * 0.3 + node->friction * timetick / data->expectTimetick * 0.7;
     }
+    int i;
+    for (i = 0; i < TRAIN_NUM; i++) {
+        data->tstable[i]->timetickWhenHittingSensor = data->tstable[i]->timetick;
+        data->tstable[i]->lastSpeedDuration = 0;
+    }
 
     displayTime(timetick/10, SENLAST_R, SENLAST_C + 12);                // Display current time hitting this sensor
     displayTime((data->expectTimetick)/10, SENLAST_R, SENLAST_C + 30);  // Display expected time for hitting this sensor
@@ -243,9 +248,11 @@ void trainset_init(TrainSetData *data) {
         data->tstable[i]->targetSpeed = 0;
         data->tstable[i]->timetick = 0;
         data->tstable[i]->timeRequiredToAchieveSpeed = 0;
+        data->tstable[i]->timetickWhenHittingSensor = 0;
+        data->tstable[i]->lastSpeedDuration = 0;
     }
     data->tstable[0]->trainNum = 49;
-    data->tstable[1]->trainNum = 50;
+    // data->tstable[1]->trainNum = 50;
     for(i = 0; i < 10; i++) {
         data->lastByte[i] = 0;
     }

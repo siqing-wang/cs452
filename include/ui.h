@@ -14,11 +14,17 @@
 #define SENTABLE_R  12          // sensor table
 #define SENTABLE_C  27
 
-#define SENEXPECT_R  (SENTABLE_R+1)          // next sensor expected
-#define SENEXPECT_C  (SENTABLE_C-6)
+#define TR_R                    (SENTABLE_R+2)
+#define TR_C                    5
+#define TRSPEED_C               (TR_C+17)
+#define TRLOCATION_SENSOR_C     (TR_C+32)
+#define TRLOCATION_OFFSET_C     (TR_C+41)
 
-#define SENLAST_R  (SENEXPECT_R+1)          // next sensor expected
-#define SENLAST_C  SENEXPECT_C
+#define SENEXPECT_R     (SENTABLE_R+3)          // next sensor expected
+#define SENEXPECT_C     (SENTABLE_C-6)
+
+#define SENLAST_R       (SENEXPECT_R+1)          // next sensor expected
+#define SENLAST_C       SENEXPECT_C
 
 #define LOG_R       38          // system log
 #define LOG_C       5

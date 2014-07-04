@@ -48,6 +48,7 @@ int nextSensorDistance(struct TrainSetData *data, track_node *node) {
     int dist = 0;
     for (;;) {
         dist += nextDistance(data, node);
+        node = nextNode(data, node);
         if (node->type == NODE_SENSOR || node->type == NODE_EXIT) {
             break;
         }

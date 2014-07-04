@@ -109,7 +109,10 @@ void train() {
     } // forever loop
 
     TearDown:
-    moveCursor2(END_R, 0);
+    IOidle(COM1);
+    IOidle(COM2);
+
+    moveCursor2(END_R, 1);
 
     // i = 0;
     // Printf(COM2, "Restriction factor \n");
@@ -121,7 +124,6 @@ void train() {
     //     }
     // }
 
-    IOidle(COM1);
     IOidle(COM2);
     ExitProgram();
 }

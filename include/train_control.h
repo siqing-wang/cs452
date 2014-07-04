@@ -18,6 +18,7 @@ typedef enum {
     TRAINCTRL_DRAW,
     TRAINCTRL_UPDATE_TSTABLE,
     TRAINCTRL_HALT,
+    TRAINCTRL_HALT_COMPLETE,
     TRAINCTRL_COURIER_FREE,
 } trainControl_type;
 
@@ -29,6 +30,7 @@ typedef struct TrainControlMessage
     int num;
     int data;
     int data2;
+    int delay;
     char *location;
 
 } TrainControlMessage;
