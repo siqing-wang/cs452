@@ -8,6 +8,9 @@
 #include <track.h>
 #include <track_graph.h>
 
+// A or B
+#define TRACK_USED 'A'
+
 void drawTrack();
 
 void initializeUI(TrainSetData *data) {
@@ -136,8 +139,19 @@ void train() {
 
     initializeUI(&trainsetData);
     IOidle(COM2);       // wait until initialization is done, i.e. IO idle.
-    init_tracka(trainsetData.track);
-    trackGraph_init(&trainsetData, trainsetData.track);
+
+    switch (TRACK_USED) {
+        case 'A':
+            init_tracka(trainsetData.track);
+            trackGraph_initTrackA(&trainsetData, trainsetData.track);
+            break;
+        case 'B':
+            init_trackb(trainsetData.track);
+            trackGraph_initTrackB(&trainsetData, trainsetData.track);
+            break;
+        default:
+            warning("train(user task): Invalid TRACK_USED macro");
+    }
 
     /* Input Initialization. */
     char inputBuffer[256];
