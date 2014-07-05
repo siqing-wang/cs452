@@ -174,35 +174,79 @@ void trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNu
 
     assert(node->type == NODE_SENSOR, "trainset_addToSensorTable: adding Node that is not a sensor.");
 
+    /* Not expected sensor */
+    if ((data->init > 0) && (node->num != data->expectNextSensorNum) && (node->num != data->expectNextNextSensorNum)) {
+        return;
+    }
+
     data->sentable[data->numSensorPast % SENTABLE_SIZE] = node;
     data->numSensorPast = data->numSensorPast + 1;
 
+    if (data->init == 0) {
+        return;
+    }
+
     track_node *nextSensor = nextSensorOrExit(data, node);
+    track_node *nextNextSensor = nextSensorOrExit(data, nextSensor);
     PrintfAt(COM2, SENEXPECT_R, SENEXPECT_C, "%s ", nextSensor->name);
     PrintfAt(COM2, SENLAST_R, SENLAST_C, "%s ", node->name);
 
     /* Train Calibration Monitor. */
     int timetick = Time();
-    if (data->expectTimetick != 0) {
-        node->friction = node->friction * 0.3 + node->friction * timetick / data->expectTimetick * 0.7;
+    if (node->num == data->expectNextSensorNum) {
+        if (((timetick - data->lastTimetick) > 0) && ((data->expectNextTimetick - data->lastTimetick) > 0)) {
+            int friction = (int)(node->friction * 700) * (1.0 * (data->expectNextTimetick - data->lastTimetick) / (timetick - data->lastTimetick));
+            node->friction = 1.0 * ((int)(node->friction * 300) + friction) / 1000;
+        }
     }
+    else if (node->num == data->expectNextNextSensorNum) {
+        if (((timetick - data->lastTimetick) > 0) && ((data->expectNextNextTimetick - data->lastTimetick) > 0)) {
+            int friction = (int)(node->friction * 700) * (1.0 * (data->expectNextNextTimetick - data->lastTimetick) / (timetick - data->lastTimetick));
+            node->friction = 1.0 * ((int)(node->friction * 300) + friction) / 1000;
+        }
+    }
+
+    data->expectNextSensorNum = nextSensor->num;
+    data->expectNextNextSensorNum = nextNextSensor->num;
+    data->lastTimetick = timetick;
+
     int i;
     for (i = 0; i < TRAIN_NUM; i++) {
         data->tstable[i]->timetickWhenHittingSensor = data->tstable[i]->timetick;
         data->tstable[i]->lastSpeedDuration = 0;
     }
 
-    displayTime(timetick/10, SENLAST_R, SENLAST_C + 12);                // Display current time hitting this sensor
-    displayTime((data->expectTimetick)/10, SENLAST_R, SENLAST_C + 30);  // Display expected time for hitting this sensor
-    int diff = timetick / 10 - data->expectTimetick / 10;               // Their difference
-    if (diff < 0) {
-        diff = 0 - diff;
+    displayTime(timetick/10, SENLAST_R, SENLAST_C + 16);                // Display current time hitting this sensor
+    if (data->expectNextTimetick < 0) {
+        PrintfAt(COM2, SENLAST_R, SENLAST_C + 34, "INFI   ");           // Display expected time for hitting this sensor
+        PrintfAt(COM2, SENLAST_R, SENLAST_C + 48, "INFI%s", TCS_DELETE_TO_EOL);     // Their difference
     }
-    displayTime(diff, SENLAST_R, SENLAST_C + 44);
+    else {
+        displayTime((data->expectNextTimetick)/10, SENLAST_R, SENLAST_C + 34);  // Display expected time for hitting this sensor
+        int diff = (timetick - data->expectNextTimetick);
+        if (diff < 0) {
+            diff = 0 - diff;
+        }
+        PrintfAt(COM2, SENLAST_R, SENLAST_C + 48, "%d%s", diff, TCS_DELETE_TO_EOL); // Their difference
+    }
 
     int timeInterval = expectSensorArrivalTimeDuration(data, 0, node, nextSensor->friction);
-    data->expectTimetick = timetick + timeInterval;
-    displayTime((data->expectTimetick)/10, SENEXPECT_R, SENEXPECT_C + 12);
+    if (timeInterval < 0) {
+        data->expectNextTimetick = -1;
+        PrintfAt(COM2, SENEXPECT_R, SENEXPECT_C + 16, "INFI   ");               // Display expected time for hitting next sensor
+    }
+    else {
+        data->expectNextTimetick = timetick + timeInterval;
+        displayTime((data->expectNextTimetick)/10, SENEXPECT_R, SENEXPECT_C + 16);  // Display expected time for hitting next sensor
+    }
+
+    timeInterval = expectSensorArrivalTimeDuration(data, 0, nextSensor, nextNextSensor->friction);
+    if (timeInterval < 0) {
+        data->expectNextNextTimetick = -1;
+    }
+    else {
+        data->expectNextNextTimetick = data->expectNextTimetick + timeInterval;
+    }
 }
 
 int trainset_pullSensorFeeds(TrainSetData *data) {
@@ -220,12 +264,15 @@ int trainset_pullSensorFeeds(TrainSetData *data) {
         if(data->lastByte[i] == result) {
             continue;
         }
+        if (data->init < 0) {
+            continue;
+        }
         data->lastByte[i] = result;
-        changed = 1;
         for ( ; bitPosn < 8; bitPosn++) {
             int mask = 1 << ( 7 - bitPosn );
             if (result & mask) {
                 /* Bit is set. */
+                changed = 1;
                 trainset_addToSensorTable(data, sensorGroup, sensorBit * 8 + bitPosn + 1);
             }
         }
@@ -246,18 +293,22 @@ void trainset_init(TrainSetData *data) {
     for( ; i<TRAIN_NUM; i++) {
         data->tstable[i]->lastSpeed = 0;
         data->tstable[i]->targetSpeed = 0;
+        data->tstable[i]->reverse = 0;
         data->tstable[i]->timetick = 0;
         data->tstable[i]->timeRequiredToAchieveSpeed = 0;
         data->tstable[i]->timetickWhenHittingSensor = 0;
         data->tstable[i]->lastSpeedDuration = 0;
     }
-    data->tstable[0]->trainNum = 49;
-    // data->tstable[1]->trainNum = 50;
     for(i = 0; i < 10; i++) {
         data->lastByte[i] = 0;
     }
     data->numSensorPast = 0;
-    data->expectTimetick = 0;
+    data->expectNextTimetick = 0;
+    data->expectNextSensorNum = 9;  // A10
+    data->expectNextNextSensorNum = 0;
+    data->expectNextNextSensorNum = 38;  // C7
+    data->lastTimetick = 0;
+    data->init = -1;
 
     int *swtable = data->swtable;
 

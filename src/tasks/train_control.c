@@ -45,6 +45,17 @@ void trainTask() {
     for(;;) {
         Receive(&courierTid, &message, sizeof(message));
         switch (message.type) {
+            case TRAINCTRL_INIT:
+                trainset_setSpeed(message.num, 2);
+                PrintfAt(COM2, TR_R + trainIndex, TRSPEED_C, "2 ", message.data);
+                Delay(100);
+                trainset_setSpeed(message.num, 0);
+                PrintfAt(COM2, TR_R + trainIndex, TRSPEED_C, "0 ", message.data);
+                Delay(100);
+
+                message.type = TRAINCTRL_INIT_COMPLETE;
+                Send(serverTid, &message, sizeof(message), &msg, sizeof(msg));
+                break;
             case TRAINCTRL_TR_SETSPEED:
                 trainset_setSpeed(message.num, message.data);
                 PrintfAt(COM2, TR_R + trainIndex, TRSPEED_C, "%d ", message.data);
@@ -53,6 +64,11 @@ void trainTask() {
                 trainset_setSpeed(message.num, 0);
                 PrintfAt(COM2, TR_R + trainIndex, TRSPEED_C, "0 ");
                 Delay(message.delay);
+
+                message.type = TRAINCTRL_TR_REVERSE_COMPLETE;
+                Send(serverTid, &message, sizeof(message), &msg, sizeof(msg));
+                break;
+            case TRAINCTRL_TR_REVERSE_COMPLETE:
                 trainset_reverse(message.num);
                 trainset_setSpeed(message.num, message.data);
                 PrintfAt(COM2, TR_R + trainIndex, TRSPEED_C, "%d ", message.data);
@@ -153,10 +169,21 @@ void undrawTrack() {
     for (;;) {
         Receive(&courierTid, &message, sizeof(message));
 
-        if (data->numSensorPast > 1) {
-            lastNode = data->sentable[(data->numSensorPast - 2) % SENTABLE_SIZE];
-            trackGraph_unhighlightSenPath(data, lastNode);
+        if (message.num == 0) {
+            /* Undraw called by sensor */
+            if (data->numSensorPast > 1) {
+                lastNode = data->sentable[(data->numSensorPast - 2) % SENTABLE_SIZE];
+                trackGraph_unhighlightSenPath(data, lastNode);
+            }
         }
+        else {
+            /* Undraw called by switch */
+            if (data->numSensorPast > 0) {
+                lastNode = data->sentable[(data->numSensorPast - 1) % SENTABLE_SIZE];
+                trackGraph_unhighlightSenPath(data, lastNode);
+            }
+        }
+
 
         message.type = TRAINCTRL_UNDRAW_COMPLETE;
         Send(serverTid, &message, sizeof(message), &msg, sizeof(msg));
@@ -182,8 +209,10 @@ void drawTrack() {
         }
 
         /* Draw route */
-        node = data->sentable[(data->numSensorPast - 1) % SENTABLE_SIZE];
-        trackGraph_highlightSenPath(data, node);
+        if (data->numSensorPast > 0) {
+            node = data->sentable[(data->numSensorPast - 1) % SENTABLE_SIZE];
+            trackGraph_highlightSenPath(data, node);
+        }
 
         Reply(courierTid, &msg, sizeof(msg));
     }
@@ -244,34 +273,34 @@ void trainControlServer() {
 
     Receive(&parentTid, &msg, sizeof(msg));
 
-    childTid = Create(2, &pullSensorFeed);      // Task to pull sensor feed.
+    childTid = Create(3, &pullSensorFeed);      // Task to pull sensor feed.
     Send(childTid, &data, sizeof(data), &msg, sizeof(msg));
 
-    childTid = Create(2, &updateSpeedTable);    // Task to update speed table.
+    childTid = Create(3, &updateSpeedTable);    // Task to update speed table.
     Send(childTid, &msg, sizeof(msg), &msg, sizeof(msg));
 
-    int undrawTrackTid = Create(2, &undrawTrack);
-    int drawTrackTid = Create(2, &drawTrack);
+    int undrawTrackTid = Create(3, &undrawTrack);
+    int drawTrackTid = Create(3, &drawTrack);
     Send(undrawTrackTid, &data, sizeof(data), &msg, sizeof(msg));
     Send(drawTrackTid, &data, sizeof(data), &msg, sizeof(msg));
 
-    childTid = Create(2, &displayCurrentPosition);    // Task to update speed table.
+    childTid = Create(3, &displayCurrentPosition);    // Task to update speed table.
     Send(childTid, &data, sizeof(data), &msg, sizeof(msg));
 
     for(i = 0; i < COURIER_NUM_MAX; i++) {
-        childTid = Create(3, &courier);
+        childTid = Create(5, &courier);
         Send(childTid, &msg, sizeof(msg), &msg, sizeof(msg));
     }
 
-    int switchTid = Create(5, &switchTask);
+    int switchTid = Create(6, &switchTask);
     Send(switchTid, &msg, sizeof(msg), &msg, sizeof(msg));
 
-    int train49Tid = Create(5, &trainTask);
+    int train49Tid = Create(6, &trainTask);
     trainIndex = 0;
     Send(train49Tid, &trainIndex, sizeof(trainIndex), &msg, sizeof(msg));
 
-    int train50Tid = Create(5, &trainTask);
-    trainIndex = 1;
+    int train50Tid = Create(6, &trainTask);
+    trainIndex = 0;
     Send(train50Tid, &trainIndex, sizeof(trainIndex), &msg, sizeof(msg));
 
     Reply(parentTid, &msg, sizeof(msg));
@@ -285,6 +314,7 @@ void trainControlServer() {
     couriersStatus.courierStartIndex = 0;
     couriersStatus.courierAvailable = 0;
 
+    track_node *node;
     TrainControlMessage message;
     for(;;) {
         /* Receive msg. */
@@ -296,10 +326,29 @@ void trainControlServer() {
                 break;
             case 50:
                 trainTid = train50Tid;
-                trainIndex = 1;
+                trainIndex = 0;
                 break;
         }
         switch (message.type) {
+            case TRAINCTRL_INIT:
+                Reply(requesterTid, &msg, sizeof(msg));
+
+                data->init = 0;
+                data->tstable[0]->trainNum = message.num;
+                PrintfAt(COM2, TR_R, TR_C, "Train%d  Speed : 2   Location :        +    cm", message.num);
+                sentTo(trainTid, &message, &couriersStatus);
+                break;
+            case TRAINCTRL_INIT_COMPLETE:
+                Reply(requesterTid, &msg, sizeof(msg));
+                if (data->numSensorPast > 0) {
+                    node = data->sentable[(data->numSensorPast - 1) % SENTABLE_SIZE];
+                    // B8, B10, B12
+                    if ((node->num = 23) || (node->num = 25) || (node->num = 27)) {
+                        trainset_setSpeed(message.num, 15);
+                    }
+                }
+                data->init = 1;
+                break;
             case TRAINCTRL_TR_SETSPEED:
                 Reply(requesterTid, &msg, sizeof(msg));
 
@@ -318,21 +367,33 @@ void trainControlServer() {
                 Reply(requesterTid, &msg, sizeof(msg));
 
                 message.type = TRAINCTRL_TR_REVERSE;
-                message.data = 0;
                 message.delay = 0;
                 if (trainIndex >= 0) {
+
                     data->tstable[trainIndex]->lastSpeed = data->tstable[trainIndex]->targetSpeed;
                     data->tstable[trainIndex]->targetSpeed = 0;
+                    data->tstable[trainIndex]->lastSpeedDuration = data->tstable[trainIndex]->timetick - data->tstable[trainIndex]->timetickWhenHittingSensor;
+                    assert((data->tstable[trainIndex]->lastSpeedDuration >= 0), "LastSpeed duration is negative");
                     data->tstable[trainIndex]->timetick = 0;
+                    data->tstable[trainIndex]->timetickWhenHittingSensor = 0;
                     data->tstable[trainIndex]->timeRequiredToAchieveSpeed = calculate_delayToAchieveSpeed(data, trainIndex);
-                    message.data = data->tstable[trainIndex]->lastSpeed;
                     message.delay = data->tstable[trainIndex]->timeRequiredToAchieveSpeed;
-                    data->tstable[trainIndex]->targetSpeed = message.data;
-                    data->tstable[trainIndex]->lastSpeed = 0;
-                    data->tstable[trainIndex]->timetick = 0 - message.delay;
-                    data->tstable[trainIndex]->timetickWhenHittingSensor = 0 - message.delay;
-                    data->tstable[trainIndex]->timeRequiredToAchieveSpeed = message.delay;
                 }
+                sentTo(trainTid, &message, &couriersStatus);
+                break;
+            case TRAINCTRL_TR_REVERSE_COMPLETE:
+                Reply(requesterTid, &msg, sizeof(msg));
+
+                data->tstable[trainIndex]->reverse = 1 - data->tstable[trainIndex]->reverse;
+                data->tstable[trainIndex]->targetSpeed = data->tstable[trainIndex]->lastSpeed;
+                data->tstable[trainIndex]->lastSpeed = 0;
+                data->tstable[trainIndex]->lastSpeedDuration = data->tstable[trainIndex]->timetick - data->tstable[trainIndex]->timetickWhenHittingSensor;
+                assert((data->tstable[trainIndex]->lastSpeedDuration >= 0), "LastSpeed duration is negative");
+                data->tstable[trainIndex]->timetick = 0;
+                data->tstable[trainIndex]->timetickWhenHittingSensor = 0;
+                data->tstable[trainIndex]->timeRequiredToAchieveSpeed = calculate_delayToAchieveSpeed(data, trainIndex);
+
+                message.data = data->tstable[trainIndex]->targetSpeed;
                 sentTo(trainTid, &message, &couriersStatus);
                 break;
             case TRAINCTRL_TR_STOPAT:
@@ -401,6 +462,18 @@ void trainControlServer() {
                 haltingCount = haltingCount + 1;
                 if (haltingCount == TRAIN_NUM) {
                     trainset_stop();
+
+                    /* Print out friction factor */
+                    // for(i = 0 ; i < TRACK_MAX ; i++) {
+                    //     node = (track_node *)(trainsetData.track + i);
+                    //     if ((int)(1000 * node->friction) != 1000) {
+                    //         Printf(COM2, "%d:%d ", i, (int)(1000 * node->friction));
+                    //         if (i % 10 == 0) {
+                    //             Printf(COM2, "\n");
+                    //         }
+                    //     }
+                    // }
+
                     Reply(haltingTid, &msg, sizeof(msg));
                 }
                 break;
@@ -446,12 +519,6 @@ void initializeUI(TrainSetData *data) {
     Printf(COM2, "Sensors Past");
     moveCursor(SENTABLE_R, SENTABLE_C - 6);
     Printf(COM2, "%sTotal 0:%s", TCS_WHITE, TCS_YELLOW);
-
-    int i = 0;
-    for(i = 0; i < TRAIN_NUM; i++) {
-        moveCursor(TR_R + i, TR_C);
-        Printf(COM2, "Train%d  Speed : 0   Location :        +    cm", data->tstable[i]->trainNum);
-    }
 
     moveCursor(SENEXPECT_R, SWTABLE_C);
     Printf(COM2, "Expecting                at");

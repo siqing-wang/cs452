@@ -19,6 +19,9 @@ track_node *nextNode(struct TrainSetData *data, track_node *node) {
 track_node *nextSensorOrExit(struct TrainSetData *data, track_node *node) {
     track_node *next = node;
     for (;;) {
+        if (next->type == NODE_EXIT) {
+            break;
+        }
         next = nextNode(data, next);
         if (next->type == NODE_SENSOR || next->type == NODE_EXIT) {
             break;
@@ -1249,30 +1252,43 @@ void init_tracka(track_node *track) {
     for( ; i < TRACK_MAX; i++) {
         track[i].friction = 1;
     }
-    track[3].friction = 1.012;
+    track[3].friction = 0.997;
+    track[16].friction = 1.016;
     track[17].friction = 1.984;
+    track[18].friction = 1.008;
     track[20].friction = 1.075;
-    track[29].friction = 1.048;
+    track[21].friction = 0.971;
+    track[29].friction = 1.042;
     track[30].friction = 1.044;
-    track[31].friction = 1.016;
+    track[31].friction = 0.983;
+    track[33].friction = 1.107;
     track[36].friction = 1.064;
     track[37].friction = 1.113;
+    track[38].friction = 1.056;
     track[40].friction = 1.061;
+    track[41].friction = 0.966;
     track[42].friction = 1.920;
+    track[43].friction = 1.012;
     track[44].friction = 1.101;
     track[46].friction = 1.022;
-    track[52].friction = 1.211;
+    track[51].friction = 1.036;
+    track[52].friction = 1.012;
     track[55].friction = 1.073;
     track[56].friction = 1.117;
+    track[57].friction = 1.004;
     track[58].friction = 1.025;
     track[60].friction = 1.071;
+    track[61].friction = 0.699;
     track[62].friction = 0.912;
     track[63].friction = 0.918;
+    track[65].friction = 1.014;
     track[66].friction = 1.112;
     track[68].friction = 1.027;
-    track[69].friction = 1.039;
+    track[69].friction = 0.961;
     track[73].friction = 1.148;
-    track[74].friction = 1.022;
+    track[74].friction = 0.973;
+    track[77].friction = 0.993;
+    track[78].friction = 0.980;
     track[79].friction = 1.043;
 }
 

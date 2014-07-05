@@ -21,7 +21,7 @@
 #define TRLOCATION_OFFSET_C     (TR_C+41)
 
 #define SENEXPECT_R     (SENTABLE_R+3)          // next sensor expected
-#define SENEXPECT_C     (SENTABLE_C-6)
+#define SENEXPECT_C     (SENTABLE_C-10)
 
 #define SENLAST_R       (SENEXPECT_R+1)          // next sensor expected
 #define SENLAST_C       SENEXPECT_C
@@ -38,7 +38,7 @@
 #define TRACK_R     17
 #define TRACK_C     5
 
-#define END_R       42          // end
+#define END_R       54          // end
 
 /* Color Terminal control sequence */
 #define TCS_RESET   "\033[0m"

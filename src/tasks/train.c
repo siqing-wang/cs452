@@ -36,7 +36,7 @@ void train() {
 
     /* Create Children tasks. */
     int msg = 0;
-    int trainCtrlTid = Create(3, &trainControlServer);
+    int trainCtrlTid = Create(4, &trainControlServer);
     Send(trainCtrlTid, &msg, sizeof(msg), &msg, sizeof(msg));
 
     Create(1, &printTime);
@@ -109,21 +109,8 @@ void train() {
     } // forever loop
 
     TearDown:
+    moveCursor2(END_R, 0);
     IOidle(COM1);
-    IOidle(COM2);
-
-    moveCursor2(END_R, 1);
-
-    // i = 0;
-    // Printf(COM2, "Restriction factor \n");
-    // for( ; i < TRACK_MAX ; i++) {
-    //     track_node *node= (track_node *)(trainsetData.track + i);
-    //     Printf(COM2, "%d:%d ", i, (int)(1000 *node->friction));
-    //     if ((i % 10 == 0) && (i != 0)) {
-    //         Printf(COM2, "\n");
-    //     }
-    // }
-
     IOidle(COM2);
     ExitProgram();
 }

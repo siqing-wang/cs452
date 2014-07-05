@@ -182,10 +182,10 @@ int calculate_expectArrivalDuration(TrainSetData *trainSetData, int trainIndex, 
         tick ++;
     }
 
-    if (targetVelocity == 0) {
-        return 0;
-    }
     if (currentDistance < distance) {
+        if (targetVelocity == 0) {
+            return -1;
+        }
         tick += ((distance - currentDistance) / (targetVelocity * friction));
     }
 
@@ -224,7 +224,12 @@ int calculate_expectTravelledDistance(TrainSetData *trainSetData, int trainIndex
         currentDistance += (timetick - tick) * (targetVelocity * friction);
     }
 
-    return (int)currentDistance + 20;
+    if (trainSpeedData->reverse) {
+        return (int)currentDistance + 20;
+    }
+    else {
+        return (int)currentDistance + 140;
+    }
 }
 
 int calculate_delayToStop(TrainSetData *trainSetData, int trainIndex, int distance) {

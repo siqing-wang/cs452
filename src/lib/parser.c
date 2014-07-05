@@ -16,6 +16,7 @@ int skipWhiteSpace(char** input);
 int readToken(char** input, char* token);
 
 /* Commands */
+int parseInitCommand(int trainCtrlTid, char* input);
 int parseSetSpeedCommand(int trainCtrlTid, char* input);
 int parseReverseDirectionCommand(int trainCtrlTid, char* input);
 int parseTurnSwitchCommand(int trainCtrlTid, char* input);
@@ -129,6 +130,8 @@ int readString( char** input, char* result ) {
 int parseCommand(int trainCtrlTid, char* input) {
 
     switch (input[0]) {
+        case 'i':
+            return parseInitCommand(trainCtrlTid, input);
         case 't':
             return parseSetSpeedCommand(trainCtrlTid, input);
         case 'r':
@@ -152,6 +155,32 @@ int parseCommand(int trainCtrlTid, char* input) {
 
 
 /* Parse commands */
+int parseInitCommand(int trainCtrlTid, char* input){
+
+    int train_number;
+
+    /* read tr */
+    if(!readToken(&input, "init")) {
+        return CMD_FAILED;
+    }
+
+    /* read train number */
+    train_number = readNum(&input);
+    if(train_number < 0 || train_number > 80) {
+        return CMD_FAILED;
+    }
+
+    PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%sInitialize train %u%s", TCS_GREEN, train_number, TCS_RESET);
+
+    TrainControlMessage message;
+    message.type = TRAINCTRL_INIT;
+    message.num = train_number;
+    int msg = 0;
+    Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
+
+    return CMD_SUCCEED;
+}
+
 int parseSetSpeedCommand(int trainCtrlTid, char* input){
 
     int train_number, train_speed;
@@ -223,7 +252,7 @@ int parseTurnSwitchCommand(int trainCtrlTid, char* input) {
 
     /* read switch number */
     switch_number = readNum(&input);
-    if(switch_number < 0) {
+    if(switch_number <= 0) {
         return CMD_FAILED;
     }
 
@@ -281,7 +310,7 @@ int parseStopCommand(int trainCtrlTid, char* input) {
     }
     offset *= readNum(&input);
 
-    PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%sStop train%d at %s with offset %d%s", TCS_GREEN, train_number, location, offset, TCS_RESET);
+    PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%sStop train %d at %s with offset %d%s", TCS_GREEN, train_number, location, offset, TCS_RESET);
 
     TrainControlMessage message;
     message.type = TRAINCTRL_TR_STOPAT;

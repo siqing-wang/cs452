@@ -19,12 +19,16 @@
 
 #define TRAIN_NUM 1
 
+#define RIGHT_DIR 1
+#define WRONG_DIR 2
+
 struct track_node;
 
 typedef struct TrainSpeedData {
     int trainNum;
     int lastSpeed;
     int targetSpeed;
+    int reverse;
     int timetick;
     int timeRequiredToAchieveSpeed;
     int timetickWhenHittingSensor;
@@ -42,7 +46,12 @@ typedef struct TrainSetData {
     struct track_node* sentable[SENTABLE_SIZE];
     int numSensorPast;
     int lastByte[10];
-    int expectTimetick;
+    int expectNextTimetick;
+    int expectNextSensorNum;
+    int expectNextNextSensorNum;
+    int expectNextNextTimetick;
+    int lastTimetick;
+    int init;
 
     /* Track graph. */
     struct track_node *track;
