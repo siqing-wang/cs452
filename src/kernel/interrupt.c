@@ -68,6 +68,9 @@ void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
             if (ctsStatus) {
                 sharedVariables->com1CtsReady = 1;
             }
+            else {
+                sharedVariables->com1CtsReady = 0;
+            }
             *interruptVal = (int)(*interruptVal) & (~MIS_MASK);
         }
         if (mask & RIS_MASK) {
