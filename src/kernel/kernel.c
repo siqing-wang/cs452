@@ -112,7 +112,6 @@ void kernel_run() {
     int idleTid = -1;
     int idleStartTime = 0;
     int idleEndTime = 0;
-    int lastIdleEndTime = 0;
 
     /* Start Kernel */
     kernel_init(&sharedVariables);
@@ -136,11 +135,9 @@ void kernel_run() {
 
         if (active->tid == idleTid) {
             idleEndTime = debugTimer_getVal();
-
-            if ((sharedVariables.idlePercent >= 0) && (lastIdleEndTime > 0)) {
-                sharedVariables.idlePercent = (idleEndTime - idleStartTime) * 1000 / (idleEndTime - lastIdleEndTime);
-            }
-            lastIdleEndTime = idleEndTime;
+        }
+        if ((sharedVariables.idlePercent >= 0) && (idleStartTime < idleEndTime)) {
+            sharedVariables.idlePercent = (idleEndTime - idleStartTime) * 1000 / (debugTimer_getVal() - idleStartTime);
         }
 
         if (request == (Request*)0) {
