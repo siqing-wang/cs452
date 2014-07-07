@@ -7,6 +7,7 @@
 #include <io.h>
 #include <ts7200.h>
 #include <request.h>
+#include <io_queue.h>
 #include <utils.h>
 
 void event_init(SharedVariables* sharedVariables) {
@@ -35,6 +36,17 @@ void event_blockTask(SharedVariables* sharedVariables, Task* active, int eventId
         return;
     }
 
+    Request *req = (Request *)(*(active->sp));
+    if ((eventId == EVENT_TERMINAL_RECV) && (!ioQueue_empty(sharedVariables->com2IOQueue))) {
+        req->data = ioQueue_pop(sharedVariables->com2IOQueue);
+        return;
+    }
+
+    if ((eventId == EVENT_TRAIN_RECV) && (!ioQueue_empty(sharedVariables->com1IOQueue))) {
+        req->data = ioQueue_pop(sharedVariables->com1IOQueue);
+        return;
+    }
+
     /* Find corresponding event. */
     Event *event = (Event *)(sharedVariables->events + eventId);
 
@@ -43,7 +55,7 @@ void event_blockTask(SharedVariables* sharedVariables, Task* active, int eventId
     event->task = active;
 }
 
-void event_unblockTask(SharedVariables* sharedVariables, int eventId, char ch) {
+void event_unblockTask(SharedVariables* sharedVariables, int eventId) {
     Event* event = (Event *)(sharedVariables->events + eventId);
     Task* task = event->task;
 
@@ -65,10 +77,10 @@ void event_unblockTask(SharedVariables* sharedVariables, int eventId, char ch) {
             sharedVariables->com1CtsReady = 0;
             break;
         case EVENT_TERMINAL_RECV:
-            req->data = ch;
+            req->data = ioQueue_pop(sharedVariables->com2IOQueue);
             break;
         case EVENT_TRAIN_RECV:
-            req->data = ch;
+            req->data = ioQueue_pop(sharedVariables->com1IOQueue);
             break;
     }
 

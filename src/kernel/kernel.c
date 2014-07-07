@@ -19,6 +19,7 @@
 #include <bwio.h>
 #include <ui.h>
 #include <timer.h>
+#include <io_queue.h>
 #include <utils.h>
 
 void hardware_init();
@@ -91,6 +92,12 @@ void kernel_run() {
     // Initialization (Event)
     Event events[NUM_EVENTS];
 
+    // Initialization (IOQueue in interrupt)
+    IOQueue com1IOQueue;
+    IOQueue com2IOQueue;
+    ioQueue_init(&com1IOQueue);
+    ioQueue_init(&com2IOQueue);
+
     // Initialization (Global)
     register int loadOffset asm ("sl");         // Get stack base from register (normally 0x00218000)
 
@@ -107,6 +114,8 @@ void kernel_run() {
     sharedVariables.com1TxReady = 0;
     sharedVariables.com1CtsReady = 0;
     sharedVariables.com2TxReady = 0;
+    sharedVariables.com1IOQueue = &com1IOQueue;
+    sharedVariables.com2IOQueue = &com2IOQueue;
 
     /* Performance monitor. */
     int idleTid = -1;

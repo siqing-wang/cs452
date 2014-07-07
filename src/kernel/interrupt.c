@@ -8,6 +8,7 @@
 #include <ts7200.h>
 #include <timer.h>
 #include <io.h>
+#include <io_queue.h>
 #include <utils.h>
 
 void interrupt_enable();
@@ -42,7 +43,7 @@ void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
 
     if (interrupt_check(INTERRUPT_TIMER)) {
         timer_clear();
-        event_unblockTask(sharedVariables, EVENT_TIMER, ch);
+        event_unblockTask(sharedVariables, EVENT_TIMER);
     }
     else if (interrupt_check(INTERRUPT_TERMINAL)) {
         int *interruptVal = (int *) (UART2_BASE + UART_INTR_OFFSET);
@@ -50,12 +51,13 @@ void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
         int mask = ((*interruptVal) & INTR_MASK);
         if (mask & RIS_MASK) {
             ch = io_getdata(COM2);
-            event_unblockTask(sharedVariables, EVENT_TERMINAL_RECV, ch);
+            ioQueue_push(sharedVariables->com2IOQueue, ch);
+            event_unblockTask(sharedVariables, EVENT_TERMINAL_RECV);
         }
         if (mask & TIS_MASK) {
             io_interrupt_disable(COM2, TIEN_MASK);
             sharedVariables->com2TxReady = 1;
-            event_unblockTask(sharedVariables, EVENT_TERMINAL_SEND, ch);
+            event_unblockTask(sharedVariables, EVENT_TERMINAL_SEND);
         }
     }
     else if (interrupt_check(INTERRUPT_TRAIN)) {
@@ -75,14 +77,15 @@ void interrupt_handle(SharedVariables* sharedVariables, Task* active) {
         }
         if (mask & RIS_MASK) {
             ch = io_getdata(COM1);
-            event_unblockTask(sharedVariables, EVENT_TRAIN_RECV, ch);
+            ioQueue_push(sharedVariables->com1IOQueue, ch);
+            event_unblockTask(sharedVariables, EVENT_TRAIN_RECV);
         }
         if (mask & TIS_MASK) {
             io_interrupt_disable(COM1, TIEN_MASK);
             sharedVariables->com1TxReady = 1;
         }
         if ((sharedVariables->com1CtsReady) && (sharedVariables->com1TxReady)) {
-            event_unblockTask(sharedVariables, EVENT_TRAIN_SEND, ch);
+            event_unblockTask(sharedVariables, EVENT_TRAIN_SEND);
         }
     }
     /* Add current interupted task back to scheduler. */
