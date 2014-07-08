@@ -29,10 +29,14 @@ typedef struct TrainSpeedData {
     int lastSpeed;
     int targetSpeed;
     int reverse;
+    int distance;
     int timetick;
     int timeRequiredToAchieveSpeed;
     int timetickWhenHittingSensor;
     int lastSpeedDuration;
+    int delayToStop;
+    int needToStop;
+    struct track_node *stopLocation;
 } TrainSpeedData;
 
 typedef struct TrainSetData {
@@ -48,9 +52,10 @@ typedef struct TrainSetData {
     int lastByte[10];
     int expectNextTimetick;
     int expectNextSensorNum;
-    int expectNextNextSensorNum;
     int expectNextNextTimetick;
+    int expectNextNextSensorNum;
     int lastTimetick;
+    int timetickDiff;   // actual - expect
     int init;
 
     /* Track graph. */

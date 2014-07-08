@@ -13,6 +13,6 @@ double getCurrentVelocity(int distance, int timetick);
 int calculate_delayToAchieveSpeed(TrainSetData *trainSetData, int trainIndex);
 int calculate_expectArrivalDuration(TrainSetData *trainSetData, int trainIndex, int distance, double friction);
 int calculate_expectTravelledDistance(TrainSetData *trainSetData, int trainIndex, double friction);
-int calculate_delayToStop(TrainSetData *trainSetData, int trainIndex, int distance);
+int calculate_delayToStop(TrainSetData *trainSetData, int trainIndex, int distance, double friction);
 
 #endif

@@ -8,7 +8,10 @@ double calculate_trainVelocity(int trainNum, int speed) {
     }
 
     double velocity = -1;
-    if ((speed >= 1) && (speed <= 12)) {
+    if (speed == 1) {
+        velocity = 0.140815433;
+    }
+    if ((speed >= 2) && (speed <= 12)) {
         velocity =  0.52468 * speed - 0.24942;
     }
     else if (speed == 13) {
@@ -18,6 +21,9 @@ double calculate_trainVelocity(int trainNum, int speed) {
         velocity = 5.960918512;
     }
     switch(trainNum) {
+        case 45:
+            velocity = velocity * 1;
+            break;
         case 49:
             velocity = velocity * 1;
             break;
@@ -37,6 +43,7 @@ double calculate_stopDistance(int trainNum, int speed) {
     }
 
     switch(trainNum) {
+        case 45:
         case 49:
             switch(speed) {
                 case 1:
@@ -110,13 +117,16 @@ double calculate_currentVelocity(TrainSetData *trainSetData, int trainIndex, int
     int targetSpeed = trainSpeedData->targetSpeed;
 
     double lastVelocity = calculate_trainVelocity(trainNum, lastSpeed);
-    double targetVelocity = calculate_trainVelocity(trainNum, targetVelocity);
+    double targetVelocity = calculate_trainVelocity(trainNum, targetSpeed);
 
     if ((lastVelocity < 0) || (targetVelocity < 0)) {
         return -1;
     }
 
-    if (timetick > trainSpeedData->timeRequiredToAchieveSpeed) {
+    if (timetick == 0) {
+        return lastVelocity;
+    }
+    else if (timetick >= trainSpeedData->timeRequiredToAchieveSpeed) {
         return targetVelocity;
     }
 
@@ -232,7 +242,7 @@ int calculate_expectTravelledDistance(TrainSetData *trainSetData, int trainIndex
     }
 }
 
-int calculate_delayToStop(TrainSetData *trainSetData, int trainIndex, int distance) {
+int calculate_delayToStop(TrainSetData *trainSetData, int trainIndex, int distance, double friction) {
     TrainSpeedData *trainSpeedData = trainSetData->tstable[trainIndex];
     int trainNum = trainSpeedData->trainNum;
     int speed = trainSpeedData->targetSpeed;
@@ -242,5 +252,5 @@ int calculate_delayToStop(TrainSetData *trainSetData, int trainIndex, int distan
         return -1;
     }
 
-    return calculate_expectArrivalDuration(trainSetData, trainIndex, (distance - minDistance), 1);
+    return calculate_expectArrivalDuration(trainSetData, trainIndex, (distance - minDistance), friction);
 }

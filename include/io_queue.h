@@ -6,7 +6,7 @@
 #ifndef __IO_QUEUE_H__
 #define __IO_QUEUE_H__
 
-#define IO_QUEUE_CAPACITY   128
+#define IO_QUEUE_CAPACITY   256
 
 typedef struct IOQueue {
     char buffer[IO_QUEUE_CAPACITY];

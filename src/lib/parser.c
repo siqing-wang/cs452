@@ -255,6 +255,12 @@ int parseTurnSwitchCommand(int trainCtrlTid, char* input) {
     if(switch_number <= 0) {
         return CMD_FAILED;
     }
+    if ((switch_number > 18) && (switch_number < 153)) {
+        return CMD_FAILED;
+    }
+    if ((switch_number > 156)) {
+        return CMD_FAILED;
+    }
 
     /* read switch direction */
     if(readToken(&input, "S") || readToken(&input, "s")) {
@@ -295,9 +301,17 @@ int parseStopCommand(int trainCtrlTid, char* input) {
     }
 
     /* read stop location */
-    char location[5];
+    char location[6];
     if(!readString(&input, location)) {
         return CMD_FAILED;
+    }
+
+    /* Capitalize */
+    int i;
+    for (i = 0; i < 6; i++) {
+        if ((location[i] >= 'a') && (location[i] <= 'z')) {
+            location[i] = location[i] - 'a' + 'A';
+        }
     }
 
     /* read location offset */
@@ -310,15 +324,26 @@ int parseStopCommand(int trainCtrlTid, char* input) {
     }
     offset *= readNum(&input);
 
-    PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%sStop train %d at %s with offset %d%s", TCS_GREEN, train_number, location, offset, TCS_RESET);
-
     TrainControlMessage message;
     message.type = TRAINCTRL_TR_STOPAT;
     message.num = train_number;
     message.location = location;
-    message.data = offset;
+    message.data = offset * 10; // cm -> mm
     int msg = 0;
     Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
+
+    if (msg == -3) {
+        PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%s%s with offset %d needs to turn switch just next to train%s", TCS_RED, location, offset, TCS_RESET);
+    }
+    else if (msg == -2) {
+        PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%s%s with offset %d is too close to stop%s", TCS_RED, location, offset, TCS_RESET);
+    }
+    else if (msg == -1) {
+        PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%s%s with offset %d is not reachable%s", TCS_RED, location, offset, TCS_RESET);
+    }
+    else {
+        PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%sStop train %d at %s with offset %d%s", TCS_GREEN, train_number, location, offset, TCS_RESET);
+    }
 
     return CMD_SUCCEED;
 }

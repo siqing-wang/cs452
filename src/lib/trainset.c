@@ -193,14 +193,17 @@ void trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNu
 
     /* Train Calibration Monitor. */
     int timetick = Time();
+    data->timetickDiff = 0;
     if (node->num == data->expectNextSensorNum) {
         if (((timetick - data->lastTimetick) > 0) && ((data->expectNextTimetick - data->lastTimetick) > 0)) {
+            data->timetickDiff = timetick - data->expectNextTimetick;
             int friction = (int)(node->friction * 700) * (1.0 * (data->expectNextTimetick - data->lastTimetick) / (timetick - data->lastTimetick));
             node->friction = 1.0 * ((int)(node->friction * 300) + friction) / 1000;
         }
     }
     else if (node->num == data->expectNextNextSensorNum) {
         if (((timetick - data->lastTimetick) > 0) && ((data->expectNextNextTimetick - data->lastTimetick) > 0)) {
+            data->timetickDiff = timetick - data->expectNextNextTimetick;
             int friction = (int)(node->friction * 700) * (1.0 * (data->expectNextNextTimetick - data->lastTimetick) / (timetick - data->lastTimetick));
             node->friction = 1.0 * ((int)(node->friction * 300) + friction) / 1000;
         }
@@ -294,20 +297,24 @@ void trainset_init(TrainSetData *data) {
         data->tstable[i]->lastSpeed = 0;
         data->tstable[i]->targetSpeed = 0;
         data->tstable[i]->reverse = 0;
+        data->tstable[i]->distance = 0;
         data->tstable[i]->timetick = 0;
         data->tstable[i]->timeRequiredToAchieveSpeed = 0;
         data->tstable[i]->timetickWhenHittingSensor = 0;
         data->tstable[i]->lastSpeedDuration = 0;
+        data->tstable[i]->delayToStop = 0;
+        data->tstable[i]->needToStop = 0;
     }
     for(i = 0; i < 10; i++) {
         data->lastByte[i] = 0;
     }
     data->numSensorPast = 0;
     data->expectNextTimetick = 0;
-    data->expectNextSensorNum = 9;  // A10
+    data->expectNextSensorNum = 7;  // A8
     data->expectNextNextSensorNum = 0;
     data->expectNextNextSensorNum = 38;  // C7
     data->lastTimetick = 0;
+    data->timetickDiff = 0;
     data->init = -1;
 
     int *swtable = data->swtable;

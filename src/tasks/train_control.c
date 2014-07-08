@@ -18,6 +18,30 @@
 void initializeUI(TrainSetData *data);
 void sentTo(int destTid, TrainControlMessage *message, CouriersStatus *courierStatus);
 void updateTrainSpeed(TrainSetData *data, int trainIndex, int newSpeed);
+int findRoute(struct TrainSetData *data, TrainControlMessage *message, int switchTid, int drawTrackTid, CouriersStatus *couriersStatus, int trainIndex, track_node *start, char *location, int offset);
+
+void courier() {
+    int serverTid;
+    int msg = 0;
+
+    for(;;) {
+        serverTid = WhoIs("Train Control Server");
+        if (serverTid > 0) {
+            break;
+        }
+        Delay(1);
+    }
+
+    TrainControlMessage message;
+    for (;;) {
+        /* Semd message to control server to announce it is freed and waiting for message */
+        message.type = TRAINCTRL_COURIER_FREE;
+        Send(serverTid, &message, sizeof(message), &message, sizeof(message));
+
+        /* Send message to tasks */
+        Send(message.destTid, &message, sizeof(message), &msg, sizeof(msg));
+    }
+}
 
 void switchTask() {
     int serverTid, courierTid;
@@ -28,9 +52,10 @@ void switchTask() {
     TrainControlMessage message;
     for(;;) {
         Receive(&courierTid, &message, sizeof(message));
+        Reply(courierTid, &msg, sizeof(msg));
+
         trainset_turnSwitch(message.num, message.data);
         updateSwitchTable(message.num, message.data);
-        Reply(courierTid, &msg, sizeof(msg));
     }
 }
 
@@ -45,6 +70,8 @@ void trainTask() {
     TrainControlMessage message;
     for(;;) {
         Receive(&courierTid, &message, sizeof(message));
+        Reply(courierTid, &msg, sizeof(msg));
+
         switch (message.type) {
             case TRAINCTRL_INIT:
                 trainset_setSpeed(message.num, 2);
@@ -75,9 +102,11 @@ void trainTask() {
                 PrintfAt(COM2, TR_R + trainIndex, TRSPEED_C, "%d ", message.data);
                 break;
             case TRAINCTRL_TR_STOPAT:
+                Delay(message.data);
+                trainset_setSpeed(message.num, 0);
+                PrintfAt(COM2, TR_R + trainIndex, TRSPEED_C, "0 ");
                 break;
             case TRAINCTRL_HALT:
-                Reply(courierTid, &msg, sizeof(msg));
                 trainset_setSpeed(message.num, 0);
                 PrintfAt(COM2, TR_R + trainIndex, TRSPEED_C, "0 ");
                 Delay(message.delay);
@@ -87,9 +116,8 @@ void trainTask() {
                 Exit();
                 break;
             default :
-                warning("Send Train Control Message To Wrong Task.");
+                warning("Send Train Control Message To Wrong Task (Train Task).");
         }
-        Reply(courierTid, &msg, sizeof(msg));
     }
 }
 
@@ -107,7 +135,7 @@ void pullSensorFeed() {
         if (trainset_pullSensorFeeds(data)) {
             Send(serverTid, &message, sizeof(message), &msg, sizeof(msg));
         }
-        Delay(1);
+        Delay(TIME_INTERVAL);
     }
 }
 
@@ -120,6 +148,7 @@ void updateSpeedTable() {
     TrainControlMessage message;
     message.type = TRAINCTRL_UPDATE_TSTABLE;
     for (;;) {
+        message.data = 1;
         Send(serverTid, &message, sizeof(message), &msg, sizeof(msg));
         Delay(1);
     }
@@ -132,64 +161,34 @@ void displayCurrentPosition() {
     Receive(&serverTid, &data, sizeof(data));
     Reply(serverTid, &msg, sizeof(msg));
 
-    track_node *node, *nextSensor;
+    track_node *node;
     for (;;) {
         if (data->numSensorPast > 0) {
             node = data->sentable[(data->numSensorPast - 1) % SENTABLE_SIZE];
-            nextSensor = nextSensorOrExit(data, node);
-            int distance = calculate_expectTravelledDistance(data, 0, nextSensor->friction);
-
+            int distance = data->tstable[0]->distance;
+            int maxDistance = nextSensorDistance(data, node);
+            if ((data->tstable[0]->reverse) && (distance > (maxDistance + 20))) {
+                distance = maxDistance + 20;
+            }
+            else if (!(data->tstable[0]->reverse) && (distance > (maxDistance + 140))) {
+                distance = maxDistance + 140;
+            }
             for(;;) {
                 int passed = nextDistance(data, node);
-                if (passed > distance) {
+                if (node->type == NODE_EXIT) {
+                    distance = 0;
                     break;
                 }
-                if (node == nextSensor) {
-                    distance = 0;
+                if (passed > distance) {
                     break;
                 }
                 distance = distance - passed;
                 node = nextNode(data, node);
             }
-            PrintfAt(COM2, TR_R, TRLOCATION_SENSOR_C, "%s  ", node->name);
+            PrintfAt(COM2, TR_R, TRLOCATION_SENSOR_C, "%s   ", node->name);
             PrintfAt(COM2, TR_R, TRLOCATION_OFFSET_C, "%d ", distance / 10);
         }
-        Delay(1);
-    }
-}
-
-void undrawTrack() {
-    TrainSetData *data;
-    int serverTid, courierTid;
-    int msg = 0;
-    Receive(&serverTid, &data, sizeof(data));
-    Reply(serverTid, &msg, sizeof(msg));
-
-    track_node *lastNode;
-    TrainControlMessage message;
-    for (;;) {
-        Receive(&courierTid, &message, sizeof(message));
-
-        switch(message.type) {
-            case TRAINCTRL_SW_CHANGE_UNDRAW:
-                message.type = TRAINCTRL_SW_CHANGE_DRAW;
-                if (data->numSensorPast > 0) {
-                    lastNode = data->sentable[(data->numSensorPast - 1) % SENTABLE_SIZE];
-                    trackGraph_unhighlightSenPath(data, lastNode);
-                }
-                break;
-            case TRAINCTRL_SEN_TRIGGERED_UNDRAW:
-                message.type = TRAINCTRL_SEN_TRIGGERED_DRAW;
-                if (data->numSensorPast > 1) {
-                    lastNode = data->sentable[(data->numSensorPast - 2) % SENTABLE_SIZE];
-                    trackGraph_unhighlightSenPath(data, lastNode);
-                }
-                break;
-            default:
-                warning("Send Train Control Message To Wrong Task.");
-        }
-        Send(serverTid, &message, sizeof(message), &msg, sizeof(msg));
-        Reply(courierTid, &msg, sizeof(msg));
+        Delay(TIME_INTERVAL);
     }
 }
 
@@ -200,41 +199,29 @@ void drawTrack() {
     Receive(&serverTid, &data, sizeof(data));
     Reply(serverTid, &msg, sizeof(msg));
 
-    track_node *node;
+    track_node *lastNode;
     TrainControlMessage message;
     for (;;) {
         Receive(&courierTid, &message, sizeof(message));
+        Reply(courierTid, &msg, sizeof(msg));
 
         switch(message.type) {
-            case TRAINCTRL_SW_CHANGE_DRAW:
-                trackGraph_turnSw(data, message.num, message.data2, message.data);
-            case TRAINCTRL_SEN_TRIGGERED_DRAW:
+            case TRAINCTRL_SW_CHANGE:
+                trackGraph_turnSw(data, message.num, message.data);
+                break;
+            case TRAINCTRL_SEN_TRIGGERED:
+                if (data->numSensorPast > 1) {
+                    lastNode = data->sentable[(data->numSensorPast - 2) % SENTABLE_SIZE];
+                    trackGraph_unhighlightSenPath(data, lastNode);
+                }
                 if (data->numSensorPast > 0) {
-                    node = data->sentable[(data->numSensorPast - 1) % SENTABLE_SIZE];
-                    trackGraph_highlightSenPath(data, node);
+                    lastNode = data->sentable[(data->numSensorPast - 1) % SENTABLE_SIZE];
+                    trackGraph_highlightSenPath(data, lastNode);
                 }
                 break;
             default:
-                warning("Send Train Control Message To Wrong Task.");
+                warning("Send Train Control Message To Wrong Task (Draw).");
         }
-        Reply(courierTid, &msg, sizeof(msg));
-    }
-}
-
-void courier() {
-    int serverTid;
-    int msg = 0;
-    Receive(&serverTid, &msg, sizeof(msg));
-    Reply(serverTid, &msg, sizeof(msg));
-
-    TrainControlMessage message;
-    for (;;) {
-        /* Semd message to control server to announce it is freed and waiting for message */
-        message.type = TRAINCTRL_COURIER_FREE;
-        Send(serverTid, &message, sizeof(message), &message, sizeof(message));
-
-        /* Send message to tasks */
-        Send(message.destTid, &message, sizeof(message), &msg, sizeof(msg));
     }
 }
 
@@ -254,7 +241,7 @@ void trainControlServer() {
     trainset_init(data);
     IOidle(COM1);       // wait until initialization is done, i.e. IO idle.
 
-    initializeUI(&trainsetData);
+    initializeUI(&trainsetData);            // draw initial UI frame.
     IOidle(COM2);       // wait until initialization is done, i.e. IO idle.
 
     switch (TRACK_USED) {
@@ -276,27 +263,24 @@ void trainControlServer() {
 
     Receive(&parentTid, &msg, sizeof(msg));
 
-    childTid = Create(3, &pullSensorFeed);      // Task to pull sensor feed.
+    childTid = Create(6, &pullSensorFeed);      // Task to pull sensor feed.
     Send(childTid, &data, sizeof(data), &msg, sizeof(msg));
 
-    childTid = Create(3, &updateSpeedTable);    // Task to update speed table.
+    childTid = Create(7, &updateSpeedTable);    // Task to update speed table.
     Send(childTid, &msg, sizeof(msg), &msg, sizeof(msg));
 
-    int undrawTrackTid = Create(3, &undrawTrack);
     int drawTrackTid = Create(3, &drawTrack);
-    Send(undrawTrackTid, &data, sizeof(data), &msg, sizeof(msg));
     Send(drawTrackTid, &data, sizeof(data), &msg, sizeof(msg));
 
     childTid = Create(3, &displayCurrentPosition);    // Task to update speed table.
     Send(childTid, &data, sizeof(data), &msg, sizeof(msg));
 
-    for(i = 0; i < COURIER_NUM_MAX; i++) {
-        childTid = Create(5, &courier);
-        Send(childTid, &msg, sizeof(msg), &msg, sizeof(msg));
-    }
-
     int switchTid = Create(6, &switchTask);
     Send(switchTid, &msg, sizeof(msg), &msg, sizeof(msg));
+
+    int train45Tid = Create(6, &trainTask);
+    trainIndex = 0;
+    Send(train45Tid, &trainIndex, sizeof(trainIndex), &msg, sizeof(msg));
 
     int train49Tid = Create(6, &trainTask);
     trainIndex = 0;
@@ -306,23 +290,33 @@ void trainControlServer() {
     trainIndex = 0;
     Send(train50Tid, &trainIndex, sizeof(trainIndex), &msg, sizeof(msg));
 
+    /* Create the couriers. */
+    CouriersStatus couriersStatus;
+    for(i = 0; i < COURIER_NUM_MAX; i++) {
+        Create(5, &courier);
+    }
+    couriersStatus.courierStartIndex = 0;
+    couriersStatus.courierAvailable = 0;
+
     Reply(parentTid, &msg, sizeof(msg));
 
     int requesterTid;
     int trainTid = -1;
     int haltingCount = 0;
     int haltingTid = -1;
+    int result = 0;
 
-    CouriersStatus couriersStatus;
-    couriersStatus.courierStartIndex = 0;
-    couriersStatus.courierAvailable = 0;
-
-    track_node *node;
+    RegisterAs("Train Control Server");
+    track_node *node, *nextSensor;
     TrainControlMessage message;
     for(;;) {
         /* Receive msg. */
         Receive(&requesterTid, &message, sizeof(message));
         switch (message.num) {
+            case 45:
+                trainTid = train49Tid;
+                trainIndex = 0;
+                break;
             case 49:
                 trainTid = train49Tid;
                 trainIndex = 0;
@@ -338,7 +332,7 @@ void trainControlServer() {
 
                 data->init = 0;
                 data->tstable[0]->trainNum = message.num;
-                PrintfAt(COM2, TR_R, TR_C, "Train%d  Speed : 2   Location :        +    cm", message.num);
+                PrintfAt(COM2, TR_R, TR_C, "Train%d  Speed : 2   Location :         +     cm", message.num);
                 sentTo(trainTid, &message, &couriersStatus);
                 break;
             case TRAINCTRL_INIT_COMPLETE:
@@ -374,46 +368,110 @@ void trainControlServer() {
             case TRAINCTRL_TR_REVERSE_COMPLETE:
                 Reply(requesterTid, &msg, sizeof(msg));
 
+                if (data->numSensorPast > 0) {
+                    data->expectNextSensorNum =  (data->sentable[(data->numSensorPast - 1) % SENTABLE_SIZE]->reverse)->num;
+                    data->expectNextTimetick = 0;
+                    // data->expectNextNextSensorNum =  (nextSensorOrExit(data, data->sentable[(data->numSensorPast - 1) % SENTABLE_SIZE]->reverse))->num;
+                    // data->expectNextNextTimetick = 0;
+                }
+
                 updateTrainSpeed(data, trainIndex, data->tstable[trainIndex]->lastSpeed);
                 data->tstable[trainIndex]->reverse = 1 - data->tstable[trainIndex]->reverse;
                 message.data = data->tstable[trainIndex]->targetSpeed;
                 sentTo(trainTid, &message, &couriersStatus);
                 break;
             case TRAINCTRL_TR_STOPAT:
+                msg = 0;
+                if (data->numSensorPast > 0) {
+                    node = data->sentable[(data->numSensorPast - 1) % SENTABLE_SIZE];
+                    result = findRoute(data, &message, switchTid, drawTrackTid, &couriersStatus, trainIndex, node, message.location, message.data);
+                    if (result < 0) {
+                        msg = result;
+                    }
+                    else {
+                        data->tstable[trainIndex]->delayToStop = calculate_delayToStop(data, 0, result - data->tstable[trainIndex]->distance, data->tstable[trainIndex]->stopLocation->friction);
+                        if ((data->tstable[trainIndex]->delayToStop) < 0) {
+                            msg = -2;   // too fast to stop
+                        }
+                        else {
+                            data->tstable[trainIndex]->needToStop = 1;
+                            msg = 1;
+                        }
+                    }
+                }
                 Reply(requesterTid, &msg, sizeof(msg));
-                sentTo(trainTid, &message, &couriersStatus);
                 break;
             case TRAINCTRL_SW_CHANGE:
                 Reply(requesterTid, &msg, sizeof(msg));
 
-                message.type = TRAINCTRL_SW_CHANGE_UNDRAW;
-                message.data2 = *(data->swtable + getSwitchIndex(message.num));
-                sentTo(undrawTrackTid, &message, &couriersStatus);
-                break;
-            case TRAINCTRL_SW_CHANGE_DRAW:
-                Reply(requesterTid, &msg, sizeof(msg));
-
-                *(data->swtable + getSwitchIndex(message.num)) = message.data;
-                sentTo(switchTid, &message, &couriersStatus);
-                sentTo(drawTrackTid, &message, &couriersStatus);
+                if (message.data != *(data->swtable + getSwitchIndex(message.num))) {
+                    *(data->swtable + getSwitchIndex(message.num)) = message.data;
+                    sentTo(switchTid, &message, &couriersStatus);
+                    sentTo(drawTrackTid, &message, &couriersStatus);
+                }
                 break;
             case TRAINCTRL_SEN_TRIGGERED:
                 Reply(requesterTid, &msg, sizeof(msg));
 
-                message.type = TRAINCTRL_SEN_TRIGGERED_UNDRAW;
-                message.num = 0;
-                sentTo(undrawTrackTid, &message, &couriersStatus);
-                break;
-            case TRAINCTRL_SEN_TRIGGERED_DRAW:
-                Reply(requesterTid, &msg, sizeof(msg));
+                if (data->tstable[0]->delayToStop > 0) {
+                    data->tstable[0]->delayToStop = data->tstable[0]->delayToStop + data->timetickDiff;
 
+                    if ((data->tstable[0]->needToStop) && (data->tstable[0]->delayToStop <= 0)) {
+                        data->tstable[0]->needToStop = 0;
+                        message.type = TRAINCTRL_TR_SETSPEED;
+                        message.num = data->tstable[0]->trainNum;
+                        message.data = 0;
+                        updateTrainSpeed(data, trainIndex, 0);
+                        switch (message.num) {
+                            case 49:
+                                trainTid = train49Tid;
+                                break;
+                            case 50:
+                                trainTid = train50Tid;
+                                break;
+                        }
+                        sentTo(trainTid, &message, &couriersStatus);
+                    }
+                }
+
+                node = data->sentable[(data->numSensorPast - 1) % SENTABLE_SIZE];
+                nextSensor = nextSensorOrExit(data, node);
+                data->tstable[0]->distance = calculate_expectTravelledDistance(data, 0, nextSensor->friction);
+
+                message.type = TRAINCTRL_SEN_TRIGGERED;
+                message.num = 0;
                 sentTo(drawTrackTid, &message, &couriersStatus);
                 break;
             case TRAINCTRL_UPDATE_TSTABLE:
                 Reply(requesterTid, &msg, sizeof(msg));
 
                 for(i = 0; i < TRAIN_NUM; i++) {
-                    data->tstable[i]->timetick = data->tstable[i]->timetick + 1;
+                    data->tstable[i]->timetick = data->tstable[i]->timetick + message.data;
+                    if (data->tstable[i]->needToStop) {
+                        data->tstable[i]->delayToStop = data->tstable[i]->delayToStop - message.data;
+                    }
+
+                    if ((data->tstable[0]->needToStop) && (data->tstable[0]->delayToStop <= 0)) {
+                        data->tstable[i]->needToStop = 0;
+                        message.type = TRAINCTRL_TR_SETSPEED;
+                        message.num = data->tstable[i]->trainNum;
+                        message.data = 0;
+                        updateTrainSpeed(data, trainIndex, 0);
+                        switch (message.num) {
+                            case 49:
+                                trainTid = train49Tid;
+                                break;
+                            case 50:
+                                trainTid = train50Tid;
+                                break;
+                        }
+                        sentTo(trainTid, &message, &couriersStatus);
+                    }
+                }
+                if (data->numSensorPast > 0) {
+                    node = data->sentable[(data->numSensorPast - 1) % SENTABLE_SIZE];
+                    nextSensor = nextSensorOrExit(data, node);
+                    data->tstable[0]->distance = calculate_expectTravelledDistance(data, 0, nextSensor->friction);
                 }
                 break;
             case TRAINCTRL_HALT:
@@ -424,6 +482,10 @@ void trainControlServer() {
                     message.num = data->tstable[i]->trainNum;
                     message.delay = data->tstable[i]->timeRequiredToAchieveSpeed;
                     switch (message.num) {
+                        case 45:
+                            trainTid = train49Tid;
+                            trainIndex = 0;
+                            break;
                         case 49:
                             trainTid = train49Tid;
                             break;
@@ -534,4 +596,64 @@ void updateTrainSpeed(TrainSetData *data, int trainIndex, int newSpeed) {
     data->tstable[trainIndex]->timetick = 0;
     data->tstable[trainIndex]->timetickWhenHittingSensor = 0;
     data->tstable[trainIndex]->timeRequiredToAchieveSpeed = calculate_delayToAchieveSpeed(data, trainIndex);
+}
+
+int findRoute(struct TrainSetData *data, TrainControlMessage *message, int switchTid, int drawTrackTid, CouriersStatus *couriersStatus, int trainIndex, track_node *start, char *location, int offset) {
+    int i = 0;
+    track_node *track = data->track;
+    track_node *end = 0;
+
+    for(i = 0; i < TRACK_MAX; i++) {
+        track[i].visited = 0;
+        if (stringEquals(track[i].name, location)) {
+            end = &track[i];
+        }
+    }
+
+    if (end == 0) {
+        return -1;
+    }
+
+    data->tstable[trainIndex]->stopLocation = end;
+
+    int result[TRACK_SWITCH_NUM];
+    int distance = findRouteDistance(start, end, result, 0);
+    if (distance < 0) {
+        return -1;
+    }
+    distance += offset;
+
+    track_node *current = start;
+    message->type = TRAINCTRL_SW_CHANGE;
+    for(i = 0;;) {
+        if (current == end) {
+            break;
+        }
+        if (current->type == NODE_BRANCH) {
+            message->num = current->num;
+            if (result[i] != *(data->swtable + getSwitchIndex(message->num))) {
+                if ((current == start) || (current == nextNode(data, start))) {
+                    return -3;      // Too close to a switch
+                }
+                else if ((result[i] != 1) && (result[i] != 0)) {
+                    PrintfAt(COM2, 45, 1, "weird direction of switch %s direction %d (index %d)", current->name, result[i], i);
+                    return -1;
+                }
+                else {
+                    message->data = result[i];
+                    *(data->swtable + getSwitchIndex(message->num)) = result[i];
+                    sentTo(switchTid, message, couriersStatus);
+                    sentTo(drawTrackTid, message, couriersStatus);
+                    // trackGraph_turnSw(data, message->num, message->data);
+                    // sentTo(switchTid, message, couriersStatus);
+                }
+            }
+            current = current->edge[result[i]].dest;
+            i++;
+        }
+        else {
+            current = current->edge[DIR_AHEAD].dest;
+        }
+    }
+    return distance;
 }

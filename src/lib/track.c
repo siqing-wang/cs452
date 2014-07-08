@@ -50,9 +50,12 @@ int nextDistance(struct TrainSetData *data, track_node *node) {
 int nextSensorDistance(struct TrainSetData *data, track_node *node) {
     int dist = 0;
     for (;;) {
+        if (node->type == NODE_EXIT) {
+            break;
+        }
         dist += nextDistance(data, node);
         node = nextNode(data, node);
-        if (node->type == NODE_SENSOR || node->type == NODE_EXIT) {
+        if (node->type == NODE_SENSOR) {
             break;
         }
     }
@@ -63,6 +66,82 @@ int expectSensorArrivalTimeDuration(struct TrainSetData *data, int trainNum, tra
     int dist = nextSensorDistance(data, node);
     int timeInterval = calculate_expectArrivalDuration(data, trainNum, dist, friction);
     return timeInterval;
+}
+
+int findRouteDistance(track_node *start, track_node *end, int *result, int resultIndex) {
+    if (start == end) {
+        return 0;
+    }
+    if (start->type == NODE_EXIT) {
+        return -1;
+    }
+    if (start->visited) {
+        return -1;
+    }
+    start->visited = 1;
+    int result1, result2;
+    int dir1[TRACK_SWITCH_NUM];
+    int dir2[TRACK_SWITCH_NUM];
+
+    int i = 0;
+    for (i = 0; i < TRACK_SWITCH_NUM + 1; i++) {
+        dir1[i] = -1;
+        dir2[i] = -1;
+    }
+
+    if (start->type == NODE_BRANCH) {
+        dir1[resultIndex] = DIR_STRAIGHT;
+        result1 = findRouteDistance(start->edge[DIR_STRAIGHT].dest, end, dir1, resultIndex + 1);
+        if (result1 >= 0) {
+            result1 += start->edge[DIR_STRAIGHT].dist;
+        }
+        dir2[resultIndex] = DIR_CURVED;
+        result2 = findRouteDistance(start->edge[DIR_CURVED].dest, end, dir2, resultIndex + 1);
+        if (result2 >= 0) {
+            result2 += start->edge[DIR_CURVED].dist;
+        }
+
+        start->visited = 0;
+        if ((result1 < 0) && (result2 < 0)) {
+            return -1;
+        }
+        if ((result1 >= 0) && (result2 < 0)) {
+            result[resultIndex] = DIR_STRAIGHT;
+            for (i = resultIndex; i < TRACK_SWITCH_NUM; i++) {
+                result[i] = dir1[i];
+            }
+            return result1;
+        }
+        if ((result2 >= 0) && (result1 < 0)) {
+            result[resultIndex] = DIR_CURVED;
+            for (i = resultIndex; i < TRACK_SWITCH_NUM; i++) {
+                result[i] = dir2[i];
+            }
+            return result2;
+        }
+        if (result1 < result2) {
+            result[resultIndex] = DIR_STRAIGHT;
+            for (i = resultIndex; i < TRACK_SWITCH_NUM; i++) {
+                result[i] = dir1[i];
+            }
+            return result1;
+        }
+        else {
+            result[resultIndex] = DIR_CURVED;
+            for (i = resultIndex; i < TRACK_SWITCH_NUM; i++) {
+                result[i] = dir2[i];
+            }
+            return result2;
+        }
+    }
+    else {
+        result1 = findRouteDistance(start->edge[DIR_AHEAD].dest, end, result, resultIndex);
+        if (result1 >= 0) {
+            result1 += start->edge[DIR_AHEAD].dist;
+        }
+        start->visited = 0;
+        return result1;
+    }
 }
 
 void init_tracka(track_node *track) {
@@ -1252,44 +1331,65 @@ void init_tracka(track_node *track) {
     for( ; i < TRACK_MAX; i++) {
         track[i].friction = 1;
     }
-    track[3].friction = 0.997;
+    track[2].friction = 1.022;
+    track[3].friction = 1.002;
+    track[5].friction = 1.000;
+    track[6].friction = 0.980;
     track[16].friction = 1.016;
-    track[17].friction = 1.984;
-    track[18].friction = 1.008;
-    track[20].friction = 1.075;
-    track[21].friction = 0.971;
-    track[29].friction = 1.042;
-    track[30].friction = 1.044;
-    track[31].friction = 0.983;
-    track[33].friction = 1.107;
-    track[36].friction = 1.064;
-    track[37].friction = 1.113;
-    track[38].friction = 1.056;
-    track[40].friction = 1.061;
-    track[41].friction = 0.966;
-    track[42].friction = 1.920;
-    track[43].friction = 1.012;
-    track[44].friction = 1.101;
-    track[46].friction = 1.022;
-    track[51].friction = 1.036;
-    track[52].friction = 1.012;
-    track[55].friction = 1.073;
-    track[56].friction = 1.117;
-    track[57].friction = 1.004;
-    track[58].friction = 1.025;
-    track[60].friction = 1.071;
-    track[61].friction = 0.699;
-    track[62].friction = 0.912;
-    track[63].friction = 0.918;
-    track[65].friction = 1.014;
+    track[17].friction = 1.053;
+    track[18].friction = 1.102;
+    track[19].friction = 1.074;
+    track[20].friction = 1.098;
+    track[21].friction = 1.060;
+    track[28].friction = 0.950;
+    track[29].friction = 1.603;
+    track[30].friction = 1.051;
+    track[31].friction = 0.996;
+    track[32].friction = 1.062;
+    track[33].friction = 1.077;
+    track[34].friction = 0.937;
+    track[36].friction = 0.979;
+    track[37].friction = 0.906;
+    track[38].friction = 0.884;
+    track[39].friction = 1.041;
+    track[40].friction = 1.031;
+    track[41].friction = 0.985;
+    track[42].friction = 0.932;
+    track[43].friction = 1.037;
+    track[44].friction = 0.918;
+    track[45].friction = 1.046;
+    track[46].friction = 1.061;
+    track[48].friction = 0.944;
+    track[49].friction = 0.852;
+    track[50].friction = 1.012;
+    track[51].friction = 0.882;
+    track[52].friction = 1.035;
+    track[53].friction = 1.014;
+    track[54].friction = 0.980;
+    track[55].friction = 1.006;
+    track[56].friction = 0.971;
+    track[57].friction = 1.066;
+    track[58].friction = 1.046;
+    track[59].friction = 1.060;
+    track[60].friction = 1.050;
+    track[61].friction = 0.983;
+    track[62].friction = 0.946;
+    track[63].friction = 0.888;
+    track[64].friction = 0.942;
+    track[65].friction = 1.000;
     track[66].friction = 1.112;
-    track[68].friction = 1.027;
-    track[69].friction = 0.961;
-    track[73].friction = 1.148;
-    track[74].friction = 0.973;
-    track[77].friction = 0.993;
-    track[78].friction = 0.980;
-    track[79].friction = 1.043;
+    track[68].friction = 1.038;
+    track[69].friction = 0.954;
+    track[70].friction = 1.047;
+    track[71].friction = 0.944;
+    track[72].friction = 0.964;
+    track[73].friction = 0.997;
+    track[74].friction = 0.950;
+    track[75].friction = 0.920;
+    track[76].friction = 0.968;
+    track[77].friction = 1.035;
+    track[78].friction = 1.097;
+    track[79].friction = 0.946;
 }
 
 void init_trackb(track_node *track) {

@@ -44,7 +44,7 @@ void memcopy(char *dest, const char *src, int size);
 /* String */
 int stringStartWith(char* s1, char* s2);
 int stringLen(const char *s);                     // NOTE: length does not include \0
-int stringEquals(char* s1, char* s2);
+int stringEquals(const char* s1, char* s2);
 void stringCopy(char *dest, char* src, int len);
 
 /* Numbers */

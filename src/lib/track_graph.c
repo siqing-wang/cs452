@@ -47,7 +47,7 @@ int sharedForwardSwPath(track_edge *edge) {
     int rowDestRev, colDestRev, isSwPathDestRev;
     trackGraph_extractNodeInfo(edge->graphNodes[1], &row, &col, &isSwPath);
 
-    track_node *destRev = dest->reverse;PrintfAt(COM2, 1,1, "destRev: %s", dest->name);
+    track_node *destRev = dest->reverse;
     if (dest->type == NODE_MERGE) {
         // destRev is a branch
         trackGraph_extractNodeInfo(destRev->edge[0].graphNodes[1], &rowDestRev, &colDestRev, &isSwPathDestRev);
@@ -177,14 +177,10 @@ void trackGraph_unhighlightSenPath(struct TrainSetData *data, track_node *node) 
     trackGraph_colorTillNextSensor(data, node, UNHIGHLIGHT_COLOR);
 }
 
-void trackGraph_turnSw(struct TrainSetData *data, int switchNumber, int oldDir, int newDir) {
-    if (oldDir == newDir) {
-        return;
-    }
-
+void trackGraph_turnSw(struct TrainSetData *data, int switchNumber, int newDir) {
     int indexInTrack = getSwitchIndex(switchNumber) * 2 + 80;
     track_node *node = data->track + indexInTrack;
-    trackGraph_colorSwitch(&(node->edge[oldDir]), UNHIGHLIGHT_COLOR);
+    trackGraph_colorSwitch(&(node->edge[1 - newDir]), UNHIGHLIGHT_COLOR);
     trackGraph_colorSwitch(&(node->edge[newDir]), SW_HIGHLIGHT_COLOR);
 }
 

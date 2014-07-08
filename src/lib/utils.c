@@ -104,7 +104,7 @@ int stringLen(const char *s) {
     return len;
 }
 
-int stringEquals(char* s1, char* s2) {
+int stringEquals(const char* s1, char* s2) {
     for(;;) {
         if ((*s1 == '\0') && (*s2 == '\0')) {
             return 1;

@@ -2,6 +2,7 @@
 #define __TRACK_H__
 
 #define TRACK_MAX 144
+#define TRACK_SWITCH_NUM 22
 #define TRACK_GRAPH_NODES_MAX 20
 
 /* Data structures */
@@ -37,6 +38,7 @@ struct track_node {
   track_node *reverse;  /* same location, but opposite direction */
   track_edge edge[2];
   double friction;
+  int visited;
 };
 
 /* Functions. */
@@ -46,6 +48,7 @@ track_node *nextSensorOrExit(struct TrainSetData *data, track_node *node);
 int nextDistance(struct TrainSetData *data, track_node *node);
 int nextSensorDistance(struct TrainSetData *data, track_node *node);
 int expectSensorArrivalTimeDuration(struct TrainSetData *data, int trainNum, track_node *node, double friction);
+int findRouteDistance(track_node *start, track_node *end, int *result, int resultIndex);
 void init_tracka(track_node *track);
 void init_trackb(track_node *track);
 

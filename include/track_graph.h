@@ -8,5 +8,5 @@ void trackGraph_initTrackB(struct TrainSetData *data, track_node *track);
 
 void trackGraph_highlightSenPath(struct TrainSetData *data, track_node *node);
 void trackGraph_unhighlightSenPath(struct TrainSetData *data, track_node *node);
-void trackGraph_turnSw(struct TrainSetData *data, int switchNumber, int oldDir, int newDir);
+void trackGraph_turnSw(struct TrainSetData *data, int switchNumber, int newDir);
 #endif

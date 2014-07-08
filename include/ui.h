@@ -18,7 +18,7 @@
 #define TR_C                    5
 #define TRSPEED_C               (TR_C+17)
 #define TRLOCATION_SENSOR_C     (TR_C+32)
-#define TRLOCATION_OFFSET_C     (TR_C+41)
+#define TRLOCATION_OFFSET_C     (TR_C+42)
 
 #define SENEXPECT_R     (SENTABLE_R+3)          // next sensor expected
 #define SENEXPECT_C     (SENTABLE_C-10)
@@ -26,17 +26,21 @@
 #define SENLAST_R       (SENEXPECT_R+1)          // next sensor expected
 #define SENLAST_C       SENEXPECT_C
 
-#define LOG_R       38          // system log
+#define TRACK_R     18
+#define TRACK_C     5
+
+#define CMD_R       (TRACK_R+19)          // command
+#define CMD_C       7
+
+#define LOG_R       (CMD_R+2)          // system log
 #define LOG_C       5
 
-#define CMD_R       36          // command
-#define CMD_C       7
+
 
 #define PM_R        1          // performance monitor
 #define PM_C        65
 
-#define TRACK_R     17
-#define TRACK_C     5
+
 
 #define END_R       54          // end
 

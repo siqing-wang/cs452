@@ -5,7 +5,8 @@
 #ifndef __TRAIN_CONTROL_H__
 #define __TRAIN_CONTROL_H__
 
-#define COURIER_NUM_MAX     15
+#define COURIER_NUM_MAX     30
+#define TIME_INTERVAL       5
 
 typedef enum {
     TRAINCTRL_INIT,
@@ -15,11 +16,7 @@ typedef enum {
     TRAINCTRL_TR_REVERSE_COMPLETE,
     TRAINCTRL_TR_STOPAT,
     TRAINCTRL_SW_CHANGE,
-    TRAINCTRL_SW_CHANGE_UNDRAW,
-    TRAINCTRL_SW_CHANGE_DRAW,
     TRAINCTRL_SEN_TRIGGERED,
-    TRAINCTRL_SEN_TRIGGERED_UNDRAW,
-    TRAINCTRL_SEN_TRIGGERED_DRAW,
     TRAINCTRL_UPDATE_TSTABLE,
     TRAINCTRL_HALT,
     TRAINCTRL_HALT_COMPLETE,
@@ -33,7 +30,6 @@ typedef struct TrainControlMessage
     trainControl_type type;
     int num;
     int data;
-    int data2;
     int delay;
     char *location;
 
