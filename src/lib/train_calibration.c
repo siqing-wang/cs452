@@ -242,7 +242,7 @@ int calculate_expectTravelledDistance(TrainSetData *trainSetData, int trainIndex
     }
 }
 
-int calculate_delayToStop(TrainSetData *trainSetData, int trainIndex, int distance, double friction) {
+int calculate_delayToStop(TrainSetData *trainSetData, int trainIndex, track_node *start, int distance, double friction) {
     TrainSpeedData *trainSpeedData = trainSetData->tstable[trainIndex];
     int trainNum = trainSpeedData->trainNum;
     int speed = trainSpeedData->targetSpeed;
@@ -252,5 +252,21 @@ int calculate_delayToStop(TrainSetData *trainSetData, int trainIndex, int distan
         return -1;
     }
 
-    return calculate_expectArrivalDuration(trainSetData, trainIndex, (distance - minDistance), friction);
+    distance -= minDistance;
+    int delay = 0;
+    for(;;) {
+        if (start->type == NODE_EXIT) {
+            break;
+        }
+        int passed = nextSensorDistance(trainSetData, start);
+        if (distance < passed) {
+            break;
+        }
+        distance = distance - passed;
+        start = nextSensorOrExit(trainSetData, start);
+        delay += calculate_expectArrivalDuration(trainSetData, trainIndex, passed, start->friction);
+    }
+
+    delay += calculate_expectArrivalDuration(trainSetData, trainIndex, distance, start->friction);
+    return delay;
 }

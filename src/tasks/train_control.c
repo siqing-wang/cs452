@@ -147,10 +147,22 @@ void updateSpeedTable() {
 
     TrainControlMessage message;
     message.type = TRAINCTRL_UPDATE_TSTABLE;
-    for (;;) {
+    int lastTime = Time();
+    int currentTime;
+    int i = 0;
+    for (;;i++) {
         message.data = 1;
+        if (i == 100) {
+            i = 0;
+            currentTime = Time();
+            if (currentTime != lastTime) {
+                message.data += currentTime - lastTime;
+                lastTime = currentTime;
+            }
+        }
         Send(serverTid, &message, sizeof(message), &msg, sizeof(msg));
         Delay(1);
+        lastTime ++;
     }
 }
 
@@ -389,7 +401,7 @@ void trainControlServer() {
                         msg = result;
                     }
                     else {
-                        data->tstable[trainIndex]->delayToStop = calculate_delayToStop(data, 0, result - data->tstable[trainIndex]->distance, data->tstable[trainIndex]->stopLocation->friction);
+                        data->tstable[trainIndex]->delayToStop = calculate_delayToStop(data, 0, data->sentable[(data->numSensorPast - 1) % SENTABLE_SIZE],result - data->tstable[trainIndex]->distance, data->tstable[trainIndex]->stopLocation->friction);
                         if ((data->tstable[trainIndex]->delayToStop) < 0) {
                             msg = -2;   // too fast to stop
                         }

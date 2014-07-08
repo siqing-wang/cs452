@@ -1333,8 +1333,8 @@ void init_tracka(track_node *track) {
     }
     track[2].friction = 1.022;
     track[3].friction = 1.002;
-    track[5].friction = 1.000;
-    track[6].friction = 0.980;
+    track[5].friction = 1.010;
+    track[6].friction = 1.010;
     track[16].friction = 1.016;
     track[17].friction = 1.053;
     track[18].friction = 1.102;
