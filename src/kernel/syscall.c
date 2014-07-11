@@ -364,6 +364,37 @@ int PutStr(int channel, char *str) {
     return SUCCESS;
 }
 
+int PutSizedStr(int channel, char *str, int size) {
+    int ioServerTid;
+    switch(channel) {
+        case 0:
+            ioServerTid = WhoIs("Train IO Server");
+            break;
+        case 1:
+            ioServerTid = WhoIs("Terminal IO Server");
+            break;
+        default:
+            return ERR_INVALID_TID;
+    }
+
+    /* Send message to IO Server. */
+    IOserverMessage message;
+    message.type = IOServerMSG_CLIENT;
+    message.syscall = IOServerMSG_PUTSTR;
+    message.str = str;
+    message.strSize = size;
+
+    int strPut;
+    int result = Send(ioServerTid, &message, sizeof(message), &strPut, sizeof(strPut));
+    if (result < 0) {
+        return ERR_INVALID_TID;
+    }
+    if (strPut < size) {
+        return ERR_NOT_COMPLETE_SEND;
+    }
+    return SUCCESS;
+}
+
 void Printf(int channel, char *fmt, ...) {
     int ioServerTid;
     switch(channel) {

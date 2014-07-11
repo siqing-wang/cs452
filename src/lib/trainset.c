@@ -115,22 +115,28 @@ void printSensorTable(TrainSetSensorData *data) {
 /* execute commands */
 
 void trainset_setSpeed(TrainSetData *data, int train_number, int train_speed) {
-    Putc(COM1, (char)train_speed);
-    Putc(COM1, (char)train_number);
+    char cmd[2];
+    cmd[0] = (char)train_speed;
+    cmd[1] = (char)train_number;
+    PutSizedStr(COM1, cmd, 2);
     *(data->tstable + train_number - 1) = train_speed;
 }
 
 void trainset_reverse(TrainSetData *data, int train_number) {
-    Putc(COM1, (char)REVERSE);
-    Putc(COM1, (char)train_number);
     int train_speed = *(data->tstable + train_number - 1);
+    char cmd[2];
+    cmd[0] = (char)REVERSE;
+    cmd[1] = (char)train_number;
+    PutSizedStr(COM1, cmd, 2);
     trainset_setSpeed(data, train_number, train_speed);
 }
 
 void trainset_turnSwitch(TrainSetData *data, int switch_number, int switch_direction) {
-    Putc(COM1, (char)switch_direction);
-    Putc(COM1, (char)switch_number);
-    Putc(COM1, (char)SWITCH_TURN_OUT);
+    char cmd[4];
+    cmd[0] = (char)switch_direction;
+    cmd[1] = (char)switch_number;
+    cmd[2] = (char)SWITCH_TURN_OUT;
+    PutSizedStr(COM1, cmd, 3);
     *(data->swtable + getSwitchIndex(switch_number)) = switch_direction;
 }
 
