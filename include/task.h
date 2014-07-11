@@ -31,6 +31,7 @@
 #define TASK_RECV_BLK       5
 #define TASK_RPLY_BLK       6
 #define TASK_EVENT_BLK      7
+#define TASK_LOCK_BLK       8
 
 typedef struct Task
 {

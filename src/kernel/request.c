@@ -7,12 +7,13 @@
 #include <send_queue.h>
 #include <event.h>
 #include <utils.h>
+#include <lock.h>
 
-int sendMessage(SharedVariables* sharedVariables, Task* active, Message *message);
-void readMessage(SharedVariables* sharedVariables, Task* active, Message *message);
-int replyMessage(SharedVariables* sharedVariables, Task* active, Message *message);
+int sendMessage(SharedVariables *sharedVariables, Task *active, Message *message);
+void readMessage(SharedVariables *sharedVariables, Task *active, Message *message);
+int replyMessage(SharedVariables *sharedVariables, Task *active, Message *message);
 
-int request_handle(SharedVariables* sharedVariables, Task* active, Request *request) {
+int request_handle(SharedVariables *sharedVariables, Task *active, Request *request) {
     switch(request->syscall) {
         Task *task;
         int result;
@@ -78,6 +79,18 @@ int request_handle(SharedVariables* sharedVariables, Task* active, Request *requ
                 sharedVariables->idlePercent = -1;
             }
             break;
+        case SYS_ACQUIRE_LOCK:
+            lock_acquire((Lock*)request->ptrArg1, active);
+            request->retVal = SUCCESS;
+            break;
+        case SYS_RELEASE_LOCK:
+            task = lock_release((Lock*)request->ptrArg1, active);
+            if (task != 0) {
+                /* Add new lock holder to scheulder (unblocked by lock_release. */
+                scheduler_add(sharedVariables, task);
+            }
+            request->retVal = SUCCESS;
+            break;
         default:
             /* Unrecognized syscall. */
             request->retVal = ERR_UNKNOWN_SYSCALL;
@@ -92,8 +105,8 @@ int request_handle(SharedVariables* sharedVariables, Task* active, Request *requ
     return 0;
 }
 
-int sendMessage(SharedVariables* sharedVariables, Task* active, Message *message) {
-    Task* destTask = task_get(sharedVariables, message->destTid);
+int sendMessage(SharedVariables *sharedVariables, Task *active, Message *message) {
+    Task *destTask = task_get(sharedVariables, message->destTid);
     if (destTask == 0) {
         return ERR_NOEXIST_TID;
     } else if (destTask->state == TASK_SEND_BLK) {
@@ -123,12 +136,12 @@ int sendMessage(SharedVariables* sharedVariables, Task* active, Message *message
     return SUCCESS;
 }
 
-void readMessage(SharedVariables* sharedVariables, Task* active, Message *message) {
+void readMessage(SharedVariables *sharedVariables, Task *active, Message *message) {
     if(sendQueue_empty(active->send_queue)) {
         active->state = TASK_RECV_BLK;
         active->message = message;
     } else {
-        Task* srcTask = sendQueue_pop(active->send_queue);
+        Task *srcTask = sendQueue_pop(active->send_queue);
 
         message->srcTid = srcTask->tid;
         message->rcvMsgOrigLen = srcTask->message->sendMsgLen;
@@ -138,8 +151,8 @@ void readMessage(SharedVariables* sharedVariables, Task* active, Message *messag
     }
 }
 
-int replyMessage(SharedVariables* sharedVariables, Task* active, Message *message) {
-    Task* destTask = task_get(sharedVariables, message->destTid);
+int replyMessage(SharedVariables *sharedVariables, Task *active, Message *message) {
+    Task *destTask = task_get(sharedVariables, message->destTid);
     if (destTask == 0) {
         return ERR_NOEXIST_TID;
     } else if (destTask->state != TASK_RPLY_BLK) {

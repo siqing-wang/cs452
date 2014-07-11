@@ -26,6 +26,8 @@
 #define SYS_IAM_IDLE_TASK 10
 #define SYS_IDLE_PERCENT 11
 #define SYS_TURN_MONITOR 12
+#define SYS_ACQUIRE_LOCK 13
+#define SYS_RELEASE_LOCK 14
 
 #define ERR_UNKNOWN_SYSCALL -1
 #define ERR_CREATE_TASK_FAIL -2
@@ -59,6 +61,9 @@ typedef struct Request
     /* Interrupt Processing */
     int eventId;
     char data;
+
+    /* Other arguments */
+    void *ptrArg1;
 } Request;
 
 int request_handle(SharedVariables* sharedVariables, Task* active, Request *request);

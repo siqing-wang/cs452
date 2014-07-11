@@ -54,6 +54,7 @@
 #define __SYSCALL_H__
 
 #include <request.h>
+#include <lock.h>
 
 #define PRINTF_MAX_LENGTH 128
 
@@ -97,5 +98,9 @@ int IOidle(int channel);
 void IAmIdleTask();
 int IdlePercent();
 void TurnMonitor(int onOrOff);
+
+// Synchronization
+void AcquireLock(Lock *lock);
+void ReleaseLock(Lock *lock);
 
 #endif

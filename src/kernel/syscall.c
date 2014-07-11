@@ -525,6 +525,21 @@ void TurnMonitor(int onOrOff) {
     sendRequest(&request);
 }
 
+/* Synchronization. */
+void AcquireLock(Lock *lock) {
+    Request request;
+    request.syscall = SYS_ACQUIRE_LOCK;
+    request.ptrArg1 = lock;
+    sendRequest(&request);
+}
+
+void ReleaseLock(Lock *lock) {
+    Request request;
+    request.syscall = SYS_RELEASE_LOCK;
+    request.ptrArg1 = lock;
+    sendRequest(&request);
+}
+
 /* Internal helper */
 
 int sendRequest(Request* request) {
