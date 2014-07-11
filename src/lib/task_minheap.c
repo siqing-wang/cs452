@@ -84,12 +84,12 @@ void taskMinHeap_popMin(TaskMinHeap* h, int* tid, int* time) {
             // left child smaller than me.
             leftTime < myTime &&
             // it is smaller than right child or right child does not exist
-            (rightTime < 0 || leftTime < rightTime)) {
+            (rightTime < 0 || leftTime <= rightTime)) {
 
             taskMinHeap_swap(h, myIndex, left);
             myIndex = left;
         } else if (rightTime > 0 && rightTime < myTime &&
-            (leftTime < 0 || rightTime < leftTime)) {
+            (leftTime < 0 || rightTime <= leftTime)) {
 
             taskMinHeap_swap(h, myIndex, right);
             myIndex = right;
