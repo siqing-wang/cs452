@@ -8,6 +8,7 @@
 #include <ts7200.h>
 #include <io.h>
 #include <ui.h>
+#include <lock.h>
 
 /* for switches */
 #define SWITCH_TOTAL 22
@@ -17,7 +18,7 @@
 #define SENSOR_RESET_MODE_ON 192
 #define SENSOR_SUBSCRIBE_ALL 133
 
-#define TRAIN_NUM 1
+#define TRAIN_NUM 3
 
 #define RIGHT_DIR 1
 #define WRONG_DIR 2
@@ -42,9 +43,11 @@ typedef struct TrainSpeedData {
 typedef struct TrainSetData {
     /* Train Speed Table. */
     TrainSpeedData *tstable[TRAIN_NUM];
+    Lock *tstableLock[TRAIN_NUM];
 
     /* Switch Table. */
     int swtable[SWITCH_TOTAL];
+    Lock *swtableLock;
 
     /* Sensor List */
     struct track_node* sentable[SENTABLE_SIZE];
@@ -55,7 +58,6 @@ typedef struct TrainSetData {
     int expectNextNextTimetick;
     int expectNextNextSensorNum;
     int lastTimetick;
-    int timetickDiff;   // actual - expect
     int init;
 
     /* Track graph. */

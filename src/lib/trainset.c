@@ -193,17 +193,17 @@ void trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNu
 
     /* Train Calibration Monitor. */
     int timetick = Time();
-    data->timetickDiff = 0;
+    int timetickDiff = 0;   // actual - expect
     if (node->num == data->expectNextSensorNum) {
         if (((timetick - data->lastTimetick) > 0) && ((data->expectNextTimetick - data->lastTimetick) > 0)) {
-            data->timetickDiff = timetick - data->expectNextTimetick;
+            timetickDiff = timetick - data->expectNextTimetick;
             int friction = (int)(node->friction * 700) * (1.0 * (data->expectNextTimetick - data->lastTimetick) / (timetick - data->lastTimetick));
             node->friction = 1.0 * ((int)(node->friction * 300) + friction) / 1000;
         }
     }
     else if (node->num == data->expectNextNextSensorNum) {
         if (((timetick - data->lastTimetick) > 0) && ((data->expectNextNextTimetick - data->lastTimetick) > 0)) {
-            data->timetickDiff = timetick - data->expectNextNextTimetick;
+            timetickDiff = timetick - data->expectNextNextTimetick;
             int friction = (int)(node->friction * 700) * (1.0 * (data->expectNextNextTimetick - data->lastTimetick) / (timetick - data->lastTimetick));
             node->friction = 1.0 * ((int)(node->friction * 300) + friction) / 1000;
         }
@@ -215,8 +215,11 @@ void trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNu
 
     int i;
     for (i = 0; i < TRAIN_NUM; i++) {
+        AcquireLock(data->tstableLock[i]);
         data->tstable[i]->timetickWhenHittingSensor = data->tstable[i]->timetick;
         data->tstable[i]->lastSpeedDuration = 0;
+        data->tstable[i]->delayToStop = data->tstable[i]->delayToStop + timetickDiff;
+        ReleaseLock(data->tstableLock[i]);
     }
 
     displayTime(timetick/10, SENLAST_R, SENLAST_C + 16);                // Display current time hitting this sensor
@@ -304,6 +307,7 @@ void trainset_init(TrainSetData *data) {
         data->tstable[i]->lastSpeedDuration = 0;
         data->tstable[i]->delayToStop = 0;
         data->tstable[i]->needToStop = 0;
+        lock_init(data->tstableLock[i]);
     }
     for(i = 0; i < 10; i++) {
         data->lastByte[i] = 0;
@@ -314,8 +318,10 @@ void trainset_init(TrainSetData *data) {
     data->expectNextNextSensorNum = 0;
     data->expectNextNextSensorNum = 38;  // C7
     data->lastTimetick = 0;
-    data->timetickDiff = 0;
     data->init = -1;
+
+    /* Initialize locks. */
+    lock_init(data->swtableLock);
 
     int *swtable = data->swtable;
 

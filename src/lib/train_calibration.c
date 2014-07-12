@@ -242,7 +242,7 @@ int calculate_expectTravelledDistance(TrainSetData *trainSetData, int trainIndex
     }
 }
 
-int calculate_delayToStop(TrainSetData *trainSetData, int trainIndex, track_node *start, int distance, double friction) {
+int calculate_delayToStop(TrainSetData *trainSetData, int trainIndex, track_node *start, int distance) {
     TrainSpeedData *trainSpeedData = trainSetData->tstable[trainIndex];
     int trainNum = trainSpeedData->trainNum;
     int speed = trainSpeedData->targetSpeed;

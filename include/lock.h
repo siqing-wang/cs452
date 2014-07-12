@@ -7,6 +7,7 @@
 typedef TaskQueue Lock;
 struct Task;
 
+void lock_init(Lock *lock);
 // Return 1:acquired, 0:not acquired, put into waiting list
 int lock_acquire(Lock *lock, struct Task *task);
 // Return unblocked new lock holder.

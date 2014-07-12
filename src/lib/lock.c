@@ -3,6 +3,11 @@
 #include <task.h>
 #include <scheduler.h>
 
+
+void lock_init(Lock *lock) {
+    taskQueue_init(lock);
+}
+
 int lock_acquire(Lock *lock, struct Task *task) {
     taskQueue_push(lock, task);
     assert(task->state == TASK_ACTIVE, "lock_acquire: non-active task try to acquire lock.");
