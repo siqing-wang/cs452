@@ -3,9 +3,12 @@
 
 #include <task_queue.h>
 
-
-typedef TaskQueue Lock;
 struct Task;
+
+typedef struct Lock {
+	Task *holder;
+	TaskQueue waiting;
+} Lock;
 
 void lock_init(Lock *lock);
 // Return 1:acquired, 0:not acquired, put into waiting list

@@ -3,38 +3,38 @@
 #include <task.h>
 #include <scheduler.h>
 
-
 void lock_init(Lock *lock) {
-    taskQueue_init(lock);
+    lock->holder = (Task*)0;
+    taskQueue_init(&(lock->waiting));
 }
 
 int lock_acquire(Lock *lock, struct Task *task) {
-    taskQueue_push(lock, task);
     assert(task->state == TASK_ACTIVE, "lock_acquire: non-active task try to acquire lock.");
-    if (lock->start == task) {
-        /* The task has acquired the lock successfully. */
+    if (lock->holder == (Task*)0) {
+        /* Currently no lock owner, get the lock. */
+        lock->holder = task;
         return 1;
     }
+    taskQueue_push(&(lock->waiting), task);
     /* Lock not acquired, task blocked and put into waiting list. */
     task->state = TASK_LOCK_BLK;
     return 0;
 }
 
 Task* lock_release(Lock *lock, struct Task *task) {
-    if (lock->start != task) {
+    assert(task->state == TASK_ACTIVE, "lock_release: non-active task try to release lock.");
+    if (lock->holder != task) {
         warning ("Lock_release: trying to release a lock does not belong to it!");
         return (Task*)0;
     }
-    assert(task->state == TASK_ACTIVE, "lock_release: non-active task try to release lock.");
 
-    taskQueue_pop(lock);
-    if (taskQueue_empty(lock)) {
-        /* Waiting list if empty. */
-        return (Task*)0;
+    if (taskQueue_empty(&(lock->waiting))) {
+        lock->holder = (Task*)0;
+    } else {
+        /* Unblock next waiting task. */
+        lock->holder = taskQueue_pop(&(lock->waiting));
+        assertEquals(TASK_LOCK_BLK, lock->holder->state, "lock_release: waiting task not blocked on lock");
+        lock->holder->state = TASK_READY;
     }
-    /* Unblock next waiting task. */
-    Task *newLockHolder = lock->start;
-    assert(newLockHolder->state == TASK_LOCK_BLK, "lock_release: waiting task not blocked on lock");
-    newLockHolder->state = TASK_READY;
-    return newLockHolder;
+    return lock->holder;
 }

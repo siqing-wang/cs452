@@ -58,6 +58,8 @@ typedef struct TrainSetData {
     int expectNextNextTimetick;
     int expectNextNextSensorNum;
     int lastTimetick;
+    Lock *sentableLock;
+
     int init;
 
     /* Track graph. */

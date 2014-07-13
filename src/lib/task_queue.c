@@ -3,6 +3,7 @@
  */
 
 #include <task_queue.h>
+#include <utils.h>
 
 void taskQueue_init(TaskQueue *q) {
     q->start = (Task*)0;
@@ -33,6 +34,7 @@ Task *taskQueue_pop(TaskQueue *q) {
         /* Poped last item in queue. */
         q->end = 0;
     }
+    assert(firstTask != 0, "taskQueue_pop: size != 0 but poped Null task.");
     return firstTask;
 }
 

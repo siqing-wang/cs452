@@ -169,23 +169,26 @@ void trainset_subscribeSensorFeeds() {
 }
 
 /* Return if table has been changed. */
-void trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum) {
+int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum) {
     track_node *node = getSensorTrackNode(data, sensorGroup, sensorNum);
 
     assert(node->type == NODE_SENSOR, "trainset_addToSensorTable: adding Node that is not a sensor.");
 
     /* Not expected sensor */
     if ((data->init > 0) && (node->num != data->expectNextSensorNum) && (node->num != data->expectNextNextSensorNum)) {
-        return;
+        return 0;
     }
 
+    AcquireLock(data->sentableLock);
     data->sentable[data->numSensorPast % SENTABLE_SIZE] = node;
     data->numSensorPast = data->numSensorPast + 1;
+    ReleaseLock(data->sentableLock);
 
     if (data->init == 0) {
-        return;
+        return 1;
     }
 
+    AcquireLock(data->sentableLock);
     track_node *nextSensor = nextSensorOrExit(data, node);
     track_node *nextNextSensor = nextSensorOrExit(data, nextSensor);
     PrintfAt(COM2, SENEXPECT_R, SENEXPECT_C, "%s ", nextSensor->name);
@@ -253,6 +256,9 @@ void trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNu
     else {
         data->expectNextNextTimetick = data->expectNextTimetick + timeInterval;
     }
+
+    ReleaseLock(data->sentableLock);
+    return 1;
 }
 
 int trainset_pullSensorFeeds(TrainSetData *data) {
@@ -278,8 +284,7 @@ int trainset_pullSensorFeeds(TrainSetData *data) {
             int mask = 1 << ( 7 - bitPosn );
             if (result & mask) {
                 /* Bit is set. */
-                changed = 1;
-                trainset_addToSensorTable(data, sensorGroup, sensorBit * 8 + bitPosn + 1);
+                changed |= trainset_addToSensorTable(data, sensorGroup, sensorBit * 8 + bitPosn + 1);
             }
         }
     }
@@ -318,6 +323,8 @@ void trainset_init(TrainSetData *data) {
     data->expectNextNextSensorNum = 0;
     data->expectNextNextSensorNum = 38;  // C7
     data->lastTimetick = 0;
+    lock_init(data->sentableLock);
+
     data->init = -1;
 
     /* Initialize locks. */
