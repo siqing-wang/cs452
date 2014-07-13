@@ -18,32 +18,51 @@
 #define SENSOR_RESET_MODE_ON 192
 #define SENSOR_SUBSCRIBE_ALL 133
 
-#define TRAIN_NUM 3
+#define TRAIN_NUM 2
 
 #define RIGHT_DIR 1
 #define WRONG_DIR 2
 
 struct track_node;
 
-typedef struct TrainSpeedData {
+typedef struct TrainData {
+    /* General*/
     int trainNum;
+    int reverse;
+    int init;
+
+    /* Speed */
     int lastSpeed;
     int targetSpeed;
-    int reverse;
-    int distance;
-    int timetick;
-    int timeRequiredToAchieveSpeed;
+    int timetickSinceSpeedChange;
+    int delayRequiredToAchieveSpeed;
+
+    /* Current Location */
+    struct track_node *lastSensor;
+    int distanceAfterLastSensor;
     int timetickWhenHittingSensor;
-    int lastSpeedDuration;
-    int delayToStop;
+    int lastSpeedDurationAfterHittingLastSensor;
+
+    /* Sensor */
+    int numSensorPast;
+    struct track_node *lastLastSensor;
+    int estimateTimetickHittingLastSensor;
+    int actualTimetickHittingLastSensor;
+    struct track_node *nextSensor;
+    int expectTimetickHittingNextSensor;
+    struct track_node *nextNextSensor;
+    int expectTimetickHittingNextNextSensor;
+
+    /* StopAt related */
     int needToStop;
+    int delayToStop;
     struct track_node *stopLocation;
-} TrainSpeedData;
+} TrainData;
 
 typedef struct TrainSetData {
     /* Train Speed Table. */
-    TrainSpeedData *tstable[TRAIN_NUM];
-    Lock *tstableLock[TRAIN_NUM];
+    TrainData *trtable[TRAIN_NUM];
+    Lock *trtableLock[TRAIN_NUM];
 
     /* Switch Table. */
     int swtable[SWITCH_TOTAL];
@@ -51,16 +70,8 @@ typedef struct TrainSetData {
 
     /* Sensor List */
     struct track_node* sentable[SENTABLE_SIZE];
-    int numSensorPast;
+    int totalSensorPast;
     int lastByte[10];
-    int expectNextTimetick;
-    int expectNextSensorNum;
-    int expectNextNextTimetick;
-    int expectNextNextSensorNum;
-    int lastTimetick;
-    Lock *sentableLock;
-
-    int init;
 
     /* Track graph. */
     struct track_node *track;

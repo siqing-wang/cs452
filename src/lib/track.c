@@ -62,9 +62,9 @@ int nextSensorDistance(struct TrainSetData *data, track_node *node) {
     return dist;
 }
 
-int expectSensorArrivalTimeDuration(struct TrainSetData *data, int trainNum, track_node *node, double friction) {
+int expectSensorArrivalTimeDuration(struct TrainSetData *data, int trainIndex, track_node *node, double friction) {
     int dist = nextSensorDistance(data, node);
-    int timeInterval = calculate_expectArrivalDuration(data, trainNum, dist, friction);
+    int timeInterval = calculate_expectArrivalDuration(data->trtable[trainIndex], dist, friction);
     return timeInterval;
 }
 

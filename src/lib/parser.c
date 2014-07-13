@@ -20,6 +20,7 @@ int parseInitCommand(int trainCtrlTid, char* input);
 int parseSetSpeedCommand(int trainCtrlTid, char* input);
 int parseReverseDirectionCommand(int trainCtrlTid, char* input);
 int parseTurnSwitchCommand(int trainCtrlTid, char* input);
+int parseGoCommand(int trainCtrlTid, char* input);
 int parseStopCommand(int trainCtrlTid, char* input);
 int parseHaltCommand(int trainCtrlTid, char* input);
 int parsePerformanceMonitor(char* input);
@@ -130,10 +131,14 @@ int readString( char** input, char* result ) {
 int parseCommand(int trainCtrlTid, char* input) {
 
     switch (input[0]) {
+        case 'g':
+            return parseGoCommand(trainCtrlTid, input);
         case 'i':
             return parseInitCommand(trainCtrlTid, input);
-        case 't':
-            return parseSetSpeedCommand(trainCtrlTid, input);
+        case 'p':
+            return parsePerformanceMonitor(input);
+        case 'q':
+            return parseHaltCommand(trainCtrlTid, input);
         case 'r':
             return parseReverseDirectionCommand(trainCtrlTid, input);
         case 's':
@@ -143,10 +148,8 @@ int parseCommand(int trainCtrlTid, char* input) {
                 case 't':
                     return parseStopCommand(trainCtrlTid, input);
             }
-        case 'q':
-            return parseHaltCommand(trainCtrlTid, input);
-        case 'p':
-            return parsePerformanceMonitor(input);
+        case 't':
+            return parseSetSpeedCommand(trainCtrlTid, input);
         default:
             return CMD_FAILED;
     }
@@ -288,6 +291,59 @@ int parseTurnSwitchCommand(int trainCtrlTid, char* input) {
     return CMD_SUCCEED;
 }
 
+int parseGoCommand(int trainCtrlTid, char* input) {
+    /* read stop */
+    if(!readToken(&input, "go")) {
+        return CMD_FAILED;
+    }
+
+    /* read train number */
+    int train_number = readNum(&input);
+    if(train_number < 0) {
+        return CMD_FAILED;
+    }
+
+    /* read stop location */
+    char location[6];
+    if(!readString(&input, location)) {
+        return CMD_FAILED;
+    }
+
+    /* Capitalize */
+    int i;
+    for (i = 0; i < 6; i++) {
+        if ((location[i] >= 'a') && (location[i] <= 'z')) {
+            location[i] = location[i] - 'a' + 'A';
+        }
+    }
+
+    /* read location offset */
+    int offset = 0;
+    if(readToken(&input, "+")) {
+        offset = 1;
+    }
+    else if (readToken(&input, "-")) {
+        offset = -1;
+    }
+    offset *= readNum(&input);
+
+    TrainControlMessage message;
+    message.type = TRAINCTRL_TR_SETSPEED;
+    message.num = train_number;
+    message.data = 8;
+    int msg = 0;
+    Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
+
+    message.type = TRAINCTRL_TR_STOPAT;
+    message.location = location;
+    message.data = offset * 10; // cm -> mm
+    Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
+
+    PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%sStop train %d at %s with offset %d%s", TCS_GREEN, train_number, location, offset, TCS_RESET);
+
+    return CMD_SUCCEED;
+}
+
 int parseStopCommand(int trainCtrlTid, char* input) {
     /* read stop */
     if(!readToken(&input, "stop")) {
@@ -332,18 +388,7 @@ int parseStopCommand(int trainCtrlTid, char* input) {
     int msg = 0;
     Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
 
-    if (msg == -3) {
-        PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%s%s with offset %d needs to turn switch just next to train%s", TCS_RED, location, offset, TCS_RESET);
-    }
-    else if (msg == -2) {
-        PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%s%s with offset %d is too close to stop%s", TCS_RED, location, offset, TCS_RESET);
-    }
-    else if (msg == -1) {
-        PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%s%s with offset %d is not reachable%s", TCS_RED, location, offset, TCS_RESET);
-    }
-    else {
-        PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%sStop train %d at %s with offset %d%s", TCS_GREEN, train_number, location, offset, TCS_RESET);
-    }
+    PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%sStop train %d at %s with offset %d%s", TCS_GREEN, train_number, location, offset, TCS_RESET);
 
     return CMD_SUCCEED;
 }

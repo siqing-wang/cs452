@@ -20,13 +20,13 @@
 #define TRLOCATION_SENSOR_C     (TR_C+32)
 #define TRLOCATION_OFFSET_C     (TR_C+42)
 
-#define SENEXPECT_R     (SENTABLE_R+3)          // next sensor expected
-#define SENEXPECT_C     (SENTABLE_C-10)
+#define SENEXPECT_R     		(TR_R+1)          // next sensor expected
+#define SENEXPECT_C     		(SENTABLE_C-10)
 
-#define SENLAST_R       (SENEXPECT_R+1)          // next sensor expected
-#define SENLAST_C       SENEXPECT_C
+#define SENLAST_R       		(SENEXPECT_R+1)          // next sensor expected
+#define SENLAST_C       		SENEXPECT_C
 
-#define TRACK_R     18
+#define TRACK_R     21
 #define TRACK_C     5
 
 #define CMD_R       (TRACK_R+19)          // command

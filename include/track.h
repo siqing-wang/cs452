@@ -47,7 +47,7 @@ track_node *nextNode(struct TrainSetData *data, track_node *node);
 track_node *nextSensorOrExit(struct TrainSetData *data, track_node *node);
 int nextDistance(struct TrainSetData *data, track_node *node);
 int nextSensorDistance(struct TrainSetData *data, track_node *node);
-int expectSensorArrivalTimeDuration(struct TrainSetData *data, int trainNum, track_node *node, double friction);
+int expectSensorArrivalTimeDuration(struct TrainSetData *data, int trainIndex, track_node *node, double friction);
 int findRouteDistance(track_node *start, track_node *end, int *result, int resultIndex);
 void init_tracka(track_node *track);
 void init_trackb(track_node *track);
