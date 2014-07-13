@@ -75,6 +75,7 @@ typedef struct TrainSetData {
 
     /* Track graph. */
     struct track_node *track;
+    Lock *trackLock;
 } TrainSetData;
 
 /* Trainset Control Functons. */

@@ -187,8 +187,12 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
         trdata = data->trtable[i];
         trLock = data->trtableLock[i];
 
+        if (trdata->init < 0) {
+            continue;
+        }
+
         /* Wait for second round */
-        if (trdata->init <= 0) {
+        if (trdata->nextSensor == 0) {
             continue;
         }
 
@@ -199,10 +203,9 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
 
         AcquireLock(trLock);
 
-        trdata->lastSensor = node;
-        trdata->numSensorPast = trdata->numSensorPast + 1;
-        trdata->nextSensor = nextSensorOrExit(data, node);
-        trdata->nextNextSensor = nextSensorOrExit(data, trdata->nextSensor);
+        if (trdata->numSensorPast > 0) {
+            trdata->lastLastSensor = trdata->lastSensor;
+        }
 
         int timetick = Time();
         if (node == trdata->nextSensor) {
@@ -211,6 +214,11 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
         else {
             trdata->estimateTimetickHittingLastSensor = trdata->expectTimetickHittingNextNextSensor;
         }
+
+        trdata->lastSensor = node;
+        trdata->numSensorPast = trdata->numSensorPast + 1;
+        trdata->nextSensor = nextSensorOrExit(data, node);
+        trdata->nextNextSensor = nextSensorOrExit(data, trdata->nextSensor);
 
         /* Calibration */
         if ((trdata->estimateTimetickHittingLastSensor > 0) && ((timetick - trdata->actualTimetickHittingLastSensor) > 0)) {
@@ -236,7 +244,7 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
             trdata->expectTimetickHittingNextSensor = trdata->actualTimetickHittingLastSensor + timeInterval;
         }
         timeInterval = expectSensorArrivalTimeDuration(data, i, trdata->nextSensor, trdata->nextNextSensor->friction);
-        if ((trdata->expectTimetickHittingNextSensor) || (timeInterval < 0)) {
+        if ((trdata->expectTimetickHittingNextSensor < 0) || (timeInterval < 0)) {
             trdata->expectTimetickHittingNextNextSensor = -1;
         }
         else {
@@ -253,16 +261,52 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
         trdata = data->trtable[i];
         trLock = data->trtableLock[i];
 
-        /* Wait for second round */
-        if (trdata->init != 0) {
+        if (trdata->init < 0) {
+            continue;
+        }
+
+        /* For those trains which do not have expected sensor */
+        if (trdata->nextSensor != 0) {
             continue;
         }
 
         AcquireLock(trLock);
+
+        if (trdata->numSensorPast > 0) {
+            trdata->lastLastSensor = trdata->lastSensor;
+        }
         trdata->lastSensor = node;
         trdata->numSensorPast = trdata->numSensorPast + 1;
         trdata->nextSensor = nextSensorOrExit(data, node);
         trdata->nextNextSensor = nextSensorOrExit(data, trdata->nextSensor);
+
+        int timetick = Time();
+
+        /* Calibration */
+        trdata->actualTimetickHittingLastSensor = timetick;
+
+        /* Update location info */
+        trdata->timetickWhenHittingSensor = trdata->timetickSinceSpeedChange;
+        trdata->lastSpeedDurationAfterHittingLastSensor = 0;
+        trdata->delayToStop = trdata->delayToStop + trdata->actualTimetickHittingLastSensor - trdata->estimateTimetickHittingLastSensor;
+        trdata->distanceAfterLastSensor = calculate_expectTravelledDistance(trdata, trdata->nextSensor->friction);
+
+        /* Estimate timetick for next/nextNext sensor */
+        int timeInterval = expectSensorArrivalTimeDuration(data, i, node, trdata->nextSensor->friction);
+        if (timeInterval < 0) {
+            trdata->expectTimetickHittingNextSensor = -1;
+        }
+        else {
+            trdata->expectTimetickHittingNextSensor = trdata->actualTimetickHittingLastSensor + timeInterval;
+        }
+        timeInterval = expectSensorArrivalTimeDuration(data, i, trdata->nextSensor, trdata->nextNextSensor->friction);
+        if ((trdata->expectTimetickHittingNextSensor < 0) || (timeInterval < 0)) {
+            trdata->expectTimetickHittingNextNextSensor = -1;
+        }
+        else {
+            trdata->expectTimetickHittingNextNextSensor = trdata->expectTimetickHittingNextSensor + timeInterval;
+        }
+
         ReleaseLock(trLock);
 
         /* Found an initing train trigger that sensor */
@@ -337,10 +381,11 @@ void trainset_init(TrainSetData *data) {
         data->trtable[i]->lastSpeedDurationAfterHittingLastSensor = 0;
 
         data->trtable[i]->numSensorPast = 0;
-        data->trtable[i]->estimateTimetickHittingLastSensor = 0;
+        data->trtable[i]->nextSensor = (track_node *)0;
+        data->trtable[i]->estimateTimetickHittingLastSensor = -1;
         data->trtable[i]->actualTimetickHittingLastSensor = 0;
-        data->trtable[i]->expectTimetickHittingNextSensor = 0;
-        data->trtable[i]->expectTimetickHittingNextNextSensor = 0;
+        data->trtable[i]->expectTimetickHittingNextSensor = -1;
+        data->trtable[i]->expectTimetickHittingNextNextSensor = -1;
 
 
         data->trtable[i]->needToStop = 0;
@@ -355,6 +400,7 @@ void trainset_init(TrainSetData *data) {
 
     /* Initialize locks. */
     lock_init(data->swtableLock);
+    lock_init(data->trackLock);
 
     int *swtable = data->swtable;
 

@@ -18,6 +18,7 @@
 void initializeUI(TrainSetData *data);
 void sentTo(int destTid, TrainControlMessage *message, CouriersStatus *courierStatus);
 void updateTrainSpeed(TrainSetData *data, int trainIndex, int newSpeed);
+void updateAndPrintSensorEstimation(TrainSetData *data, int trainIndex);
 int findRoute(struct TrainSetData *data, int trainIndex, track_node *start, int startOffset, char *location, int endOffset);
 
 void courier() {
@@ -43,7 +44,6 @@ void switchTask() {
     int msg = 0;
     TrainSetData *data;
     TrainData *trdata;
-    Lock * trLock;
 
     Receive(&serverTid, &data, sizeof(data));
     Reply(serverTid, &msg, sizeof(msg));
@@ -61,7 +61,9 @@ void switchTask() {
             for (i = 0; i < TRAIN_NUM; i++) {
                 trdata = data->trtable[i];
                 if (trdata->numSensorPast > 0) {
+                    AcquireLock(data->trackLock);
                     trackGraph_unhighlightSenPath(data, trdata->lastSensor);
+                    ReleaseLock(data->trackLock);
                 }
             }
 
@@ -74,48 +76,19 @@ void switchTask() {
             /* Update terminal switch table. */
             updateSwitchTable(message.num, message.data);
             /* Update realtime graph. */
+            AcquireLock(data->trackLock);
             trackGraph_turnSw(data, message.num, message.data);
+            ReleaseLock(data->trackLock);
 
             /* Highlight graph and update nextSensor in each train's trainData */
             for(i = 0; i < TRAIN_NUM; i++) {
                 trdata = data->trtable[i];
-                trLock = data->trtableLock[i];
+                if (trdata->numSensorPast > 0) {
+                    AcquireLock(data->trackLock);
+                    trackGraph_highlightSenPath(data, trdata->lastSensor);
+                    ReleaseLock(data->trackLock);
 
-                if (trdata->numSensorPast == 0) {
-                    continue;
-                }
-
-                trackGraph_highlightSenPath(data, trdata->lastSensor);
-
-                AcquireLock(trLock);
-                trdata->nextSensor = nextSensorOrExit(data, trdata->lastSensor);
-                trdata->nextNextSensor = nextSensorOrExit(data, trdata->nextSensor);
-
-                /* Estimate timetick for next/nextNext sensor */
-                int timeInterval = expectSensorArrivalTimeDuration(data, i, trdata->lastSensor, trdata->nextSensor->friction);
-                if (timeInterval < 0) {
-                    trdata->expectTimetickHittingNextSensor = -1;
-                }
-                else {
-                    trdata->expectTimetickHittingNextSensor = trdata->actualTimetickHittingLastSensor + timeInterval;
-                }
-                timeInterval = expectSensorArrivalTimeDuration(data, i, trdata->nextSensor, trdata->nextNextSensor->friction);
-                if ((trdata->expectTimetickHittingNextSensor) || (timeInterval < 0)) {
-                    trdata->expectTimetickHittingNextNextSensor = -1;
-                }
-                else {
-                    trdata->expectTimetickHittingNextNextSensor = trdata->expectTimetickHittingNextSensor + timeInterval;
-                }
-                ReleaseLock(trLock);
-
-                /* Next sensor */
-                PrintfAt(COM2, SENEXPECT_R + i * 3, SENEXPECT_C, "%s ", trdata->nextSensor->name);
-                /* Estimate timetick fot next sensor */
-                if (trdata->expectTimetickHittingNextSensor < 0) {
-                    PrintfAt(COM2, SENEXPECT_R + i * 3, SENEXPECT_C + 16, "INFI   ");
-                }
-                else {
-                    displayTime((trdata->expectTimetickHittingNextSensor)/10, SENEXPECT_R + i * 3, SENEXPECT_C + 16);
+                    updateAndPrintSensorEstimation(data, i);
                 }
             }
         }
@@ -137,52 +110,59 @@ void sensorTask() {
     int i;
     for (;;) {
         trainset_subscribeSensorFeeds();
-        if (trainset_pullSensorFeeds(data)) {
-            for (i = 0; i < TRAIN_NUM; i++) {
-                trdata = data->trtable[i];
+        if (!trainset_pullSensorFeeds(data)) {
+            continue;
+        }
+        for (i = 0; i < TRAIN_NUM; i++) {
+            trdata = data->trtable[i];
 
-                if (trdata->numSensorPast == 0) {
-                    continue;
-                }
-
-                /* Next sensor */
-                PrintfAt(COM2, SENEXPECT_R + i * 3, SENEXPECT_C, "%s ", trdata->nextSensor->name);
-                /* Estimate timetick fot next sensor */
-                if (trdata->expectTimetickHittingNextSensor < 0) {
-                    PrintfAt(COM2, SENEXPECT_R + i * 3, SENEXPECT_C + 16, "INFI   ");
-                }
-                else {
-                    displayTime((trdata->expectTimetickHittingNextSensor)/10, SENEXPECT_R + i * 3, SENEXPECT_C + 16);
-                }
-
-                /* Last sensor */
-                PrintfAt(COM2, SENLAST_R + i * 3, SENLAST_C, "%s ", trdata->lastSensor->name);
-                /* Actual timetick for last sensor */
-                displayTime((trdata->actualTimetickHittingLastSensor)/10, SENLAST_R + i * 3, SENLAST_C + 16);
-                /* Estimate timeick and difference for last sensor */
-                if (trdata->estimateTimetickHittingLastSensor < 0) {
-                    /* Estimate timetick for last sensor */
-                    PrintfAt(COM2, SENLAST_R + i * 3, SENLAST_C + 34, "INFI   ");
-                    /* Difference between actual and estimate */
-                    PrintfAt(COM2, SENLAST_R + i * 3, SENLAST_C + 48, "INFI%s", TCS_DELETE_TO_EOL);
-                }
-                else {
-                    /* Estimate timetick for last sensor */
-                    displayTime((trdata->estimateTimetickHittingLastSensor)/10, SENLAST_R + i * 3, SENLAST_C + 34);
-                    /* Difference between actual and estimate */
-                    int diff = (trdata->estimateTimetickHittingLastSensor - trdata->actualTimetickHittingLastSensor);
-                    if (diff < 0) {
-                        diff = 0 - diff;
-                    }
-                    PrintfAt(COM2, SENLAST_R + i * 3, SENLAST_C + 48, "%d%s", diff, TCS_DELETE_TO_EOL);
-                }
-
-                /* Update terminal track graph. */
-                if (trdata->numSensorPast > 1) {
-                    trackGraph_unhighlightSenPath(data, trdata->lastLastSensor);
-                }
-                trackGraph_highlightSenPath(data, trdata->lastSensor);
+            if (trdata->numSensorPast == 0) {
+                continue;
             }
+
+            if (trdata->lastSensor != data->sentable[(data->totalSensorPast - 1) % SENTABLE_SIZE]) {
+                continue;
+            }
+
+            /* Next sensor */
+            PrintfAt(COM2, SENEXPECT_R + i * 3, SENEXPECT_C, "%s ", trdata->nextSensor->name);
+            /* Estimate timetick fot next sensor */
+            if (trdata->expectTimetickHittingNextSensor < 0) {
+                PrintfAt(COM2, SENEXPECT_R + i * 3, SENEXPECT_C + 16, "INFI   ");
+            }
+            else {
+                displayTime((trdata->expectTimetickHittingNextSensor)/10, SENEXPECT_R + i * 3, SENEXPECT_C + 16);
+            }
+
+            /* Last sensor */
+            PrintfAt(COM2, SENLAST_R + i * 3, SENLAST_C, "%s ", trdata->lastSensor->name);
+            /* Actual timetick for last sensor */
+            displayTime((trdata->actualTimetickHittingLastSensor)/10, SENLAST_R + i * 3, SENLAST_C + 16);
+            /* Estimate timeick and difference for last sensor */
+            if (trdata->estimateTimetickHittingLastSensor < 0) {
+                /* Estimate timetick for last sensor */
+                PrintfAt(COM2, SENLAST_R + i * 3, SENLAST_C + 34, "INFI   ");
+                /* Difference between actual and estimate */
+                PrintfAt(COM2, SENLAST_R + i * 3, SENLAST_C + 48, "INFI%s", TCS_DELETE_TO_EOL);
+            }
+            else {
+                /* Estimate timetick for last sensor */
+                displayTime((trdata->estimateTimetickHittingLastSensor)/10, SENLAST_R + i * 3, SENLAST_C + 34);
+                /* Difference between actual and estimate */
+                int diff = (trdata->estimateTimetickHittingLastSensor - trdata->actualTimetickHittingLastSensor);
+                if (diff < 0) {
+                    diff = 0 - diff;
+                }
+                PrintfAt(COM2, SENLAST_R + i * 3, SENLAST_C + 48, "%d%s", diff, TCS_DELETE_TO_EOL);
+            }
+
+            /* Update terminal track graph. */
+            AcquireLock(data->trackLock);
+            if (trdata->numSensorPast > 1) {
+                trackGraph_unhighlightSenPath(data, trdata->lastLastSensor);
+            }
+            trackGraph_highlightSenPath(data, trdata->lastSensor);
+            ReleaseLock(data->trackLock);
         }
         Delay(TIME_INTERVAL);
     }
@@ -218,6 +198,8 @@ void trainTask() {
                 trdata->init = 0;
                 trdata->trainNum = message.num;
                 PrintfAt(COM2, TR_R + trainIndex * 3, TR_C, "Train%d  Speed :     Location :         +     cm", message.num);
+                PrintfAt(COM2, SENEXPECT_R + trainIndex * 3, SWTABLE_C, "Expecting                at");
+                PrintfAt(COM2,SENLAST_R + trainIndex * 3, SWTABLE_C, "Last Sensor         past at          expected          diff");
 
                 /* Initialization movement. */
                 trainset_setSpeed(message.num, 2);
@@ -433,6 +415,8 @@ void trainControlServer() {
     trainsetData.track = track;
     Lock swtableLock;
     trainsetData.swtableLock = &swtableLock;
+    Lock trackLock;
+    trainsetData.trackLock = &trackLock;
 
     TrainSetData *data = &trainsetData;
 
@@ -545,8 +529,13 @@ void trainControlServer() {
                 haltingTid = requesterTid;
                 message.type = TRAINCTRL_HALT;
                 for(i = 0; i < TRAIN_NUM; i++) {
-                    message.num = data->trtable[i]->trainNum;
-                    sentTo(trainTids[i], &message, &couriersStatus);
+                    if (data->trtable[i]->init > 0) {
+                        message.num = data->trtable[i]->trainNum;
+                        sentTo(trainTids[i], &message, &couriersStatus);
+                    }
+                    else {
+                        haltingCount = haltingCount + 1;
+                    }
                 }
                 break;
             case TRAINCTRL_HALT_COMPLETE:
@@ -613,11 +602,6 @@ void initializeUI(TrainSetData *data) {
     moveCursor(SENTABLE_R, SENTABLE_C - 6);
     Printf(COM2, "%sTotal 0:%s", TCS_WHITE, TCS_YELLOW);
 
-    moveCursor(SENEXPECT_R, SWTABLE_C);
-    Printf(COM2, "Expecting                at");
-    moveCursor(SENLAST_R, SWTABLE_C);
-    Printf(COM2, "Last Sensor         past at          expected          diff");
-
     /* Command Frame. */
     moveCursor(CMD_R - 1, CMD_C - 3);
     Printf(COM2, "Type Your Command: ");
@@ -651,6 +635,42 @@ void updateTrainSpeed(TrainSetData *data, int trainIndex, int newSpeed) {
     trdata->timetickWhenHittingSensor = 0;
     trdata->delayRequiredToAchieveSpeed = calculate_delayToAchieveSpeed(trdata);
 
+    if (trdata->numSensorPast > 0) {
+        /* Estimate timetick for next/nextNext sensor */
+        int timeInterval = expectSensorArrivalTimeDuration(data, trainIndex, trdata->lastSensor, trdata->nextSensor->friction);
+        if (timeInterval < 0) {
+            trdata->expectTimetickHittingNextSensor = -1;
+        }
+        else {
+            trdata->expectTimetickHittingNextSensor = trdata->actualTimetickHittingLastSensor + timeInterval;
+        }
+        timeInterval = expectSensorArrivalTimeDuration(data, trainIndex, trdata->nextSensor, trdata->nextNextSensor->friction);
+        if ((trdata->expectTimetickHittingNextSensor < 0) || (timeInterval < 0)) {
+            trdata->expectTimetickHittingNextNextSensor = -1;
+        }
+        else {
+            trdata->expectTimetickHittingNextNextSensor = trdata->expectTimetickHittingNextSensor + timeInterval;
+        }
+
+        /* Next sensor */
+        PrintfAt(COM2, SENEXPECT_R + trainIndex * 3, SENEXPECT_C, "%s ", trdata->nextSensor->name);
+        /* Estimate timetick fot next sensor */
+        if (trdata->expectTimetickHittingNextSensor < 0) {
+            PrintfAt(COM2, SENEXPECT_R + trainIndex * 3, SENEXPECT_C + 16, "INFI   ");
+        }
+        else {
+            displayTime((trdata->expectTimetickHittingNextSensor)/10, SENEXPECT_R + trainIndex * 3, SENEXPECT_C + 16);
+        }
+    }
+}
+
+void updateAndPrintSensorEstimation(TrainSetData *data, int trainIndex) {
+    TrainData *trdata = data->trtable[trainIndex];
+
+    AcquireLock(data->trtableLock[trainIndex]);
+    trdata->nextSensor = nextSensorOrExit(data, trdata->lastSensor);
+    trdata->nextNextSensor = nextSensorOrExit(data, trdata->nextSensor);
+
     /* Estimate timetick for next/nextNext sensor */
     int timeInterval = expectSensorArrivalTimeDuration(data, trainIndex, trdata->lastSensor, trdata->nextSensor->friction);
     if (timeInterval < 0) {
@@ -660,12 +680,13 @@ void updateTrainSpeed(TrainSetData *data, int trainIndex, int newSpeed) {
         trdata->expectTimetickHittingNextSensor = trdata->actualTimetickHittingLastSensor + timeInterval;
     }
     timeInterval = expectSensorArrivalTimeDuration(data, trainIndex, trdata->nextSensor, trdata->nextNextSensor->friction);
-    if ((trdata->expectTimetickHittingNextSensor) || (timeInterval < 0)) {
+    if ((trdata->expectTimetickHittingNextSensor < 0) || (timeInterval < 0)) {
         trdata->expectTimetickHittingNextNextSensor = -1;
     }
     else {
         trdata->expectTimetickHittingNextNextSensor = trdata->expectTimetickHittingNextSensor + timeInterval;
     }
+    ReleaseLock(data->trtableLock[trainIndex]);
 
     /* Next sensor */
     PrintfAt(COM2, SENEXPECT_R + trainIndex * 3, SENEXPECT_C, "%s ", trdata->nextSensor->name);
@@ -676,7 +697,6 @@ void updateTrainSpeed(TrainSetData *data, int trainIndex, int newSpeed) {
     else {
         displayTime((trdata->expectTimetickHittingNextSensor)/10, SENEXPECT_R + trainIndex * 3, SENEXPECT_C + 16);
     }
-
 }
 
 int findRoute(struct TrainSetData *data, int trainIndex, track_node *start, int startOffset, char *location, int endOffset) {
@@ -696,11 +716,10 @@ int findRoute(struct TrainSetData *data, int trainIndex, track_node *start, int 
     }
 
     TrainData *trdata = data->trtable[trainIndex];
-    Lock *trLock = data->trtableLock[trainIndex];
 
-    AcquireLock(trLock);
+    AcquireLock(data->trtableLock[trainIndex]);
     trdata->stopLocation = end;
-    ReleaseLock(trLock);
+    ReleaseLock(data->trtableLock[trainIndex]);
 
     int result[TRACK_SWITCH_NUM];
     int distance = findRouteDistance(start, end, result, 0);
@@ -714,7 +733,9 @@ int findRoute(struct TrainSetData *data, int trainIndex, track_node *start, int 
     for(i = 0; i < TRAIN_NUM; i++) {
         trdata = data->trtable[i];
         if (trdata->numSensorPast > 0) {
+            AcquireLock(data->trackLock);
             trackGraph_unhighlightSenPath(data, trdata->lastSensor);
+            ReleaseLock(data->trackLock);
         }
     }
 
@@ -742,7 +763,9 @@ int findRoute(struct TrainSetData *data, int trainIndex, track_node *start, int 
                     /* Update terminal switch table. */
                     updateSwitchTable(switchNum, switchDir);
                     /* Update realtime graph. */
+                    AcquireLock(data->trackLock);
                     trackGraph_turnSw(data, switchNum, switchDir);
+                    ReleaseLock(data->trackLock);
                 }
             }
             current = current->edge[switchDir].dest;
@@ -755,43 +778,12 @@ int findRoute(struct TrainSetData *data, int trainIndex, track_node *start, int 
 
     for(i = 0; i < TRAIN_NUM; i++) {
         trdata = data->trtable[i];
-        trLock = data->trtableLock[i];
+        if (trdata->numSensorPast > 0) {
+            AcquireLock(data->trackLock);
+            trackGraph_highlightSenPath(data, trdata->lastSensor);
+            ReleaseLock(data->trackLock);
 
-        if (trdata->numSensorPast == 0) {
-            continue;
-        }
-
-        trackGraph_highlightSenPath(data, trdata->lastSensor);
-
-        AcquireLock(trLock);
-        trdata->nextSensor = nextSensorOrExit(data, trdata->lastSensor);
-        trdata->nextNextSensor = nextSensorOrExit(data, trdata->nextSensor);
-
-        /* Estimate timetick for next/nextNext sensor */
-        int timeInterval = expectSensorArrivalTimeDuration(data, i, trdata->lastSensor, trdata->nextSensor->friction);
-        if (timeInterval < 0) {
-            trdata->expectTimetickHittingNextSensor = -1;
-        }
-        else {
-            trdata->expectTimetickHittingNextSensor = trdata->actualTimetickHittingLastSensor + timeInterval;
-        }
-        timeInterval = expectSensorArrivalTimeDuration(data, i, trdata->nextSensor, trdata->nextNextSensor->friction);
-        if ((trdata->expectTimetickHittingNextSensor) || (timeInterval < 0)) {
-            trdata->expectTimetickHittingNextNextSensor = -1;
-        }
-        else {
-            trdata->expectTimetickHittingNextNextSensor = trdata->expectTimetickHittingNextSensor + timeInterval;
-        }
-        ReleaseLock(trLock);
-
-        /* Next sensor */
-        PrintfAt(COM2, SENEXPECT_R + i * 3, SENEXPECT_C, "%s ", trdata->nextSensor->name);
-        /* Estimate timetick fot next sensor */
-        if (trdata->expectTimetickHittingNextSensor < 0) {
-            PrintfAt(COM2, SENEXPECT_R + i * 3, SENEXPECT_C + 16, "INFI   ");
-        }
-        else {
-            displayTime((trdata->expectTimetickHittingNextSensor)/10, SENEXPECT_R + i * 3, SENEXPECT_C + 16);
+            updateAndPrintSensorEstimation(data, i);
         }
     }
 

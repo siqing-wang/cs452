@@ -199,7 +199,7 @@ int calculate_expectTravelledDistance(TrainData *trainData, double friction) {
     int trainNum = trainData->trainNum;
     int lastSpeed = trainData->lastSpeed;
     int targetSpeed = trainData->targetSpeed;
-    int timetickSinceSpeedChange = trainData->timetickWhenHittingSensor;
+    int timetickSinceSpeedChange = trainData->timetickSinceSpeedChange;
     int delayRequiredToAchieveSpeed = trainData->delayRequiredToAchieveSpeed;
     int timetickWhenHittingSensor = trainData->timetickWhenHittingSensor;
     int lastSpeedDurationAfterHittingLastSensor = trainData->lastSpeedDurationAfterHittingLastSensor;
