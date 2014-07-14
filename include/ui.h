@@ -35,9 +35,9 @@
 #define LOG_R       (CMD_R+2)          // system log
 #define LOG_C       5
 
-#define SIDELOG_R   1
+#define SIDELOG_R   42
 #define SIDELOG_C   75
-#define SIDELOG_HEIGHT 60
+#define SIDELOG_HEIGHT 20
 
 #define PM_R        1          // performance monitor
 #define PM_C        65

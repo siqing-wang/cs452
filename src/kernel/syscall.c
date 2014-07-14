@@ -502,7 +502,8 @@ int Log(char *fmt, ...) {
     buf[4] = '[';
     int size = 5;
 
-    ui2a(SIDELOG_R + GetLogRow(), 10, tmp);
+    int logRow = GetLogRow();
+    ui2a(SIDELOG_R + logRow, 10, tmp);
     size += putwToBuffer(buf + size, 0, 0, tmp);
 
     buf[size] = ';';
@@ -519,6 +520,36 @@ int Log(char *fmt, ...) {
     size += formatToBuffer(buf + size, fmt, va);
     va_end(va);
 
+
+    /* Delete to EOL. */
+    buf[size] = '\033';
+    buf[size + 1] = '[';
+    buf[size + 2] = 'K';
+    size += 3;
+
+    /* Delete next line. */
+    buf[size] = '\033';
+    buf[size + 1] = '[';
+    size += 2;
+
+    ui2a(SIDELOG_R + logRow + 1, 10, tmp);
+    size += putwToBuffer(buf + size, 0, 0, tmp);
+
+    buf[size] = ';';
+    size++;
+
+    ui2a(SIDELOG_C, 10, tmp);
+    size += putwToBuffer(buf + size, 0, 0, tmp);
+
+    buf[size] = 'H';
+    size++;
+
+    buf[size] = '\033';
+    buf[size + 1] = '[';
+    buf[size + 2] = 'K';
+    size += 3;
+
+    /* Restore Cursor. */
     buf[size] = '\033';
     buf[size + 1] = '[';
     buf[size + 2] = 'u';
