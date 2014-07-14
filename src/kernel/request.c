@@ -8,6 +8,7 @@
 #include <event.h>
 #include <utils.h>
 #include <lock.h>
+#include <ui.h>
 
 int sendMessage(SharedVariables *sharedVariables, Task *active, Message *message);
 void readMessage(SharedVariables *sharedVariables, Task *active, Message *message);
@@ -90,6 +91,11 @@ int request_handle(SharedVariables *sharedVariables, Task *active, Request *requ
                 scheduler_add(sharedVariables, task);
             }
             request->retVal = SUCCESS;
+            break;
+        case SYS_GET_LOG_ROW:
+            result = sharedVariables->logRow;
+            sharedVariables->logRow = (result + 1) % SIDELOG_HEIGHT;
+            request->retVal = result;
             break;
         default:
             /* Unrecognized syscall. */

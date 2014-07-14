@@ -92,6 +92,8 @@ int PutStr(int channel, char *str);
 int PutSizedStr(int channel, char *str, int size);
 void Printf(int channel, char *fmt, ...);
 int PrintfAt(int channel, int row, int col, char *fmt, ...);
+int GetLogRow();
+int Log(char *fmt, ...);
 int IOidle(int channel);
 
 // Performance Monitor using idle task.

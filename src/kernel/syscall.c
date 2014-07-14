@@ -10,6 +10,7 @@
 #include <clockserver.h>
 #include <ioserver.h>
 #include <bwio.h>
+#include <ui.h>
 
 /* Internal helper. */
 
@@ -444,6 +445,70 @@ int PrintfAt(int channel, int row, int col, char *fmt, ...) {
     size ++;
 
     ui2a(col, 10, tmp);
+    size += putwToBuffer(buf + size, 0, 0, tmp);
+
+    buf[size] = 'H';
+    size ++;
+
+    va_list va;
+    va_start(va,fmt);
+    size += formatToBuffer(buf + size, fmt, va);
+    va_end(va);
+
+    buf[size] = '\033';
+    buf[size + 1] = '[';
+    buf[size + 2] = 'u';
+    size += 3;
+
+    /* Send message to IO Server. */
+    IOserverMessage message;
+    message.type = IOServerMSG_CLIENT;
+    message.syscall = IOServerMSG_PUTSTR;
+    message.str = buf;
+    message.strSize = size;
+
+    int strPut;
+    int result = Send(ioServerTid, &message, sizeof(message), &strPut, sizeof(strPut));
+    if (result < 0) {
+        return ERR_INVALID_TID;
+    }
+    if (strPut < size) {
+        return ERR_NOT_COMPLETE_SEND;
+    }
+    return SUCCESS;
+}
+
+int GetLogRow() {
+    Request request;                    // Create request structure and store required fields.
+    request.syscall = SYS_GET_LOG_ROW;
+    return sendRequest(&request);
+}
+
+
+int Log(char *fmt, ...) {
+    if (!DEBUG_MODE) {
+        return 0;
+    }
+
+    int ioServerTid = WhoIs("Terminal IO Server");
+
+    char buf[PRINTF_MAX_LENGTH];
+    char tmp[12];
+
+    buf[0] = '\033';
+    buf[1] = '[';
+    buf[2] = 's';
+    buf[3] = '\033';
+    buf[4] = '[';
+    int size = 5;
+
+    ui2a(SIDELOG_R + GetLogRow(), 10, tmp);
+    size += putwToBuffer(buf + size, 0, 0, tmp);
+
+    buf[size] = ';';
+    size ++;
+
+    ui2a(SIDELOG_C, 10, tmp);
     size += putwToBuffer(buf + size, 0, 0, tmp);
 
     buf[size] = 'H';

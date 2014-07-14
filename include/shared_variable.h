@@ -29,6 +29,9 @@ typedef struct SharedVariables
     /* Global */
     int loadOffset;                 // stack base (0x00218000) it should be added
                                     // to any memory addresses.
+    /* For Side Log */
+    int logRow;
+
     int com1TxReady;
     int com1CtsReady;
     int com2TxReady;

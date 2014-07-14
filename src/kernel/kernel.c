@@ -111,6 +111,7 @@ void kernel_run() {
     sharedVariables.idleTid = -1;
     sharedVariables.idlePercent = -1;
     sharedVariables.loadOffset = loadOffset;
+    sharedVariables.logRow = 0;
     sharedVariables.com1TxReady = 0;
     sharedVariables.com1CtsReady = 0;
     sharedVariables.com2TxReady = 0;
