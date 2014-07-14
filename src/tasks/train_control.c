@@ -537,6 +537,10 @@ void trainControlServer() {
                         haltingCount = haltingCount + 1;
                     }
                 }
+                if (haltingCount == TRAIN_NUM) {
+                    trainset_stop();
+                    Reply(haltingTid, &msg, sizeof(msg));
+                }
                 break;
             case TRAINCTRL_HALT_COMPLETE:
                 Reply(requesterTid, &msg, sizeof(msg));
