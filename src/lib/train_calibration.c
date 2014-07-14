@@ -12,7 +12,7 @@ double calculate_trainVelocity(int trainNum, int speed) {
         velocity = 0.140815433;
     }
     if ((speed >= 2) && (speed <= 12)) {
-        velocity =  0.52468 * speed - 0.24942;
+        velocity =  0.53679 * speed + 0.23677;
     }
     else if (speed == 13) {
         velocity = 6.091978731;
@@ -22,7 +22,7 @@ double calculate_trainVelocity(int trainNum, int speed) {
     }
     switch(trainNum) {
         case 45:
-            velocity = velocity * 1;
+            velocity = velocity * 0.93;
             break;
         case 49:
             velocity = velocity * 1;
@@ -44,6 +44,36 @@ double calculate_stopDistance(int trainNum, int speed) {
 
     switch(trainNum) {
         case 45:
+            switch(speed) {
+                case 1:
+                    return 7.25;
+                case 2:
+                    return 64.125;
+                case 3:
+                    return 139.875;
+                case 4:
+                    return 208;
+                case 5:
+                    return 269.625;
+                case 6:
+                    return 335.625;
+                case 7:
+                    return 425.625;
+                case 8:
+                    return 477.875;
+                case 9:
+                    return 535.625;
+                case 10:
+                    return 591.125;
+                case 11:
+                    return 656.625;
+                case 12:
+                    return 719.125;
+                case 13:
+                    return 817.375;
+                case 14:
+                    return 801;
+            }
         case 49:
             switch(speed) {
                 case 1:
@@ -265,7 +295,16 @@ int calculate_delayToStop(TrainSetData *trainSetData, TrainData *trainData, trac
         for(;;delay++) {
             double currentVelocity = calculate_currentVelocity(trainData, (timetickSinceSpeedChange + delay)) * (start->friction);
             distanceAC += currentVelocity;
-            distanceDC = (int)(124.95 * currentVelocity - 22.769);
+            switch(trainNum) {
+                case 45:
+                    distanceDC = (int)(135.18 * currentVelocity - 42.346);
+                    break;
+                case 49:
+                default:
+                    distanceDC = (int)(124.41 * currentVelocity - 26.838);
+                    break;
+            }
+
             if ((distanceAC + distanceDC) >= distance) {
                 break;
             }
