@@ -88,6 +88,10 @@ void printTime() {
 void pullSensorFeed() {
     /* Sensor */
     TrainSetSensorData data;
+
+    data.val = 0;
+    data.data = 0;
+    data.count = 0;
     data.numSensorPast = 0;
     int i = 0;
     for(i = 0; i < 10; i++) {

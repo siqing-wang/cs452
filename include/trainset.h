@@ -40,6 +40,10 @@ typedef struct TrainSetSensorData {
     int sentable[SENTABLE_SIZE];
     int numSensorPast;
     int lastByte[10];
+
+    int val;
+    int data;
+    int count;
 } TrainSetSensorData;
 
 void trainset_init(TrainSetData *data);
