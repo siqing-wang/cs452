@@ -9,10 +9,10 @@
 #include <trainset.h>
 #include <track.h>
 
+double calculate_stopDistance(int trainNum, int speed);
 double calculate_currentVelocity(TrainData *trainData, int timetick);
 int calculate_delayToAchieveSpeed(TrainData *trainData);
 int calculate_expectArrivalDuration(TrainData *trainData, int distance, double friction);
-int calculate_expectTravelledDistance(TrainData *trainData, double friction);
 int calculate_delayToStop(TrainSetData *trainSetData, TrainData *trainData, track_node *start, int distance);
 
 #endif

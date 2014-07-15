@@ -29,6 +29,8 @@ typedef struct TrainData {
     /* General*/
     int trainNum;
     int reverse;
+    int reverseInProgress;
+    int stopInProgress;
     int init;
 
     /* Speed */
@@ -39,9 +41,8 @@ typedef struct TrainData {
 
     /* Current Location */
     struct track_node *lastSensor;
-    int distanceAfterLastSensor;
+    double distanceAfterLastSensor;
     int timetickWhenHittingSensor;
-    int lastSpeedDurationAfterHittingLastSensor;
 
     /* Sensor */
     int numSensorPast;
@@ -56,7 +57,11 @@ typedef struct TrainData {
     /* StopAt related */
     int needToStop;
     int delayToStop;
-    struct track_node *stopLocation;
+    int continueToStop;
+    struct track_node *nextLocation;
+    struct track_node *finalLocation;
+    struct track_node *finalLocationAlt;
+    int endOffset;
 } TrainData;
 
 typedef struct TrainSetData {

@@ -1,6 +1,8 @@
 /* train_calibration.c - All data(speed/distance) related with train */
 
 #include <train_calibration.h>
+#include <syscall.h>
+#include <utils.h>
 
 double calculate_trainVelocity(int trainNum, int speed) {
     if (speed == 0) {
@@ -140,43 +142,43 @@ double calculate_stopDistance(int trainNum, int speed) {
     return -1;
 }
 
-double calculate_currentVelocity(TrainData *trainData, int timetick) {
-    int trainNum = trainData->trainNum;
-    int lastSpeed = trainData->lastSpeed;
-    int targetSpeed = trainData->targetSpeed;
-
-    double lastVelocity = calculate_trainVelocity(trainNum, lastSpeed);
-    double targetVelocity = calculate_trainVelocity(trainNum, targetSpeed);
-
-    if ((lastVelocity < 0) || (targetVelocity < 0)) {
-        return -1;
-    }
-
-    if (timetick == 0) {
-        return lastVelocity;
-    }
-    else if (timetick >= trainData->delayRequiredToAchieveSpeed) {
-        return targetVelocity;
-    }
-
-    double distance = calculate_stopDistance(trainNum, targetSpeed) - calculate_stopDistance(trainNum, lastSpeed);
-    if (distance < 0) {
-        distance = 0 - distance;
-    }
-
-    double velocityDiff = targetVelocity - lastVelocity;
-    double temp = (lastVelocity + targetVelocity) / (2 * distance) * timetick;
-
-    double velocity = lastVelocity;
-    velocity += 3 * velocityDiff * temp * temp;
-    velocity -= 2 * velocityDiff * temp * temp * temp;
-    return velocity;
-}
-
 int calculate_delayToAchieveSpeed(TrainData *trainData) {
     int trainNum = trainData->trainNum;
     int lastSpeed = trainData->lastSpeed;
     int targetSpeed = trainData->targetSpeed;
+
+    // if (trainNum == 45) {
+    //     if (targetSpeed == 0) {
+    //         switch (lastSpeed) {
+    //             case 8:
+    //                 return 311;
+    //             case 9:
+    //                 return 311;
+    //             case 10:
+    //                 return 298;
+    //             case 11:
+    //                 return 316;
+    //             case 12:
+    //                 return 319;
+    //         }
+    //     }
+    // }
+    // if (trainNum == 49) {
+    //     if (targetSpeed == 0) {
+    //         switch (lastSpeed) {
+    //             case 8:
+    //                 return 294;
+    //             case 9:
+    //                 return 297;
+    //             case 10:
+    //                 return 299;
+    //             case 11:
+    //                 return 298;
+    //             case 12:
+    //                 return 304;
+    //         }
+    //     }
+    // }
 
     double lastVelocity = calculate_trainVelocity(trainNum, lastSpeed);
     double targetVelocity = calculate_trainVelocity(trainNum, targetSpeed);
@@ -192,7 +194,52 @@ int calculate_delayToAchieveSpeed(TrainData *trainData) {
     return ((2 * distance) / (lastVelocity + targetVelocity));
 }
 
+double calculate_currentVelocity(TrainData *trainData, int timetick) {
+    int trainNum = trainData->trainNum;
+    int lastSpeed = trainData->lastSpeed;
+    int targetSpeed = trainData->targetSpeed;
+    int delayRequiredToAchieveSpeed = trainData->delayRequiredToAchieveSpeed;
+
+    double lastVelocity = calculate_trainVelocity(trainNum, lastSpeed);
+    double targetVelocity = calculate_trainVelocity(trainNum, targetSpeed);
+
+    if ((lastVelocity < 0) || (targetVelocity < 0)) {
+        return -1;
+    }
+
+    if (timetick == 0) {
+        return lastVelocity;
+    }
+    else if (timetick >= delayRequiredToAchieveSpeed) {
+        return targetVelocity;
+    }
+
+    double distance = calculate_stopDistance(trainNum, targetSpeed) - calculate_stopDistance(trainNum, lastSpeed);
+    if (distance < 0) {
+        distance = 0 - distance;
+    }
+
+    double velocity1 = lastVelocity;
+    double velocityDiff = targetVelocity - lastVelocity;
+    double temp = timetick / delayRequiredToAchieveSpeed;
+    velocity1 += 3 * velocityDiff * temp * temp;
+    velocity1 -= 2 * velocityDiff * temp * temp * temp;
+
+    // double velocity2 = lastVelocity;
+    // int timeDiff = calculate_delayToAchieveSpeed(trainData);
+    // temp = 1.0 * timetick / timeDiff;
+    // velocity2 += (30 * distance - (12 * targetVelocity + 18 * lastVelocity) * timeDiff) * temp * temp / timeDiff;
+    // velocity2 -= (60 * distance - (28 * targetVelocity + 32 * lastVelocity) * timeDiff) * temp * temp * temp / timeDiff;
+    // velocity2 += (30 * distance - (15 * targetVelocity + 15 * lastVelocity) * timeDiff) * temp * temp * temp * temp / timeDiff;
+
+    // return (velocity1 + velocity2)/2;
+    return velocity1;
+}
+
 int calculate_expectArrivalDuration(TrainData *trainData, int distance, double friction) {
+    // This will be calculated only when changing speed or trigger sensor
+    // In both case, timetickSinceSpeedChange = timetickWhenHittingSensor
+
     int trainNum = trainData->trainNum;
     int targetSpeed = trainData->targetSpeed;
     int timetickSinceSpeedChange = trainData->timetickSinceSpeedChange;
@@ -201,6 +248,8 @@ int calculate_expectArrivalDuration(TrainData *trainData, int distance, double f
     double currentVelocity = 0;
     double currentDistance = 0;
     double targetVelocity = calculate_trainVelocity(trainNum, targetSpeed);
+
+    currentDistance = 0;
 
     int tick = 0;
     for(;;) {
@@ -225,69 +274,54 @@ int calculate_expectArrivalDuration(TrainData *trainData, int distance, double f
     return tick;
 }
 
-int calculate_expectTravelledDistance(TrainData *trainData, double friction) {
-    int trainNum = trainData->trainNum;
-    int lastSpeed = trainData->lastSpeed;
-    int targetSpeed = trainData->targetSpeed;
-    int timetickSinceSpeedChange = trainData->timetickSinceSpeedChange;
-    int delayRequiredToAchieveSpeed = trainData->delayRequiredToAchieveSpeed;
-    int timetickWhenHittingSensor = trainData->timetickWhenHittingSensor;
-    int lastSpeedDurationAfterHittingLastSensor = trainData->lastSpeedDurationAfterHittingLastSensor;
-
-    double lastVelocity = calculate_trainVelocity(trainNum, lastSpeed);
-    double targetVelocity = calculate_trainVelocity(trainNum, targetSpeed);
-    double currentVelocity = 0;
-    double currentDistance = lastSpeedDurationAfterHittingLastSensor * (lastVelocity * friction);
-
-    int tick = timetickWhenHittingSensor;
-    for(;;) {
-        if (tick >= delayRequiredToAchieveSpeed) {
-            break;
-        }
-        if (tick >= timetickSinceSpeedChange) {
-            break;
-        }
-        currentVelocity = calculate_currentVelocity(trainData, tick) * friction;
-        currentDistance += currentVelocity;
-        tick ++;
-    }
-
-    if (tick < timetickSinceSpeedChange) {
-        currentDistance += (timetickSinceSpeedChange - tick) * (targetVelocity * friction);
-    }
-
-    if (trainData->reverse) {
-        return (int)currentDistance + 20;
-    }
-    else {
-        return (int)currentDistance + 140;
-    }
-}
-
 int calculate_delayToStop(TrainSetData *trainSetData, TrainData *trainData, track_node *start, int distance) {
     int trainNum = trainData->trainNum;
-    int speed = trainData->targetSpeed;
+    int targetSpeed = trainData->targetSpeed;
     int timetickSinceSpeedChange = trainData->timetickSinceSpeedChange;
 
-    double minDistance = calculate_stopDistance(trainNum, speed);
+    double minDistance = calculate_stopDistance(trainNum, targetSpeed);
+    double targetVelocity = calculate_trainVelocity(trainNum, targetSpeed);
+    double currentDistance = 0;
+    double currentVelocity = 0;
 
     int delay = 0;
     if (distance >= (2 * minDistance)) {
         distance -= minDistance;
+
+        for(;;) {
+            if ((trainData->timetickSinceSpeedChange + delay) >= trainData->delayRequiredToAchieveSpeed) {
+                break;
+            }
+            currentVelocity = calculate_currentVelocity(trainData, (trainData->timetickSinceSpeedChange + delay)) * (nextSensorOrExit(trainSetData, start)->friction);
+            currentDistance += currentVelocity;
+            delay ++;
+        }
+
+        distance -= currentDistance;
+        assert((distance >= 0), "calculated_delayToStop : distance is negative after reach full speed.");
+
         for(;;) {
             if (start->type == NODE_EXIT) {
                 break;
             }
             int passed = nextSensorDistance(trainSetData, start);
+            if (passed < currentDistance) {
+                currentDistance -= passed;
+                start = nextSensorOrExit(trainSetData, start);
+                continue;
+            }
+
+            passed -= currentDistance;
+            currentDistance = 0;
+
             if (distance < passed) {
                 break;
             }
-            distance = distance - passed;
             start = nextSensorOrExit(trainSetData, start);
-            delay += calculate_expectArrivalDuration(trainData, passed, start->friction);
+            distance = distance - passed;
+            delay += passed / (targetVelocity * start->friction);
         }
-
-        delay += calculate_expectArrivalDuration(trainData, distance, start->friction);
+        delay += distance / (targetVelocity * start->friction);
     }
     else {
         int distanceAC = 0;

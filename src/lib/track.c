@@ -4,6 +4,7 @@
 #include <trainset.h>
 #include <train_calibration.h>
 #include <track_graph.h>
+#include <utils.h>
 
 track_node *nextNode(struct TrainSetData *data, track_node *node) {
     if (node->type != NODE_BRANCH) {
@@ -68,8 +69,14 @@ int expectSensorArrivalTimeDuration(struct TrainSetData *data, int trainIndex, t
     return timeInterval;
 }
 
-int findRouteDistance(track_node *start, track_node *end, int *result, int resultIndex) {
+int findRouteDistance(track_node *start, track_node *end, track_node *end_alt, int endOffset, track_node *lastNode, int *result, int resultIndex) {
+    // A hacky way to calculate total distance
+    // bcz we want to return non-negative number to indicate it is reachable.
+    // just minus endOffset to find real distance
     if (start == end) {
+        return 2 * endOffset;
+    }
+    if (start == end_alt) {
         return 0;
     }
     if (start->type == NODE_EXIT) {
@@ -80,23 +87,23 @@ int findRouteDistance(track_node *start, track_node *end, int *result, int resul
     }
     start->visited = 1;
     int result1, result2;
-    int dir1[TRACK_SWITCH_NUM];
-    int dir2[TRACK_SWITCH_NUM];
+    int dir1[TRACK_SWITCH_NUM * 2];
+    int dir2[TRACK_SWITCH_NUM * 2];
 
     int i = 0;
-    for (i = 0; i < TRACK_SWITCH_NUM + 1; i++) {
+    for (i = 0; i < TRACK_SWITCH_NUM * 2; i++) {
         dir1[i] = -1;
         dir2[i] = -1;
     }
 
     if (start->type == NODE_BRANCH) {
         dir1[resultIndex] = DIR_STRAIGHT;
-        result1 = findRouteDistance(start->edge[DIR_STRAIGHT].dest, end, dir1, resultIndex + 1);
+        result1 = findRouteDistance(start->edge[DIR_STRAIGHT].dest, end, end_alt, endOffset, start, dir1, resultIndex + 1);
         if (result1 >= 0) {
             result1 += start->edge[DIR_STRAIGHT].dist;
         }
         dir2[resultIndex] = DIR_CURVED;
-        result2 = findRouteDistance(start->edge[DIR_CURVED].dest, end, dir2, resultIndex + 1);
+        result2 = findRouteDistance(start->edge[DIR_CURVED].dest, end, end_alt, endOffset, start, dir2, resultIndex + 1);
         if (result2 >= 0) {
             result2 += start->edge[DIR_CURVED].dist;
         }
@@ -134,8 +141,64 @@ int findRouteDistance(track_node *start, track_node *end, int *result, int resul
             return result2;
         }
     }
+    else if ((start->type == NODE_MERGE) && (lastNode != (track_node *)0)) {
+        dir1[resultIndex] = DIR_AHEAD;
+        result1 = findRouteDistance(start->edge[DIR_AHEAD].dest, end, end_alt, endOffset, start, dir1, resultIndex + 1);
+        if (result1 >= 0) {
+            result1 += start->edge[DIR_STRAIGHT].dist;
+        }
+
+        track_node *reverse = start->reverse;
+        dir2[resultIndex] = DIR_REVERSE;
+        if (reverse->edge[DIR_STRAIGHT].dest == lastNode->reverse) {
+            result2 = findRouteDistance(reverse->edge[DIR_CURVED].dest, end, end_alt, endOffset, reverse, dir2, resultIndex + 1);
+        }
+        else if (reverse->edge[DIR_CURVED].dest == lastNode->reverse) {
+            result2 = findRouteDistance(reverse->edge[DIR_STRAIGHT].dest, end, end_alt, endOffset, reverse, dir2, resultIndex + 1);
+        }
+        else {
+            warning("findRouteDistance: cannot find another edge.");
+        }
+
+        if (result2 >= 0) {
+            result2 += 200 * 2 + start->edge[DIR_CURVED].dist;
+        }
+
+        start->visited = 0;
+        if ((result1 < 0) && (result2 < 0)) {
+            return -1;
+        }
+        if ((result1 >= 0) && (result2 < 0)) {
+            result[resultIndex] = DIR_STRAIGHT;
+            for (i = resultIndex; i < TRACK_SWITCH_NUM; i++) {
+                result[i] = dir1[i];
+            }
+            return result1;
+        }
+        if ((result2 >= 0) && (result1 < 0)) {
+            result[resultIndex] = DIR_CURVED;
+            for (i = resultIndex; i < TRACK_SWITCH_NUM; i++) {
+                result[i] = dir2[i];
+            }
+            return result2;
+        }
+        if (result1 < result2) {
+            result[resultIndex] = DIR_STRAIGHT;
+            for (i = resultIndex; i < TRACK_SWITCH_NUM; i++) {
+                result[i] = dir1[i];
+            }
+            return result1;
+        }
+        else {
+            result[resultIndex] = DIR_CURVED;
+            for (i = resultIndex; i < TRACK_SWITCH_NUM; i++) {
+                result[i] = dir2[i];
+            }
+            return result2;
+        }
+    }
     else {
-        result1 = findRouteDistance(start->edge[DIR_AHEAD].dest, end, result, resultIndex);
+        result1 = findRouteDistance(start->edge[DIR_AHEAD].dest, end, end_alt, endOffset, start, result, resultIndex);
         if (result1 >= 0) {
             result1 += start->edge[DIR_AHEAD].dist;
         }
