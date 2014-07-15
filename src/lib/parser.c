@@ -328,15 +328,11 @@ int parseGoCommand(int trainCtrlTid, char* input) {
     offset *= readNum(&input);
 
     TrainControlMessage message;
-    message.type = TRAINCTRL_TR_SETSPEED;
+    message.type = TRAINCTRL_TR_GO;
     message.num = train_number;
-    message.data = 8;
-    int msg = 0;
-    Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
-
-    message.type = TRAINCTRL_TR_STOPAT;
     message.location = location;
     message.data = offset * 10; // cm -> mm
+    int msg = 0;
     Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
 
     PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%sStop train %d at %s with offset %d%s", TCS_GREEN, train_number, location, offset, TCS_RESET);

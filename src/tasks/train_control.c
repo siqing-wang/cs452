@@ -257,8 +257,23 @@ void trainTask() {
                 updateTrainSpeed(data, trainIndex, speed);
                 ReleaseLock(trLock);
 
-                trainset_setSpeed(message.num, speed);
+
                 PrintfAt(COM2, TR_R + trainIndex * 3, TRSPEED_C, "%d ", speed);
+                break;
+            case TRAINCTRL_TR_GO:
+                node = trdata->lastSensor;
+                result = findRoute(data, trainIndex,
+                                    node, trdata->distanceAfterLastSensor,
+                                    message.location, message.data);
+                if (result >= 0) {
+                    AcquireLock(trLock);
+                    trdata->needToStop = 1;
+                    updateTrainSpeed(data, trainIndex, 8);
+                    trdata->delayToStop = calculate_delayToStop(data, trdata, node, result);
+                    ReleaseLock(trLock);
+
+                    trainset_setSpeed(message.num, 8);
+                }
                 break;
             case TRAINCTRL_TR_STOPAT:
                 node = trdata->lastSensor;
@@ -514,6 +529,12 @@ void trainControlServer() {
             case TRAINCTRL_TR_REVERSE:
                 Reply(requesterTid, &msg, sizeof(msg));
                 sentTo(trainTid, &message, &couriersStatus);
+                break;
+            case TRAINCTRL_TR_GO:
+                Reply(requesterTid, &msg, sizeof(msg));
+                if (data->trtable[trainIndex]->numSensorPast > 0) {
+                    sentTo(trainTid, &message, &couriersStatus);
+                }
                 break;
             case TRAINCTRL_TR_STOPAT:
                 Reply(requesterTid, &msg, sizeof(msg));
