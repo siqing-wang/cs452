@@ -25,8 +25,7 @@
 void hardware_init();
 void kernel_init(SharedVariables* sharedVariables);
 void activate(Task *active, Request **request);
-void taskMonitor(SharedVariables *sharedVariables, int *idleTid, int *idleMonitorOn,
-        int *idleCSCount, int *totalCSCount, int activeTid);
+
 /*
  * Initialize hardware related things such as cache & interrupt.
  */
@@ -121,7 +120,9 @@ void kernel_run() {
     /* Performance monitor. */
     int idleTid = -1;
     int idleStartTime = 0;
-    int idleEndTime = 0;
+    int idleCount = 0;
+    int totalStartTime = 0;
+    int period = 0;
 
     /* Start Kernel */
     kernel_init(&sharedVariables);
@@ -135,6 +136,9 @@ void kernel_run() {
         }
 
         idleTid = sharedVariables.idleTid;
+        if (totalStartTime == 0) {
+            totalStartTime = debugTimer_getVal();
+        }
         if (active->tid == idleTid) {
             idleStartTime = debugTimer_getVal();
         }
@@ -144,10 +148,14 @@ void kernel_run() {
         activate(active, &request);
 
         if (active->tid == idleTid) {
-            idleEndTime = debugTimer_getVal();
+            idleCount += debugTimer_getVal() - idleStartTime;
         }
-        if ((sharedVariables.idlePercent >= 0) && (idleStartTime < idleEndTime)) {
-            sharedVariables.idlePercent = (idleEndTime - idleStartTime) * 1000 / (debugTimer_getVal() - idleStartTime);
+        period = debugTimer_getVal() - totalStartTime;
+
+        if ((sharedVariables.idlePercent >= 0) && (period >= (DEBUG_TIMER_HZ / 10))) {
+            sharedVariables.idlePercent = idleCount * 1000 / period;
+            totalStartTime = debugTimer_getVal();
+            idleCount = 0;
         }
 
         if (request == (Request*)0) {
