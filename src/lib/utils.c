@@ -125,19 +125,6 @@ int stringEquals(const char* s1, char* s2) {
     }
 }
 
-void stringCopy(char *dest, char* src, int len) {
-    int i = 0;
-    for (; i < len - 1 ; i++) {
-        if (*src == '\0') {
-            break;
-        }
-        *dest = *src;
-        dest++;
-        src++;
-    }
-    *dest = '\0';
-}
-
 int a2d(char ch) {
     if( ch >= '0' && ch <= '9' ) return ch - '0';
     if( ch >= 'a' && ch <= 'f' ) return ch - 'a' + 10;

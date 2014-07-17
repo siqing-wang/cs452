@@ -18,7 +18,7 @@ typedef struct NSHashNode {
 } NSHashNode;
 
 void NSHashNode_init(NSHashNode *node, char *serverName, int tid) {
-    stringCopy(node->serverName, serverName, SERVERNAME_MAX_LENGTH);
+    memcopy(node->serverName, serverName, SERVERNAME_MAX_LENGTH);
     node->tid = tid;
     node->next = (NSHashNode*)0;
 }

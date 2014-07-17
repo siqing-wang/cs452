@@ -132,7 +132,7 @@ int RegisterAs(char *name) {
 
     NameserverMessage nameserverMessage;
     nameserverMessage.type = NServerMSG_REGAS;
-    stringCopy(nameserverMessage.serverName, name, SERVERNAME_MAX_LENGTH);
+    memcopy(nameserverMessage.serverName, name, SERVERNAME_MAX_LENGTH);
 
     int status;
     int result = Send(NAMESERVER_TID, &nameserverMessage, sizeof(NameserverMessage), &status, sizeof(int));
@@ -153,7 +153,7 @@ int WhoIs(char *name) {
 
     NameserverMessage nameserverMessage;
     nameserverMessage.type = NServerMSG_WHOIS;
-    stringCopy(nameserverMessage.serverName, name, SERVERNAME_MAX_LENGTH);
+    memcopy(nameserverMessage.serverName, name, SERVERNAME_MAX_LENGTH);
 
     int tid;
     int result = Send(NAMESERVER_TID, &nameserverMessage, sizeof(NameserverMessage), &tid, sizeof(int));
