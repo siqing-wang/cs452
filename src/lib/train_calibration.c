@@ -283,16 +283,17 @@ int calculate_delayToStop(TrainSetData *trainSetData, TrainData *trainData, trac
     double targetVelocity = calculate_trainVelocity(trainNum, targetSpeed);
     double currentDistance = 0;
     double currentVelocity = 0;
+    double friction = nextSensorOrExit(trainSetData, start)->friction;
 
     int delay = 0;
     if (distance >= (2 * minDistance)) {
         distance -= minDistance;
 
         for(;;) {
-            if ((trainData->timetickSinceSpeedChange + delay) >= trainData->delayRequiredToAchieveSpeed) {
+            if ((timetickSinceSpeedChange + delay) >= trainData->delayRequiredToAchieveSpeed) {
                 break;
             }
-            currentVelocity = calculate_currentVelocity(trainData, (trainData->timetickSinceSpeedChange + delay)) * (nextSensorOrExit(trainSetData, start)->friction);
+            currentVelocity = calculate_currentVelocity(trainData, (timetickSinceSpeedChange + delay)) * friction;
             currentDistance += currentVelocity;
             delay ++;
         }
@@ -324,22 +325,20 @@ int calculate_delayToStop(TrainSetData *trainSetData, TrainData *trainData, trac
         delay += distance / (targetVelocity * start->friction);
     }
     else {
-        int distanceAC = 0;
-        int distanceDC = 0;
+        trainData->shortMoveInProgress = 1;
+
         for(;;delay++) {
-            double currentVelocity = calculate_currentVelocity(trainData, (timetickSinceSpeedChange + delay)) * (start->friction);
-            distanceAC += currentVelocity;
             switch(trainNum) {
                 case 45:
-                    distanceDC = (int)(135.18 * currentVelocity - 42.346);
+                    currentDistance = 0.00002 * delay * delay * delay + 0.0002 * delay * delay + 0.4896 * delay - 10.202;
                     break;
                 case 49:
                 default:
-                    distanceDC = (int)(124.41 * currentVelocity - 26.838);
+                    currentDistance = 0.00002 * delay * delay * delay - 0.0007 * delay * delay + 0.59 * delay - 12.233;
                     break;
             }
 
-            if ((distanceAC + distanceDC) >= distance) {
+            if ((currentDistance * friction) >= distance) {
                 break;
             }
         }

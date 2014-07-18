@@ -112,34 +112,22 @@ int findRouteDistance(track_node *start, track_node *end, track_node *end_alt, i
         if ((result1 < 0) && (result2 < 0)) {
             return -1;
         }
-        if ((result1 >= 0) && (result2 < 0)) {
-            result[resultIndex] = DIR_STRAIGHT;
+        if ((result1 >= 0) &&
+            ((result1 <= result2) || (result2 < 0))) {
             for (i = resultIndex; i < TRACK_SWITCH_NUM; i++) {
                 result[i] = dir1[i];
             }
             return result1;
         }
-        if ((result2 >= 0) && (result1 < 0)) {
-            result[resultIndex] = DIR_CURVED;
+        if ((result2 >= 0) &&
+            ((result2 <= result1) || (result1 < 0))) {
             for (i = resultIndex; i < TRACK_SWITCH_NUM; i++) {
                 result[i] = dir2[i];
             }
             return result2;
         }
-        if (result1 < result2) {
-            result[resultIndex] = DIR_STRAIGHT;
-            for (i = resultIndex; i < TRACK_SWITCH_NUM; i++) {
-                result[i] = dir1[i];
-            }
-            return result1;
-        }
-        else {
-            result[resultIndex] = DIR_CURVED;
-            for (i = resultIndex; i < TRACK_SWITCH_NUM; i++) {
-                result[i] = dir2[i];
-            }
-            return result2;
-        }
+        warning("findRouteDistance : This case should not happen!");
+        return -1;
     }
     else if ((start->type == NODE_MERGE) && (lastNode != (track_node *)0)) {
         dir1[resultIndex] = DIR_AHEAD;
@@ -168,34 +156,22 @@ int findRouteDistance(track_node *start, track_node *end, track_node *end_alt, i
         if ((result1 < 0) && (result2 < 0)) {
             return -1;
         }
-        if ((result1 >= 0) && (result2 < 0)) {
-            result[resultIndex] = DIR_STRAIGHT;
+        if ((result1 >= 0) &&
+            ((result1 <= result2) || (result2 < 0))) {
             for (i = resultIndex; i < TRACK_SWITCH_NUM; i++) {
                 result[i] = dir1[i];
             }
             return result1;
         }
-        if ((result2 >= 0) && (result1 < 0)) {
-            result[resultIndex] = DIR_CURVED;
+        if ((result2 >= 0) &&
+            ((result2 <= result1) || (result1 < 0))) {
             for (i = resultIndex; i < TRACK_SWITCH_NUM; i++) {
                 result[i] = dir2[i];
             }
             return result2;
         }
-        if (result1 < result2) {
-            result[resultIndex] = DIR_STRAIGHT;
-            for (i = resultIndex; i < TRACK_SWITCH_NUM; i++) {
-                result[i] = dir1[i];
-            }
-            return result1;
-        }
-        else {
-            result[resultIndex] = DIR_CURVED;
-            for (i = resultIndex; i < TRACK_SWITCH_NUM; i++) {
-                result[i] = dir2[i];
-            }
-            return result2;
-        }
+        warning("findRouteDistance : This case should not happen!");
+        return -1;
     }
     else {
         result1 = findRouteDistance(start->edge[DIR_AHEAD].dest, end, end_alt, endOffset, start, result, resultIndex);
@@ -1412,6 +1388,7 @@ void init_tracka(track_node *track) {
     track[32].friction = 0.818;
     track[33].friction = 0.982;
     track[34].friction = 0.937;
+    track[35].friction = 0.845;
     track[36].friction = 0.896;
     track[37].friction = 0.828;
     track[38].friction = 0.845;

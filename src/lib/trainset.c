@@ -248,14 +248,13 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
 
         /* Update location info */
         trdata->timetickWhenHittingSensor = trdata->timetickSinceSpeedChange;
-        if ((trdata->needToStop) && (trdata->estimateTimetickHittingLastSensor > 0)) {
+        if ((trdata->needToStop) && (trdata->estimateTimetickHittingLastSensor > 0) && (!trdata->shortMoveInProgress)) {
             int diff = trdata->actualTimetickHittingLastSensor - trdata->estimateTimetickHittingLastSensor;
             trdata->delayToStop = trdata->delayToStop + diff;
             Log("Delay + %d ticks at sensor %s", diff, node->name);
         }
 
         trdata->reverseInProgress = 0;
-
         if (!trdata->stopInProgress) {
             if (trdata->reverse) {
                 trdata->distanceAfterLastSensor = 20;
@@ -304,6 +303,7 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
             trdata->lastLastSensor = trdata->lastSensor;
         }
         trdata->lastSensor = node;
+        trdata->lastLandmark = node;
         trdata->numSensorPast = trdata->numSensorPast + 1;
 
         if (nextSensorOrExit(data, node)->type != NODE_EXIT) {
@@ -319,7 +319,6 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
 
         /* Update location info */
         trdata->timetickWhenHittingSensor = 0;
-        trdata->distanceAfterLastSensor = 0;
 
         /* Estimate timetick for next/nextNext sensor */
         trdata->expectTimetickHittingNextSensor = -1;
@@ -328,9 +327,11 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
         if (!trdata->stopInProgress) {
             if (trdata->reverse) {
                 trdata->distanceAfterLastSensor = 20;
+                trdata->distanceAfterLastLandmark = 20;
             }
             else {
                 trdata->distanceAfterLastSensor =  140;
+                trdata->distanceAfterLastLandmark = 140;
             }
         }
 
@@ -387,6 +388,7 @@ void trainset_init(TrainSetData *data) {
         data->trtable[i]->reverse = 0;
         data->trtable[i]->reverseInProgress = 0;
         data->trtable[i]->stopInProgress = 0;
+        data->trtable[i]->shortMoveInProgress = 0;
         data->trtable[i]->init = -1;
 
         data->trtable[i]->lastSpeed = 0;
@@ -395,6 +397,7 @@ void trainset_init(TrainSetData *data) {
         data->trtable[i]->delayRequiredToAchieveSpeed = 0;
 
         data->trtable[i]->distanceAfterLastSensor = 0;
+        data->trtable[i]->distanceAfterLastLandmark = 0;
         data->trtable[i]->timetickWhenHittingSensor = 0;
 
         data->trtable[i]->numSensorPast = 0;
