@@ -17,7 +17,8 @@ int readToken(char** input, char* token);
 /* Commands */
 int parseSetSpeedCommand(TrainSetData *data, char* input);
 int parseReverseDirectionCommand(TrainSetData *data, char* input);
-int parseTurnSwitchCommand(TrainSetData *data, char* input) ;
+int parsePauseCommand(TrainSetData *data, char* input);
+int parseTurnSwitchCommand(TrainSetData *data, char* input);
 int parseHaltCommand(char* input);
 int parsePerformanceMonitor(char* input);
 
@@ -107,7 +108,12 @@ int parseCommand(TrainSetData *data, char* input) {
         case 'r':
             return parseReverseDirectionCommand(data, input);
         case 's':
-            return parseTurnSwitchCommand(data, input);
+            switch (input[1]) {
+                case 'w':
+                    return parseTurnSwitchCommand(data, input);
+                case 'm':
+                    return parsePauseCommand(data, input);
+            }
         case 'q':
             return parseHaltCommand(input);
         case 'p':
@@ -143,6 +149,42 @@ int parseSetSpeedCommand(TrainSetData *data, char* input){
 
     Printf(COM2, "%sSet speed of train %u to %u.%s", TCS_GREEN, train_number, train_speed, TCS_RESET);
     trainset_setSpeed(data, train_number, train_speed);
+
+    return CMD_SUCCEED;
+}
+
+/* Parse commands */
+int parsePauseCommand(TrainSetData *data, char* input){
+
+    int train_number, train_speed, delay;
+
+    /* read tr */
+    if(!readToken(&input, "sm")) {
+        return CMD_FAILED;
+    }
+
+    /* read train number */
+    train_number = readNum(&input);
+    if(train_number < 0 || train_number > 80) {
+        return CMD_FAILED;
+    }
+
+    /* read train speed */
+    train_speed = readNum(&input);
+    if(train_speed < 0) {
+        return CMD_FAILED;
+    }
+
+    /* read train speed */
+    delay = readNum(&input);
+    if(delay < 0) {
+        return CMD_FAILED;
+    }
+
+    Printf(COM2, "%sShort move train %d to speed %d, delay %d ticks.%s", TCS_GREEN, train_number, train_speed, delay, TCS_RESET);
+    trainset_setSpeed(data, train_number, train_speed);
+    Delay(delay);
+    trainset_setSpeed(data, train_number, 0);
 
     return CMD_SUCCEED;
 }
