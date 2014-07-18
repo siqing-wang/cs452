@@ -63,12 +63,6 @@ int nextSensorDistance(struct TrainSetData *data, track_node *node) {
     return dist;
 }
 
-int expectSensorArrivalTimeDuration(struct TrainSetData *data, int trainIndex, track_node *node, double friction) {
-    int dist = nextSensorDistance(data, node);
-    int timeInterval = calculate_expectArrivalDuration(data->trtable[trainIndex], dist, friction);
-    return timeInterval;
-}
-
 int findRouteDistance(track_node *start, track_node *end, track_node *end_alt, int endOffset, track_node *lastNode, int *result, int resultIndex) {
     // A hacky way to calculate total distance
     // bcz we want to return non-negative number to indicate it is reachable.
@@ -149,7 +143,7 @@ int findRouteDistance(track_node *start, track_node *end, track_node *end_alt, i
         }
 
         if (result2 >= 0) {
-            result2 += 200 * 2 + start->edge[DIR_CURVED].dist;
+            result2 += 2 * REVERSE_GAP + start->edge[DIR_CURVED].dist;
         }
 
         start->visited = 0;
@@ -1372,6 +1366,7 @@ void init_tracka(track_node *track) {
     }
     track[2].friction = 0.938;
     track[3].friction = 0.957;
+    track[4].friction = 0.957;
     track[5].friction = 1.010;
     track[6].friction = 1.151;
     track[16].friction = 0.960;
@@ -1388,7 +1383,7 @@ void init_tracka(track_node *track) {
     track[32].friction = 0.818;
     track[33].friction = 0.982;
     track[34].friction = 0.937;
-    track[35].friction = 0.845;
+    track[35].friction = 0.750;
     track[36].friction = 0.896;
     track[37].friction = 0.828;
     track[38].friction = 0.845;
@@ -1398,7 +1393,7 @@ void init_tracka(track_node *track) {
     track[41].friction = 0.931;
     track[42].friction = 0.858;
     track[43].friction = 0.876;
-    track[44].friction = 0.866;
+    track[44].friction = 1;
     track[45].friction = 0.921;
     track[46].friction = 0.833;
     track[48].friction = 0.736;

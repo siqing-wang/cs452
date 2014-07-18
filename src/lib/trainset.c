@@ -209,30 +209,29 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
         if (node == trdata->nextSensor) {
             trdata->estimateTimetickHittingLastSensor = trdata->expectTimetickHittingNextSensor;
             if (trdata->stopInProgress) {
-                trdata->distanceAfterLastSensor -= nextSensorDistance(data, trdata->lastSensor);
-                if ((trdata->reverse) && (trdata->distanceAfterLastSensor < 20)) {
-                    trdata->distanceAfterLastSensor = 20;
+                if ((trdata->reverse) && (trdata->distanceAfterLastLandmark < 20)) {
+                    trdata->distanceAfterLastLandmark = 20;
                 }
-                else if ((!trdata->reverse) && (trdata->distanceAfterLastSensor < 140)) {
-                    trdata->distanceAfterLastSensor =  140;
+                else if ((!trdata->reverse) && (trdata->distanceAfterLastLandmark < 140)) {
+                    trdata->distanceAfterLastLandmark =  140;
                 }
             }
         }
         else {
             trdata->estimateTimetickHittingLastSensor = trdata->expectTimetickHittingNextNextSensor;
             if (trdata->stopInProgress) {
-                trdata->distanceAfterLastSensor -= nextSensorDistance(data, trdata->lastSensor) +
-                                                    nextSensorDistance(data, trdata->nextSensor);
-                if ((trdata->reverse) && (trdata->distanceAfterLastSensor < 20)) {
-                    trdata->distanceAfterLastSensor = 20;
+                trdata->distanceAfterLastLandmark -= nextSensorDistance(data, trdata->nextSensor);
+                if ((trdata->reverse) && (trdata->distanceAfterLastLandmark < 20)) {
+                    trdata->distanceAfterLastLandmark = 20;
                 }
-                else if ((!trdata->reverse) && (trdata->distanceAfterLastSensor < 140)) {
-                    trdata->distanceAfterLastSensor =  140;
+                else if ((!trdata->reverse) && (trdata->distanceAfterLastLandmark < 140)) {
+                    trdata->distanceAfterLastLandmark =  140;
                 }
             }
         }
 
         trdata->lastSensor = node;
+        trdata->lastLandmark = node;
         trdata->numSensorPast = trdata->numSensorPast + 1;
         trdata->nextSensor = nextSensorOrExit(data, node);
         trdata->nextNextSensor = nextSensorOrExit(data, trdata->nextSensor);
@@ -257,22 +256,23 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
         trdata->reverseInProgress = 0;
         if (!trdata->stopInProgress) {
             if (trdata->reverse) {
-                trdata->distanceAfterLastSensor = 20;
+                trdata->distanceAfterLastLandmark = 20;
             }
             else {
-                trdata->distanceAfterLastSensor =  140;
+                trdata->distanceAfterLastLandmark = 140;
             }
         }
 
         /* Estimate timetick for next/nextNext sensor */
-        int timeInterval = expectSensorArrivalTimeDuration(data, i, node, trdata->nextSensor->friction);
+        int timeInterval = calculate_expectArrivalDuration(trdata, nextSensorDistance(data, node), trdata->nextSensor->friction);
         if (timeInterval < 0) {
             trdata->expectTimetickHittingNextSensor = -1;
         }
         else {
             trdata->expectTimetickHittingNextSensor = trdata->actualTimetickHittingLastSensor + timeInterval;
         }
-        timeInterval = expectSensorArrivalTimeDuration(data, i, trdata->nextSensor, trdata->nextNextSensor->friction);
+
+        timeInterval = calculate_expectArrivalDuration(trdata, nextSensorDistance(data, trdata->nextSensor), trdata->nextNextSensor->friction);
         if ((trdata->expectTimetickHittingNextSensor < 0) || (timeInterval < 0)) {
             trdata->expectTimetickHittingNextNextSensor = -1;
         }
@@ -326,11 +326,9 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
 
         if (!trdata->stopInProgress) {
             if (trdata->reverse) {
-                trdata->distanceAfterLastSensor = 20;
                 trdata->distanceAfterLastLandmark = 20;
             }
             else {
-                trdata->distanceAfterLastSensor =  140;
                 trdata->distanceAfterLastLandmark = 140;
             }
         }
@@ -396,7 +394,6 @@ void trainset_init(TrainSetData *data) {
         data->trtable[i]->timetickSinceSpeedChange = 0;
         data->trtable[i]->delayRequiredToAchieveSpeed = 0;
 
-        data->trtable[i]->distanceAfterLastSensor = 0;
         data->trtable[i]->distanceAfterLastLandmark = 0;
         data->trtable[i]->timetickWhenHittingSensor = 0;
 
@@ -407,10 +404,14 @@ void trainset_init(TrainSetData *data) {
         data->trtable[i]->expectTimetickHittingNextSensor = -1;
         data->trtable[i]->expectTimetickHittingNextNextSensor = -1;
 
-
         data->trtable[i]->needToStop = 0;
         data->trtable[i]->delayToStop = 0;
         data->trtable[i]->continueToStop = 0;
+        data->trtable[i]->nextLocation = (track_node *)0;
+        data->trtable[i]->nextLocationOffset = 0;
+        data->trtable[i]->finalLocation = (track_node *)0;
+        data->trtable[i]->finalLocationAlt = (track_node *)0;
+        data->trtable[i]->finalLocationOffset = 0;
 
         lock_init(data->trtableLock[i]);
     }

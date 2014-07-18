@@ -20,6 +20,8 @@
 
 #define TRAIN_NUM 2
 
+#define REVERSE_GAP 300
+
 #define RIGHT_DIR 1
 #define WRONG_DIR 2
 
@@ -42,7 +44,6 @@ typedef struct TrainData {
 
     /* Current Location */
     struct track_node *lastSensor;
-    double distanceAfterLastSensor;
     struct track_node *lastLandmark;
     double distanceAfterLastLandmark;
     int timetickWhenHittingSensor;
@@ -62,9 +63,10 @@ typedef struct TrainData {
     int delayToStop;
     int continueToStop;
     struct track_node *nextLocation;
+    int nextLocationOffset;
     struct track_node *finalLocation;
     struct track_node *finalLocationAlt;
-    int endOffset;
+    int finalLocationOffset;
 } TrainData;
 
 typedef struct TrainSetData {

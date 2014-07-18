@@ -20,7 +20,7 @@ void sentTo(int destTid, TrainControlMessage *message, CouriersStatus *courierSt
 void updateTrainSpeed(TrainSetData *data, int trainIndex, int newSpeed);
 void reverseTrainSpeed(TrainSetData *data, int trainIndex);
 void updateAndPrintSensorEstimation(TrainSetData *data, int trainIndex);
-void findAndStoreFinalLocation(struct TrainSetData *data, int trainIndex, char *location, int endOffset);
+void findAndStoreFinalLocation(struct TrainSetData *data, int trainIndex, char *location, int finalLocationOffset);
 int findRoute(struct TrainSetData *data, int trainIndex);
 
 void courier() {
@@ -249,6 +249,7 @@ void trainTask() {
                     if ((trdata->nextLocation == trdata->finalLocation) || (trdata->nextLocation == trdata->finalLocationAlt)) {
                         AcquireLock(trLock);
                         trdata->continueToStop = 0;
+                        trdata->nextLocation = (track_node *)0;
                         ReleaseLock(trLock);
                     }
                     else {
@@ -259,7 +260,7 @@ void trainTask() {
                             AcquireLock(trLock);
                             trdata->needToStop = 1;
                             trdata->continueToStop = 1;
-                            trdata->delayToStop = calculate_delayToStop(data, trdata, trdata->lastLandmark, result);
+                            trdata->delayToStop = calculate_delayToStop(data, trdata, trdata->nextLocation, result);
                             ReleaseLock(trLock);
 
                             trainset_setSpeed(message.num, 8);
@@ -280,7 +281,6 @@ void trainTask() {
                     AcquireLock(trLock);
                     trdata->needToStop = 1;
                     trdata->continueToStop = 1;
-                    trdata->shortMoveInProgress = 1;
                     trdata->delayToStop = calculate_delayToStop(data, trdata, trdata->lastLandmark, result);
                     ReleaseLock(trLock);
 
@@ -301,7 +301,6 @@ void trainTask() {
                     AcquireLock(trLock);
                     trdata->needToStop = 1;
                     trdata->continueToStop = 1;
-                    trdata->shortMoveInProgress = 1;
                     trdata->delayToStop = calculate_delayToStop(data, trdata, trdata->lastLandmark, result);
                     ReleaseLock(trLock);
                     Log("Delay %d ticks", trdata->delayToStop);
@@ -347,8 +346,6 @@ void updateTrainTable() {
 
     int i = 0;
     int k = 0;
-    track_node *node;
-    int distance, maxDistance;
     TrainControlMessage message;
     for (;;k++) {
         timeadjust = 1;
@@ -391,35 +388,23 @@ void updateTrainTable() {
             }
 
             if (!trdata->stopInProgress) {
-                trdata->distanceAfterLastSensor += calculate_currentVelocity(trdata, trdata->timetickSinceSpeedChange) * (trdata->nextSensor->friction);
+                trdata->distanceAfterLastLandmark += calculate_currentVelocity(trdata, trdata->timetickSinceSpeedChange) * (trdata->nextSensor->friction);
             }
 
-            node = trdata->lastSensor;
-            distance = (int)trdata->distanceAfterLastSensor;
-            maxDistance = nextSensorDistance(data, node);
-            if ((trdata->reverse) && (distance > (maxDistance + 20))) {
-                distance = maxDistance + 20;
-            }
-            else if (!(trdata->reverse) && (distance > (maxDistance + 140))) {
-                distance = maxDistance + 140;
-            }
-
-            /* Change to more precious landmark. */
             for(;;) {
-                int passed = nextDistance(data, node);
-                if (node->type == NODE_EXIT) {
-                    distance = 0;
+                if (trdata->lastLandmark->type == NODE_EXIT) {
                     break;
                 }
-                if (passed > distance) {
+                if (trdata->lastLandmark == trdata->nextSensor) {
                     break;
                 }
-                distance = distance - passed;
-                node = nextNode(data, node);
+                int distance = nextDistance(data, trdata->lastLandmark);
+                if (trdata->distanceAfterLastLandmark < distance) {
+                    break;
+                }
+                trdata->distanceAfterLastLandmark -= distance;
+                trdata->lastLandmark = nextNode(data, trdata->lastLandmark);
             }
-
-            trdata->lastLandmark = node;
-            trdata->distanceAfterLastLandmark = distance;
 
             ReleaseLock(data->trtableLock[i]);
 
@@ -445,16 +430,28 @@ void displayCurrentPosition() {
     Reply(serverTid, &msg, sizeof(msg));
 
     track_node *lastLandmark;
+    double distanceAfterLastLandmark;
     int i = 0;
     for (;;) {
         for (i = 0; i < TRAIN_NUM; i++) {
             trdata = data->trtable[i];
-            AcquireLock(data->trtableLock[i]);
-            lastLandmark = trdata->lastLandmark;
-            ReleaseLock(data->trtableLock[i]);
+
             if (trdata->init > 0) {
+                AcquireLock(data->trtableLock[i]);
+                lastLandmark = trdata->lastLandmark;
+                distanceAfterLastLandmark = trdata->distanceAfterLastLandmark;
+                if (lastLandmark == trdata->nextSensor) {
+                    if ((trdata->reverse) && (distanceAfterLastLandmark > 20)) {
+                        distanceAfterLastLandmark = 20;
+                    }
+                    else if (!(trdata->reverse) && (distanceAfterLastLandmark > 140)) {
+                        distanceAfterLastLandmark = 140;
+                    }
+                }
+                ReleaseLock(data->trtableLock[i]);
+
                 PrintfAt(COM2, TR_R + i * 3, TRLOCATION_SENSOR_C, "%s   ", lastLandmark->name);
-                PrintfAt(COM2, TR_R + i * 3, TRLOCATION_OFFSET_C, "%d ", (int)trdata->distanceAfterLastLandmark / 10);
+                PrintfAt(COM2, TR_R + i * 3, TRLOCATION_OFFSET_C, "%d ", (int)distanceAfterLastLandmark / 10);
             }
         }
         Delay(TIME_INTERVAL);
@@ -717,60 +714,15 @@ void updateTrainSpeed(TrainSetData *data, int trainIndex, int newSpeed) {
     if (newSpeed == 0) {
         trdata->stopInProgress = 1;
         trdata->shortMoveInProgress = 0;
-        trdata->distanceAfterLastSensor += calculate_stopDistance(trdata->trainNum, trdata->lastSpeed);
+        trdata->distanceAfterLastLandmark += calculate_stopDistance(trdata->trainNum, trdata->lastSpeed);
     }
     else {
         trdata->stopInProgress = 0;
     }
 
-    if (trdata->reverseInProgress) {
-        /* Estimate timetick for next/nextNext sensor */
-        int timeInterval = calculate_expectArrivalDuration(trdata, 0 - (int)trdata->distanceAfterLastSensor, trdata->nextSensor->friction);
-        if (timeInterval < 0) {
-            trdata->expectTimetickHittingNextSensor = -1;
-        }
-        else {
-            trdata->expectTimetickHittingNextSensor = Time() + timeInterval;
-        }
-        timeInterval = calculate_expectArrivalDuration(trdata, nextSensorDistance(data, trdata->nextSensor) - (int)trdata->distanceAfterLastSensor, trdata->nextNextSensor->friction);
-        if ((trdata->expectTimetickHittingNextSensor < 0) || (timeInterval < 0)) {
-            trdata->expectTimetickHittingNextNextSensor = -1;
-        }
-        else {
-            trdata->expectTimetickHittingNextNextSensor = Time() + timeInterval;
-        }
-    }
-    else if (trdata->init > 0) {
-        /* Estimate timetick for next/nextNext sensor */
-        int timeInterval = calculate_expectArrivalDuration(trdata, nextSensorDistance(data, trdata->lastSensor) - (int)trdata->distanceAfterLastSensor, trdata->nextSensor->friction);
-        if (timeInterval < 0) {
-            trdata->expectTimetickHittingNextSensor = -1;
-        }
-        else {
-            trdata->expectTimetickHittingNextSensor = Time() + timeInterval;
-        }
-        timeInterval = calculate_expectArrivalDuration(trdata, nextSensorDistance(data, trdata->nextSensor) , trdata->nextNextSensor->friction);
-        if ((trdata->expectTimetickHittingNextSensor < 0) || (timeInterval < 0)) {
-            trdata->expectTimetickHittingNextNextSensor = -1;
-        }
-        else {
-            trdata->expectTimetickHittingNextNextSensor = trdata->expectTimetickHittingNextSensor + timeInterval;
-        }
-    }
-
     ReleaseLock(data->trtableLock[trainIndex]);
 
-    if (trdata->init > 0) {
-        /* Next sensor */
-        PrintfAt(COM2, SENEXPECT_R + trainIndex * 3, SENEXPECT_C, "%s ", trdata->nextSensor->name);
-        /* Estimate timetick fot next sensor */
-        if (trdata->expectTimetickHittingNextSensor < 0) {
-            PrintfAt(COM2, SENEXPECT_R + trainIndex * 3, SENEXPECT_C + 16, "INFI   ");
-        }
-        else {
-            displayTime((trdata->expectTimetickHittingNextSensor)/10, SENEXPECT_R + trainIndex * 3, SENEXPECT_C + 16);
-        }
-    }
+    updateAndPrintSensorEstimation(data, trainIndex);
 }
 
 void reverseTrainSpeed(TrainSetData *data, int trainIndex) {
@@ -788,15 +740,15 @@ void reverseTrainSpeed(TrainSetData *data, int trainIndex) {
 
     AcquireLock(trLock);
     if (trdata->init > 0) {
-        trdata->nextSensor =  nextSensorOrExit(data, trdata->nextSensor->reverse);
         trdata->expectTimetickHittingNextSensor = -1;
-        trdata->nextNextSensor =  nextSensorOrExit(data, trdata->nextSensor);
         trdata->expectTimetickHittingNextNextSensor = -1;
+        trdata->lastLandmark = trdata->lastLandmark->reverse;
+        trdata->distanceAfterLastLandmark = 210 - trdata->distanceAfterLastLandmark;
     }
 
     trdata->reverseInProgress = 1;
     trdata->reverse = 1 - trdata->reverse;
-    trdata->distanceAfterLastSensor = 210 - trdata->distanceAfterLastSensor;
+
     ReleaseLock(trLock);
 
     updateTrainSpeed(data, trainIndex, speed);
@@ -811,29 +763,27 @@ void updateAndPrintSensorEstimation(TrainSetData *data, int trainIndex) {
         return;
     }
 
-    if (trdata->reverseInProgress) {
-        return;
-    }
-
     AcquireLock(data->trtableLock[trainIndex]);
-    trdata->nextSensor = nextSensorOrExit(data, trdata->lastSensor);
+    track_node *oldSensor = trdata->nextSensor;
+    trdata->nextSensor = nextSensorOrExit(data, trdata->lastLandmark);
     trdata->nextNextSensor = nextSensorOrExit(data, trdata->nextSensor);
 
     /* Estimate timetick for next/nextNext sensor */
-    int timeInterval = expectSensorArrivalTimeDuration(data, trainIndex, trdata->lastSensor, trdata->nextSensor->friction);
+    int timeInterval = calculate_expectArrivalDuration(trdata, nextSensorDistance(data, trdata->lastLandmark) - (int)trdata->distanceAfterLastLandmark, trdata->nextSensor->friction);
     if (timeInterval < 0) {
         trdata->expectTimetickHittingNextSensor = -1;
     }
     else {
-        trdata->expectTimetickHittingNextSensor = trdata->actualTimetickHittingLastSensor + timeInterval;
+        trdata->expectTimetickHittingNextSensor = Time() + timeInterval;
     }
-    timeInterval = expectSensorArrivalTimeDuration(data, trainIndex, trdata->nextSensor, trdata->nextNextSensor->friction);
+    timeInterval = calculate_expectArrivalDuration(trdata, nextSensorDistance(data, trdata->nextSensor) - (int)trdata->distanceAfterLastLandmark, trdata->nextNextSensor->friction);
     if ((trdata->expectTimetickHittingNextSensor < 0) || (timeInterval < 0)) {
         trdata->expectTimetickHittingNextNextSensor = -1;
     }
     else {
-        trdata->expectTimetickHittingNextNextSensor = trdata->expectTimetickHittingNextSensor + timeInterval;
+        trdata->expectTimetickHittingNextNextSensor = Time() + timeInterval;
     }
+
     ReleaseLock(data->trtableLock[trainIndex]);
 
     /* Next sensor */
@@ -845,9 +795,16 @@ void updateAndPrintSensorEstimation(TrainSetData *data, int trainIndex) {
     else {
         displayTime((trdata->expectTimetickHittingNextSensor)/10, SENEXPECT_R + trainIndex * 3, SENEXPECT_C + 16);
     }
+
+    if (oldSensor != trdata->nextSensor) {
+        AcquireLock(data->trackLock);
+        trackGraph_unhighlightSenPath(data, oldSensor);
+        trackGraph_highlightSenPath(data, trdata->nextSensor);
+        ReleaseLock(data->trackLock);
+    }
 }
 
-void findAndStoreFinalLocation(struct TrainSetData *data, int trainIndex, char *location, int endOffset) {
+void findAndStoreFinalLocation(struct TrainSetData *data, int trainIndex, char *location, int finalLocationOffset) {
     int i = 0;
     track_node *track = data->track;
     track_node *end = 0;
@@ -869,7 +826,7 @@ void findAndStoreFinalLocation(struct TrainSetData *data, int trainIndex, char *
     AcquireLock(data->trtableLock[trainIndex]);
     trdata->finalLocation = end;
     trdata->finalLocationAlt = end_alt;
-    trdata->endOffset = endOffset;
+    trdata->finalLocationOffset = finalLocationOffset;
     ReleaseLock(data->trtableLock[trainIndex]);
 }
 
@@ -882,34 +839,74 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
     }
 
     TrainData *trdata = data->trtable[trainIndex];
+
+    track_node *start;
+    int startOffset;
     AcquireLock(data->trtableLock[trainIndex]);
-    track_node *start = trdata->lastLandmark;
+    if (trdata->nextLocation == (track_node *)0) {
+        start = trdata->lastLandmark;
+        startOffset = (int)trdata->distanceAfterLastLandmark;
+    }
+    else {
+        start = trdata->nextLocation;
+        startOffset = trdata->nextLocationOffset;
+    }
     ReleaseLock(data->trtableLock[trainIndex]);
+
     track_node *end = trdata->finalLocation;
     track_node *end_alt = trdata->finalLocationAlt;
-    int startOffset = (int)trdata->distanceAfterLastLandmark;
-    int endOffset = trdata->endOffset;
+    int finalLocationOffset = trdata->finalLocationOffset;
 
     int distance;
     int *result;
     int result1[TRACK_SWITCH_NUM * 2];
     int result2[TRACK_SWITCH_NUM * 2];
 
-    int distance1 = findRouteDistance(nextNode(data, start), end, end_alt, endOffset, start, result1, 0) - endOffset;
-    if (distance1 >= 0) {
-        distance1 += nextDistance(data, start) - startOffset;
+    Log("Finding route...");
+    int distance1 = -1;
+    int distance2 = -1;
+
+    if (startOffset > 0) {
+        /* Straight ahead */
+        distance1 = findRouteDistance(nextNode(data, start), end, end_alt, finalLocationOffset, start, result1, 0) - finalLocationOffset;
+        if (distance1 >= 0) {
+            distance1 += nextDistance(data, start) - startOffset;
+        }
+    }
+    else {
+        /* Straight behind */
+        distance1 = findRouteDistance(start, end, end_alt, finalLocationOffset, start, result1, 0) - finalLocationOffset;
+        if (distance1 >= 0) {
+            distance1 -= startOffset;
+        }
     }
 
-    int distance2 = findRouteDistance(nextNode(data, start->reverse), end, end_alt, endOffset, start->reverse, result2, 0) - endOffset;
-    if (distance2 >= 0) {
-        distance2 += nextDistance(data, start->reverse) - (210 - startOffset);
+    if ((210 - startOffset) > 0) {
+        /* Reverse ahead */
+        distance2 = findRouteDistance(nextNode(data, start->reverse), end, end_alt, finalLocationOffset, start->reverse, result2, 0) - finalLocationOffset;
+        if (distance2 >= 0) {
+            distance2 += nextDistance(data, start->reverse) - (210 - startOffset);
+        }
+    }
+    else {
+        /* Reverse behind */
+        distance2 = findRouteDistance(start->reverse, end, end_alt, finalLocationOffset, start->reverse, result2, 0) - finalLocationOffset;
+        if (distance2 >= 0) {
+            distance2 -= (210 - startOffset);
+        }
     }
 
+    /* Pick shortest path and choose head behind current facing node */
     if ((distance1 >= 0) &&
         ((distance1 <= distance2) || (distance2 < 0))) {
 
+        if (startOffset > 0) {
+            start = nextNode(data, start);
+            startOffset = startOffset - nextDistance(data, start);
+        }
+
         result = result1;
-        Log("route : %s + %d -> %s/%s", start->name, startOffset / 10, end->name, end_alt->name);
+        Log("route : %s - %d -> %s/%s", start->name, (0 - startOffset / 10), end->name, end_alt->name);
     }
     else if ((distance2 >= 0) &&
         ((distance2 <= distance1) || (distance1 < 0))) {
@@ -917,14 +914,21 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
         reverseTrainSpeed(data, trainIndex);
         start = start->reverse;
         startOffset = 210 - startOffset;
+
+        if (startOffset > 0) {
+            start = nextNode(data, start);
+            startOffset = startOffset - nextDistance(data, start);
+        }
+
         result = result2;
-        Log("route : %s + %d -> %s/%s", start->name, startOffset / 10, end->name, end_alt->name);
+        Log("route : %s - %d -> %s/%s", start->name, (0 - startOffset / 10), end->name, end_alt->name);
     }
     else {
         warning("No route found");
         return -1;
     }
 
+    /* Unhighlight graph */
     for(i = 0; i < TRAIN_NUM; i++) {
         trdata = data->trtable[i];
         if (trdata->numSensorPast > 0) {
@@ -934,22 +938,27 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
         }
     }
 
-    track_node *current = nextNode(data, start);
-    distance = nextDistance(data, start) - startOffset;
+    /* Go thru path, turn switch, recalculate distance, break at end point or reverse point */
+    track_node *current = start;
+    int nextLocationOffset = 0;
+    distance = 0 - startOffset;
     int switchNum, switchDir;
+
     for(i = 0;;) {
         if (current == end) {
-            distance += endOffset;
+            distance += finalLocationOffset;
             break;
         }
         else if (current == end_alt) {
-            distance -= endOffset;
+            distance -= finalLocationOffset;
             break;
         }
 
         if (current->type == NODE_MERGE) {
             if (result[i] == DIR_REVERSE) {
-                distance += 300;
+                /* Add gap ahead of merge node */
+                distance += REVERSE_GAP;
+                nextLocationOffset = REVERSE_GAP;
                 break;
             }
             distance += current->edge[DIR_AHEAD].dist;
@@ -960,24 +969,18 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
             switchNum = current->num;
             switchDir = result[i];
             if (switchDir != *(data->swtable + getSwitchIndex(switchNum))) {
-                // if ((current == start) || (current == nextNode(data, start))) {
-                //     warning("Too close to switch");
-                //     return -3;      // Too close to a switch
-                // }
-                // else {
-                    /* Update switch table. */
-                    AcquireLock(data->swtableLock);
-                    *(data->swtable + getSwitchIndex(switchNum)) = switchDir;
-                    ReleaseLock(data->swtableLock);
-                    /* Send message to train set to actually turn switch. */
-                    trainset_turnSwitch(switchNum, switchDir);
-                    /* Update terminal switch table. */
-                    updateSwitchTable(switchNum, switchDir);
-                    /* Update realtime graph. */
-                    AcquireLock(data->trackLock);
-                    trackGraph_turnSw(data, switchNum, switchDir);
-                    ReleaseLock(data->trackLock);
-                // }
+                /* Update switch table. */
+                AcquireLock(data->swtableLock);
+                *(data->swtable + getSwitchIndex(switchNum)) = switchDir;
+                ReleaseLock(data->swtableLock);
+                /* Send message to train set to actually turn switch. */
+                trainset_turnSwitch(switchNum, switchDir);
+                /* Update terminal switch table. */
+                updateSwitchTable(switchNum, switchDir);
+                /* Update realtime graph. */
+                AcquireLock(data->trackLock);
+                trackGraph_turnSw(data, switchNum, switchDir);
+                ReleaseLock(data->trackLock);
             }
             distance += current->edge[switchDir].dist;
             current = current->edge[switchDir].dest;
@@ -989,19 +992,15 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
         }
     }
 
+    /* Store this location and offset in trainData, which will be used as start point next round */
     AcquireLock(data->trtableLock[trainIndex]);
     data->trtable[trainIndex]->nextLocation = current;
-    data->trtable[trainIndex]->lastLandmark = current;
-    if ((current == end) || (current == end_alt)) {
-        data->trtable[trainIndex]->distanceAfterLastLandmark = 0;
-    }
-    else {
-        data->trtable[trainIndex]->distanceAfterLastLandmark = 300;
-    }
+    data->trtable[trainIndex]->nextLocationOffset = nextLocationOffset;
     ReleaseLock(data->trtableLock[trainIndex]);
 
-    Log("next location : %s + %d, distance = %d, final location : %s/%s", current->name, (int)data->trtable[trainIndex]->distanceAfterLastLandmark/10, distance, end->name, end_alt->name);
+    Log("next location : %s + %d, distance = %d, final location : %s/%s", current->name, nextLocationOffset / 10, distance, end->name, end_alt->name);
 
+    /* Highlight graph */
     for(i = 0; i < TRAIN_NUM; i++) {
         trdata = data->trtable[i];
         if (trdata->numSensorPast > 0) {
