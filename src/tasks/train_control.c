@@ -217,6 +217,17 @@ void trainTask() {
                 trdata->reverse = 0;
                 trdata->trainNum = message.num;
                 trdata->nextSensor = (track_node *)0;
+                if (stringEquals(message.location, "A10")) {
+                    trdata->lastLandmark = &(data->track[9]);
+                }
+                else if (stringEquals(message.location, "A8")) {
+                    trdata->lastLandmark = &(data->track[7]);
+                }
+                else if (stringEquals(message.location, "A5")) {
+                    trdata->lastLandmark = &(data->track[4]);
+                }
+
+                trdata->distanceAfterLastLandmark = 140;
                 PrintfAt(COM2, TR_R + trainIndex * 3, TR_C, "Train%d  Speed :     Location :         +     cm", message.num);
                 PrintfAt(COM2, SENEXPECT_R + trainIndex * 3, SWTABLE_C, "Expecting                at");
                 PrintfAt(COM2,SENLAST_R + trainIndex * 3, SWTABLE_C, "Last Sensor         past at          expected          diff");

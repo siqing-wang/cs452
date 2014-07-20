@@ -173,11 +173,33 @@ int parseInitCommand(int trainCtrlTid, char* input){
         return CMD_FAILED;
     }
 
-    PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%sInitialize train %u%s", TCS_GREEN, train_number, TCS_RESET);
+    /* read stop location */
+    char location[6];
+    if(!readString(&input, location)) {
+        return CMD_FAILED;
+    }
+
+    /* Capitalize */
+    int i;
+    for (i = 0; i < 6; i++) {
+        if ((location[i] >= 'a') && (location[i] <= 'z')) {
+            location[i] = location[i] - 'a' + 'A';
+        }
+    }
+
+    // Only accept A10, A8, A5
+    if ((!stringEquals(location, "A10")) &&
+        (!stringEquals(location, "A8")) &&
+        (!stringEquals(location, "A5"))) {
+        return CMD_FAILED;
+    }
+
+    PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%sInitialize train %u at location %s %s", TCS_GREEN, train_number, location, TCS_RESET);
 
     TrainControlMessage message;
     message.type = TRAINCTRL_INIT;
     message.num = train_number;
+    message.location = location;
     int msg = 0;
     Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
 
