@@ -1386,7 +1386,7 @@ void init_tracka(track_node *track) {
     track[34].friction = 0.937;
     track[35].friction = 0.750;
     track[36].friction = 0.896;
-    track[37].friction = 0.828;
+    track[37].friction = 0.780;
     track[38].friction = 0.845;
     track[39].friction = 0.976;
     track[40].friction = 0.863;

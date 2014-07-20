@@ -26,7 +26,7 @@
 #define SENLAST_R       		(SENEXPECT_R+1)          // next sensor expected
 #define SENLAST_C       		SENEXPECT_C
 
-#define TRACK_R     21
+#define TRACK_R     24
 #define TRACK_C     5
 
 #define CMD_R       (TRACK_R+19)          // command
@@ -35,7 +35,7 @@
 #define LOG_R       (CMD_R+2)          // system log
 #define LOG_C       5
 
-#define SIDELOG_R   42
+#define SIDELOG_R   45
 #define SIDELOG_C   75
 #define SIDELOG_HEIGHT 20
 

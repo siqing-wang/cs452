@@ -501,7 +501,8 @@ void trainControlServer() {
     int trainNums[TRAIN_NUM];
     trainNums[0] = 45;
     trainNums[1] = 49;
-    int trainTids[TRAIN_NUM] = {-1, -1};
+    trainNums[2] = 53;
+    int trainTids[TRAIN_NUM];
 
     /* Create children tasks. */
     int parentTid, childTid;
@@ -893,7 +894,7 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
     }
     else {
         /* Straight behind */
-        distance1 = findRouteDistance(start, end, end_alt, finalLocationOffset, start, result1, 0) - finalLocationOffset;
+        distance1 = findRouteDistance(start, end, end_alt, finalLocationOffset, (track_node *)0, result1, 0) - finalLocationOffset;
         if (distance1 >= 0) {
             distance1 -= startOffset;
         }
@@ -908,7 +909,7 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
     }
     else {
         /* Reverse behind */
-        distance2 = findRouteDistance(start->reverse, end, end_alt, finalLocationOffset, start->reverse, result2, 0) - finalLocationOffset;
+        distance2 = findRouteDistance(start->reverse, end, end_alt, finalLocationOffset, (track_node *)0, result2, 0) - finalLocationOffset;
         if (distance2 >= 0) {
             distance2 -= (210 - startOffset);
         }

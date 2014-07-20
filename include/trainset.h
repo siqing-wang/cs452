@@ -18,7 +18,7 @@
 #define SENSOR_RESET_MODE_ON 192
 #define SENSOR_SUBSCRIBE_ALL 133
 
-#define TRAIN_NUM 2
+#define TRAIN_NUM 3
 
 #define REVERSE_GAP 300
 
