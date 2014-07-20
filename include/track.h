@@ -5,6 +5,8 @@
 #define TRACK_SWITCH_NUM 22
 #define TRACK_GRAPH_NODES_MAX 20
 
+#include <trainset.h>
+
 /* Data structures */
 typedef enum {
   NODE_NONE,
@@ -30,6 +32,7 @@ struct track_edge {
   int dist;             /* in millimetres */
   int numGraphNodes;
   unsigned int graphNodes[TRACK_GRAPH_NODES_MAX];
+  unsigned int reservation[TRAIN_NUM];
 };
 
 struct track_node {
@@ -51,5 +54,13 @@ int nextSensorDistance(struct TrainSetData *data, track_node *node);
 int findRouteDistance(track_node *start, track_node *end, track_node *end_alt, int endOffset, track_node *lastNode, int *result, int resultIndex);
 void init_tracka(track_node *track);
 void init_trackb(track_node *track);
+
+/* Track Reservation */
+#define RESERV_SAFE_MARGIN 50
+#define RESERV_DELAY 10
+
+int reserv_getReservation(track_edge *edge, int low, int high);
+void reserv_init(TrainSetData *data, int trainIndex);
+int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainIndex);
 
 #endif

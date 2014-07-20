@@ -432,6 +432,29 @@ void updateTrainTable() {
     }
 }
 
+void trainCoordinator() {
+    int serverTid;
+    int msg = 0, i;
+    int reservInited = 0;
+    TrainSetData *data;
+
+    Receive(&serverTid, &data, sizeof(data));
+    Reply(serverTid, &msg, sizeof(msg));
+
+    for (;;) {
+        for (i = 0; i< TRAIN_NUM; i++) {
+            if ((data->trtable[i]->init == 0) && !(reservInited & (1 << i))) {
+                reserv_init(data, i);
+            } else if (data->trtable[i]->init > 0) {
+                reserv_updateReservation(serverTid, data, i);
+            }
+        }
+
+        Delay(RESERV_DELAY);
+    }
+
+}
+
 void displayCurrentPosition() {
     int serverTid;
     int msg = 0;
@@ -537,6 +560,9 @@ void trainControlServer() {
     }
 
     childTid = Create(8, &updateTrainTable);                    // Task to update speed table.
+    Send(childTid, &data, sizeof(data), &msg, sizeof(msg));
+
+    childTid = Create(7, &trainCoordinator);                    // Reservation Task.
     Send(childTid, &data, sizeof(data), &msg, sizeof(msg));
 
     childTid = Create(3, &displayCurrentPosition);              // Task to display train location

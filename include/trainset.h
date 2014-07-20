@@ -19,6 +19,7 @@
 #define SENSOR_SUBSCRIBE_ALL 133
 
 #define TRAIN_NUM 3
+#define TRAIN_LENGTH 210
 
 #define REVERSE_GAP 300
 
@@ -62,6 +63,7 @@ typedef struct TrainData {
     int needToStop;
     int delayToStop;
     int continueToStop;
+    unsigned int stopAtSwDirctions;
     struct track_node *nextLocation;
     int nextLocationOffset;
     struct track_node *finalLocation;
