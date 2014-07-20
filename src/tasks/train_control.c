@@ -214,6 +214,7 @@ void trainTask() {
         switch (message.type) {
             case TRAINCTRL_INIT:
                 trdata->init = 0;
+                trdata->reverse = 0;
                 trdata->trainNum = message.num;
                 trdata->nextSensor = (track_node *)0;
                 PrintfAt(COM2, TR_R + trainIndex * 3, TR_C, "Train%d  Speed :     Location :         +     cm", message.num);
@@ -705,6 +706,15 @@ void updateTrainSpeed(TrainSetData *data, int trainIndex, int newSpeed) {
 
     AcquireLock(data->trtableLock[trainIndex]);
 
+    if ((trdata->init > 0) && (trdata->lastSpeed == 0) && (trdata->lastLandmark == trdata->nextSensor)) {
+        if ((trdata->reverse) && (trdata->distanceAfterLastLandmark > 20)) {
+            trdata->distanceAfterLastLandmark = 20;
+        }
+        else if (!(trdata->reverse) && (trdata->distanceAfterLastLandmark > 140)) {
+            trdata->distanceAfterLastLandmark = 140;
+        }
+    }
+
     trdata->lastSpeed = trdata->targetSpeed;
     trdata->targetSpeed = newSpeed;
     trdata->timetickSinceSpeedChange = 0;
@@ -736,6 +746,14 @@ void reverseTrainSpeed(TrainSetData *data, int trainIndex) {
     trainset_setSpeed(trainNum, 0);
     PrintfAt(COM2, TR_R + trainIndex * 3, TRSPEED_C, "0 ");
     Delay(trdata->delayRequiredToAchieveSpeed);
+    if ((trdata->init > 0) && (trdata->lastLandmark == trdata->nextSensor)) {
+        if ((trdata->reverse) && (trdata->distanceAfterLastLandmark > 20)) {
+            trdata->distanceAfterLastLandmark = 20;
+        }
+        else if (!(trdata->reverse) && (trdata->distanceAfterLastLandmark > 140)) {
+            trdata->distanceAfterLastLandmark = 140;
+        }
+    }
     trainset_reverse(trainNum);
 
     AcquireLock(trLock);
@@ -901,8 +919,8 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
         ((distance1 <= distance2) || (distance2 < 0))) {
 
         if (startOffset > 0) {
-            start = nextNode(data, start);
             startOffset = startOffset - nextDistance(data, start);
+            start = nextNode(data, start);
         }
 
         result = result1;
@@ -916,8 +934,8 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
         startOffset = 210 - startOffset;
 
         if (startOffset > 0) {
-            start = nextNode(data, start);
             startOffset = startOffset - nextDistance(data, start);
+            start = nextNode(data, start);
         }
 
         result = result2;

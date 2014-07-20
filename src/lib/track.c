@@ -1364,8 +1364,9 @@ void init_tracka(track_node *track) {
     for( ; i < TRACK_MAX; i++) {
         track[i].friction = 1;
     }
+    track[1].friction = 0.90;
     track[2].friction = 0.938;
-    track[3].friction = 0.957;
+    track[3].friction = 0.970;
     track[4].friction = 0.957;
     track[5].friction = 1.010;
     track[6].friction = 1.151;
@@ -1393,7 +1394,7 @@ void init_tracka(track_node *track) {
     track[41].friction = 0.931;
     track[42].friction = 0.858;
     track[43].friction = 0.876;
-    track[44].friction = 1;
+    track[44].friction = 1.1;
     track[45].friction = 0.921;
     track[46].friction = 0.833;
     track[48].friction = 0.736;

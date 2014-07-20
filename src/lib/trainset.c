@@ -237,7 +237,10 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
         trdata->nextNextSensor = nextSensorOrExit(data, trdata->nextSensor);
 
         /* Calibration */
-        if ((trdata->estimateTimetickHittingLastSensor > 0) && ((timetick - trdata->actualTimetickHittingLastSensor) > 0)) {
+        if ((trdata->estimateTimetickHittingLastSensor > 0) && ((timetick - trdata->actualTimetickHittingLastSensor) > 0)
+            && (trdata->timetickSinceSpeedChange > 500)
+            && (!trdata->stopInProgress)
+            && (!trdata->shortMoveInProgress)) {
             int friction = (int)(node->friction * 700) * (1.0 *
                 (trdata->estimateTimetickHittingLastSensor - trdata->actualTimetickHittingLastSensor) /
                 (timetick - trdata->actualTimetickHittingLastSensor));
