@@ -142,6 +142,23 @@ double calculate_stopDistance(int trainNum, int speed) {
     return -1;
 }
 
+double calculate_shortMoveDistance(int trainNum, int speed, int delay) {
+    if ((speed < 0) || (speed > 14)) {
+        return -1;
+    }
+    if (speed == 0) {
+        return 0;
+    }
+
+    switch(trainNum) {
+        case 45:
+            return 0.00002 * delay * delay * delay + 0.0002 * delay * delay + 0.4896 * delay - 10.202;
+        case 49:
+        default:
+            return 0.00002 * delay * delay * delay - 0.0007 * delay * delay + 0.59 * delay - 12.233;
+    }
+}
+
 int calculate_delayToAchieveSpeed(TrainData *trainData) {
     int trainNum = trainData->trainNum;
     int lastSpeed = trainData->lastSpeed;
@@ -277,68 +294,53 @@ int calculate_expectArrivalDuration(TrainData *trainData, int distance, double f
 int calculate_delayToStop(TrainSetData *trainSetData, TrainData *trainData, track_node *start, int distance) {
     int trainNum = trainData->trainNum;
     int targetSpeed = trainData->targetSpeed;
-    int timetickSinceSpeedChange = trainData->timetickSinceSpeedChange;
-
-    double minDistance = calculate_stopDistance(trainNum, targetSpeed);
-    double targetVelocity = calculate_trainVelocity(trainNum, targetSpeed);
-    double currentDistance = 0;
-    double currentVelocity = 0;
+    int minDelay = 400;
+    double minDistance = calculate_shortMoveDistance(trainNum, targetSpeed, minDelay);
     double friction = nextSensorOrExit(trainSetData, start)->friction;
 
     int delay = 0;
-    if (distance >= (2 * minDistance)) {
-        distance -= minDistance;
-
-        for(;;) {
-            if ((timetickSinceSpeedChange + delay) >= trainData->delayRequiredToAchieveSpeed) {
-                break;
-            }
-            currentVelocity = calculate_currentVelocity(trainData, (timetickSinceSpeedChange + delay)) * friction;
-            currentDistance += currentVelocity;
-            delay ++;
-        }
-
-        distance -= currentDistance;
-        assert((distance >= 0), "calculated_delayToStop : distance is negative after reach full speed.");
+    if (distance >= minDistance) {
+        double targetVelocity = calculate_trainVelocity(trainNum, targetSpeed);
+        double acDistance = minDistance - calculate_stopDistance(trainNum, targetSpeed);
+        double acDistanceCopy = acDistance;
+        double currentDistance = 0;
+        int passed = 0;
 
         for(;;) {
             if (start->type == NODE_EXIT) {
                 break;
             }
-            int passed = nextSensorDistance(trainSetData, start);
-            if (passed < currentDistance) {
-                currentDistance -= passed;
-                start = nextSensorOrExit(trainSetData, start);
-                continue;
-            }
-
-            passed -= currentDistance;
-            currentDistance = 0;
-
-            if (distance < passed) {
+            passed = nextSensorDistance(trainSetData, start);
+            if (passed > acDistanceCopy) {
+                currentDistance += acDistanceCopy * start->friction;
+                passed -= acDistanceCopy;
+                distance -= minDistance;
+                delay += minDelay * acDistance / currentDistance;
                 break;
             }
+            acDistanceCopy -= passed;
+            currentDistance += passed * start->friction;
             start = nextSensorOrExit(trainSetData, start);
-            distance = distance - passed;
-            delay += passed / (targetVelocity * start->friction);
         }
-        delay += distance / (targetVelocity * start->friction);
+
+        for(;;) {
+            if (start->type == NODE_EXIT) {
+                break;
+            }
+            if (distance < passed) {
+                delay += distance / (targetVelocity * start->friction);
+                break;
+            }
+            distance -= passed;
+            delay += passed / (targetVelocity * start->friction);
+            passed = nextSensorDistance(trainSetData, start);
+            start = nextSensorOrExit(trainSetData, start);
+        }
     }
     else {
         trainData->shortMoveInProgress = 1;
-
         for(;;delay++) {
-            switch(trainNum) {
-                case 45:
-                    currentDistance = 0.00002 * delay * delay * delay + 0.0002 * delay * delay + 0.4896 * delay - 10.202;
-                    break;
-                case 49:
-                default:
-                    currentDistance = 0.00002 * delay * delay * delay - 0.0007 * delay * delay + 0.59 * delay - 12.233;
-                    break;
-            }
-
-            if ((currentDistance * friction) >= distance) {
+            if ((calculate_shortMoveDistance(trainNum, targetSpeed, delay) * friction) >= distance) {
                 break;
             }
         }

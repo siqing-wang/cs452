@@ -238,7 +238,7 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
 
         /* Calibration */
         if ((trdata->estimateTimetickHittingLastSensor > 0) && ((timetick - trdata->actualTimetickHittingLastSensor) > 0)
-            && (trdata->timetickSinceSpeedChange > 500)
+            && (trdata->timetickSinceSpeedChange > 400)
             && (!trdata->stopInProgress)
             && (!trdata->shortMoveInProgress)) {
             int friction = (int)(node->friction * 700) * (1.0 *
@@ -250,7 +250,11 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
 
         /* Update location info */
         trdata->timetickWhenHittingSensor = trdata->timetickSinceSpeedChange;
-        if ((trdata->needToStop) && (trdata->estimateTimetickHittingLastSensor > 0) && (!trdata->shortMoveInProgress)) {
+        if ((trdata->needToStop)
+            && (trdata->estimateTimetickHittingLastSensor > 0)
+            && (trdata->timetickSinceSpeedChange > 400)
+            && (!trdata->stopInProgress)
+            && (!trdata->shortMoveInProgress)) {
             int diff = trdata->actualTimetickHittingLastSensor - trdata->estimateTimetickHittingLastSensor;
             trdata->delayToStop = trdata->delayToStop + diff;
             Log("Delay + %d ticks at sensor %s", diff, node->name);
