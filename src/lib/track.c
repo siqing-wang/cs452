@@ -197,12 +197,14 @@ int reserv_getReservation(track_edge *edge, int low, int high) {
     /* If low = high we are checking a point. */
     assert(low <= high && low >= 0 && high > 0 && high <= edge->dist,
         "reserv_getReservation: invalid range.");
+    Log("Get reservation: at edge %s [%d %d]", edge->src->name, low, high);
     int owned = 0;
     int i, c, low2, high2;
     for (c = 0; c < 2; c++) {
         /* Check this direction. */
         for (i = 0; i < TRAIN_NUM; i++) {
             reserv_extractReservationNode(edge->reservation[i], &low2, &high2);
+            Log("  train%d holds [%d %d]", i, low2, high2);
             if (low >= high2 || high <= low2) {
                 continue;
             } else {
@@ -215,6 +217,7 @@ int reserv_getReservation(track_edge *edge, int low, int high) {
         int tmp = low;
         low = edge->dist - high;
         high = edge->dist - tmp;
+        Log("First direction checked, low, high fliped to: [%d %d]", low, high);
     }
     return owned;   // Nobody holds this track.
 }
@@ -256,7 +259,7 @@ void reserv_adjustStartingPoint(int trainIndex, track_node **nodeStart, int *sta
 void reserv_giveBackTailingTrack(TrainSetData *data, int trainIndex) {
     TrainData *trdata = data->trtable[trainIndex];
     track_node *nodeStart = trdata->lastLandmark->reverse;
-    int offsetStart = TRAIN_LENGTH - trdata->distanceAfterLastLandmark;
+    int offsetStart = TRAIN_LENGTH - (int)trdata->distanceAfterLastLandmark;
     reserv_adjustStartingPoint(trainIndex, &nodeStart, &offsetStart);
 
     int maskMe = 1 << trainIndex;
@@ -297,14 +300,20 @@ void reserv_giveBackTailingTrack(TrainSetData *data, int trainIndex) {
 void reserv_init(TrainSetData *data, int trainIndex) {
     TrainData *trdata = data->trtable[trainIndex];
     track_node *node = trdata->lastLandmark;
+    Log("Init train %d, starting node name = %s", trainIndex, node->name);
     node = node->reverse;
     assert(node->type == NODE_SENSOR, "reserv_init: starting node not sensor.");
-
+    Log("0");
     track_edge *edge;
-    int i = 0;
-    for (; i < 2; i++) {
+    int i;
+    for (i = 0; i < 2; i++) {
+        Log("1");
         edge = &(node->edge[DIR_AHEAD]);
-        assert(reserv_getReservation(edge, 0, edge->dist) == 0, "reserv_init: track reserved already.");
+        Log("2");
+        int reserv = reserv_getReservation(edge, 0, edge->dist);
+        Log("Result of get reservation: %d", reserv);
+
+        assert(reserv == 0, "reserv_init: track reserved already.");
         edge->reservation[trainIndex] = reserv_buildReservationNode(0, edge->dist);
     }
     assert(edge->dest->type == NODE_EXIT, "reserv_init: invalid starting node.");
@@ -320,7 +329,7 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
     }
 
     track_node *nodeStart = trdata->lastLandmark;
-    int offsetStart = trdata->distanceAfterLastLandmark;
+    int offsetStart = (int)trdata->distanceAfterLastLandmark;
     int maskMe = 1 << trainIndex, maskOthers = 0xffffffff & ~maskMe;
 
     /* Adjust to make offset positive. */

@@ -59,15 +59,6 @@ void switchTask() {
         assert(message.type == TRAINCTRL_SW_CHANGE, "switchTask: Invalid message type.");
 
         if (message.data != *(data->swtable + getSwitchIndex(message.num))) {
-            /* Unhighlight graph */
-            for (i = 0; i < TRAIN_NUM; i++) {
-                trdata = data->trtable[i];
-                if (trdata->numSensorPast > 0) {
-                    AcquireLock(data->trackLock);
-                    trackGraph_unhighlightSenPath(data, trdata->lastSensor);
-                    ReleaseLock(data->trackLock);
-                }
-            }
 
             /* Update switch table. */
             AcquireLock(data->swtableLock);
@@ -77,19 +68,11 @@ void switchTask() {
             trainset_turnSwitch(message.num, message.data);
             /* Update terminal switch table. */
             updateSwitchTable(message.num, message.data);
-            /* Update realtime graph. */
-            AcquireLock(data->trackLock);
-            trackGraph_turnSw(data, message.num, message.data);
-            ReleaseLock(data->trackLock);
 
             /* Highlight graph and update nextSensor in each train's trainData */
             for(i = 0; i < TRAIN_NUM; i++) {
                 trdata = data->trtable[i];
                 if (trdata->numSensorPast > 0) {
-                    AcquireLock(data->trackLock);
-                    trackGraph_highlightSenPath(data, trdata->lastSensor);
-                    ReleaseLock(data->trackLock);
-
                     updateAndPrintSensorEstimation(data, i);
                 }
             }
@@ -163,7 +146,7 @@ void sensorTask() {
                 /* Estimate timetick for last sensor */
                 PrintfAt(COM2, SENLAST_R + i * 3, SENLAST_C + 34, "INFI   ");
                 /* Difference between actual and estimate */
-                PrintfAt(COM2, SENLAST_R + i * 3, SENLAST_C + 48, "INFI%s", TCS_DELETE_TO_EOL);
+                PrintfAt(COM2, SENLAST_R + i * 3, SENLAST_C + 48, "INFI");
             }
             else {
                 /* Estimate timetick for last sensor */
@@ -173,16 +156,8 @@ void sensorTask() {
                 if (diff < 0) {
                     diff = 0 - diff;
                 }
-                PrintfAt(COM2, SENLAST_R + i * 3, SENLAST_C + 48, "%d%s", diff, TCS_DELETE_TO_EOL);
+                PrintfAt(COM2, SENLAST_R + i * 3, SENLAST_C + 48, "%d   ", diff > 999 ? 999 : diff);
             }
-
-            /* Update terminal track graph. */
-            AcquireLock(data->trackLock);
-            if (trdata->numSensorPast > 1) {
-                trackGraph_unhighlightSenPath(data, trdata->lastLastSensor);
-            }
-            trackGraph_highlightSenPath(data, trdata->lastSensor);
-            ReleaseLock(data->trackLock);
         }
     }
 }
@@ -213,7 +188,6 @@ void trainTask() {
 
         switch (message.type) {
             case TRAINCTRL_INIT:
-                trdata->init = 0;
                 trdata->reverse = 0;
                 trdata->trainNum = message.num;
                 trdata->nextSensor = (track_node *)0;
@@ -226,6 +200,7 @@ void trainTask() {
                 else if (stringEquals(message.location, "A5")) {
                     trdata->lastLandmark = &(data->track[4]);
                 }
+                trdata->init = 0;
 
                 trdata->distanceAfterLastLandmark = 140;
                 PrintfAt(COM2, TR_R + trainIndex * 3, TR_C, "Train%d  Speed :     Location :         +     cm", message.num);
@@ -393,7 +368,6 @@ void updateTrainTable() {
                 trdata->delayToStop = trdata->delayToStop - 1;
             }
 
-            // PrintfAt(COM2, 45, 1, "%d%s", data->trtable[0]->delayToStop, TCS_DELETE_TO_EOL);
             if ((trdata->needToStop) && (trdata->delayToStop <= 0)) {
                 trdata->needToStop = 0;
                 sendToServer = 1;
@@ -433,6 +407,7 @@ void updateTrainTable() {
 }
 
 void trainCoordinator() {
+    Exit();
     int serverTid;
     int msg = 0, i;
     int reservInited = 0;
@@ -445,6 +420,7 @@ void trainCoordinator() {
         for (i = 0; i< TRAIN_NUM; i++) {
             if ((data->trtable[i]->init == 0) && !(reservInited & (1 << i))) {
                 reserv_init(data, i);
+                reservInited = reservInited | (1 << i);
             } else if (data->trtable[i]->init > 0) {
                 reserv_updateReservation(serverTid, data, i);
             }
@@ -491,6 +467,65 @@ void displayCurrentPosition() {
         }
         Delay(TIME_INTERVAL);
     }
+}
+
+void drawTrackGraph() {
+    int serverTid;
+    int msg = 0, i;
+    TrainSetData *data;
+
+    Receive(&serverTid, &data, sizeof(data));
+    Reply(serverTid, &msg, sizeof(msg));
+
+    /* Initialize switch. */
+    int swtableSnapShot[SWITCH_TOTAL];
+    for (i = 0; i < SWITCH_TOTAL; i++) {
+        swtableSnapShot[i] = data->swtable[i];
+        trackGraph_drawSw(data, i, swtableSnapShot[i]);
+    }
+
+    /* Initialize track locations. */
+    unsigned int trackGraphNodes[TRAIN_NUM][3];
+    int redrawSwNextTimeForTrain[TRAIN_NUM];
+    for (i = 0; i < TRAIN_NUM; i++) {
+        trackGraphNodes[i][0] = -1;
+        trackGraphNodes[i][1] = -1;
+        trackGraphNodes[i][2] = -1;
+        redrawSwNextTimeForTrain[i] = -1;
+    }
+
+    /* Each train a different color. */
+    int numTrainColors = 1;
+    int colors[numTrainColors];
+    colors[0] = 31;     // red.
+
+    /* Forever. */
+    TrainData *trdata;
+    int color;
+    for (;;) {
+        /* Update switch table. */
+        for (i = 0; i < SWITCH_TOTAL; i++) {
+            trackGraph_redrawSw(data, i, swtableSnapShot[i], data->swtable[i]);
+            swtableSnapShot[i] = data->swtable[i];
+        }
+
+        /* Update train. */
+        for (i = 0; i < TRAIN_NUM; i++) {
+            trdata = data->trtable[i];
+            if (trdata->init < 0) {
+                continue;
+            }
+            color = colors[i % numTrainColors];
+            trackGraph_redrawTrainLoc(data, trackGraphNodes[i],
+                trdata->lastLandmark, (unsigned int)trdata->distanceAfterLastLandmark,
+                swtableSnapShot,
+                &(redrawSwNextTimeForTrain[i]),
+                color);
+        }
+        Delay(20);
+    }
+
+
 }
 
 void trainControlServer() {
@@ -566,6 +601,9 @@ void trainControlServer() {
     Send(childTid, &data, sizeof(data), &msg, sizeof(msg));
 
     childTid = Create(3, &displayCurrentPosition);              // Task to display train location
+    Send(childTid, &data, sizeof(data), &msg, sizeof(msg));
+
+    childTid = Create(3, &drawTrackGraph);                      // Task to draw train graph
     Send(childTid, &data, sizeof(data), &msg, sizeof(msg));
 
     RegisterAs("Train Control Server");
@@ -820,7 +858,7 @@ void updateAndPrintSensorEstimation(TrainSetData *data, int trainIndex) {
     }
 
     AcquireLock(data->trtableLock[trainIndex]);
-    track_node *oldSensor = trdata->nextSensor;
+    // track_node *oldSensor = trdata->nextSensor;
     trdata->nextSensor = nextSensorOrExit(data, trdata->lastLandmark);
     trdata->nextNextSensor = nextSensorOrExit(data, trdata->nextSensor);
 
@@ -850,13 +888,6 @@ void updateAndPrintSensorEstimation(TrainSetData *data, int trainIndex) {
     }
     else {
         displayTime((trdata->expectTimetickHittingNextSensor)/10, SENEXPECT_R + trainIndex * 3, SENEXPECT_C + 16);
-    }
-
-    if (oldSensor != trdata->nextSensor) {
-        AcquireLock(data->trackLock);
-        trackGraph_unhighlightSenPath(data, oldSensor);
-        trackGraph_highlightSenPath(data, trdata->nextSensor);
-        ReleaseLock(data->trackLock);
     }
 }
 
@@ -984,16 +1015,6 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
         return -1;
     }
 
-    /* Unhighlight graph */
-    for(i = 0; i < TRAIN_NUM; i++) {
-        trdata = data->trtable[i];
-        if (trdata->numSensorPast > 0) {
-            AcquireLock(data->trackLock);
-            trackGraph_unhighlightSenPath(data, trdata->lastSensor);
-            ReleaseLock(data->trackLock);
-        }
-    }
-
     /* Go thru path, turn switch, recalculate distance, break at end point or reverse point */
     track_node *current = start;
     int nextLocationOffset = 0;
@@ -1033,10 +1054,6 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
                 trainset_turnSwitch(switchNum, switchDir);
                 /* Update terminal switch table. */
                 updateSwitchTable(switchNum, switchDir);
-                /* Update realtime graph. */
-                AcquireLock(data->trackLock);
-                trackGraph_turnSw(data, switchNum, switchDir);
-                ReleaseLock(data->trackLock);
             }
             distance += current->edge[switchDir].dist;
             current = current->edge[switchDir].dest;
@@ -1060,10 +1077,6 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
     for(i = 0; i < TRAIN_NUM; i++) {
         trdata = data->trtable[i];
         if (trdata->numSensorPast > 0) {
-            AcquireLock(data->trackLock);
-            trackGraph_highlightSenPath(data, trdata->lastSensor);
-            ReleaseLock(data->trackLock);
-
             updateAndPrintSensorEstimation(data, i);
         }
     }

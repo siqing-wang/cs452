@@ -99,7 +99,8 @@ void sensorIntToName(int code, char** name) {
     if (num < 10) {
         *(cur + 1) = (char) ('0' + num);
         *(cur + 2) = ' ';
-        *name = *name + 3;
+        *(cur + 3) = ' ';
+        *name = *name + 4;
     } else {
         *(cur + 1) = '1';
         *(cur + 2)= (char) ('0' + num % 10);
@@ -132,7 +133,7 @@ void printSensorTable(TrainSetData *data) {
         cur = cur + nodeNameLen + 1;    // +1 for \0 because \0 not included in string length.
     }
     *cur = '\0';
-    PrintfAt(COM2, SENTABLE_R, SENTABLE_C, "%s%d: %s", TCS_DELETE_TO_EOL, numSensorPast, printBuffer);
+    PrintfAt(COM2, SENTABLE_R, SENTABLE_C, "%d: %s", numSensorPast, printBuffer);
 }
 
 /* execute commands */
