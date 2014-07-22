@@ -142,12 +142,7 @@ int parseCommand(int trainCtrlTid, char* input) {
         case 'r':
             return parseReverseDirectionCommand(trainCtrlTid, input);
         case 's':
-            switch (input[1]) {
-                case 'w':
-                    return parseTurnSwitchCommand(trainCtrlTid, input);
-                case 't':
-                    return parseStopCommand(trainCtrlTid, input);
-            }
+            return parseTurnSwitchCommand(trainCtrlTid, input);
         case 't':
             return parseSetSpeedCommand(trainCtrlTid, input);
         default:
@@ -357,55 +352,6 @@ int parseGoCommand(int trainCtrlTid, char* input) {
     for(i = 0; i < 6; i++) {
         message.location[i] = location[i];
     }
-    message.data = offset * 10; // cm -> mm
-    int msg = 0;
-    Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
-
-    PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%sStop train %d at %s with offset %d%s", TCS_GREEN, train_number, location, offset, TCS_RESET);
-
-    return CMD_SUCCEED;
-}
-
-int parseStopCommand(int trainCtrlTid, char* input) {
-    /* read stop */
-    if(!readToken(&input, "stop")) {
-        return CMD_FAILED;
-    }
-
-    /* read train number */
-    int train_number = readNum(&input);
-    if(train_number < 0) {
-        return CMD_FAILED;
-    }
-
-    /* read stop location */
-    char location[6];
-    if(!readString(&input, location)) {
-        return CMD_FAILED;
-    }
-
-    /* Capitalize */
-    int i;
-    for (i = 0; i < 6; i++) {
-        if ((location[i] >= 'a') && (location[i] <= 'z')) {
-            location[i] = location[i] - 'a' + 'A';
-        }
-    }
-
-    /* read location offset */
-    int offset = 0;
-    if(readToken(&input, "+")) {
-        offset = 1;
-    }
-    else if (readToken(&input, "-")) {
-        offset = -1;
-    }
-    offset *= readNum(&input);
-
-    TrainControlMessage message;
-    message.type = TRAINCTRL_TR_STOPAT;
-    message.num = train_number;
-    message.location = location;
     message.data = offset * 10; // cm -> mm
     int msg = 0;
     Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));

@@ -4,6 +4,7 @@
 #include <train_calibration.h>
 #include <track_graph.h>
 #include <train_control.h>
+#include <syscall.h>
 #include <utils.h>
 #include <syscall.h>
 
@@ -29,6 +30,35 @@ track_node *nextSensorOrExit(struct TrainSetData *data, track_node *node) {
             break;
         }
     }
+    return next;
+}
+
+track_node *nextBranchOrExit(struct TrainSetData *data, track_node *node) {
+    track_node *next = node;
+    for (;;) {
+        if (next->type == NODE_EXIT) {
+            break;
+        }
+        if (next->type == NODE_BRANCH) {
+            break;
+        }
+        next = nextNode(data, next);
+    }
+    return next;
+}
+
+track_node *nextWrongDirSensorOrExit(struct TrainSetData *data, track_node *node) {
+    track_node *next = nextBranchOrExit(data, node);
+    if (next->type == NODE_EXIT) {
+        return next;
+    }
+
+    int *swtable = data->swtable;
+    int corresSwNo = next->num;   // branch number and switch number are 1-1
+    int direction = *(swtable + getSwitchIndex(corresSwNo));
+    next = next->edge[1 - direction].dest;
+    next = nextSensorOrExit(data, next);
+
     return next;
 }
 
@@ -62,6 +92,31 @@ int nextSensorDistance(struct TrainSetData *data, track_node *node) {
         }
     }
     return dist;
+}
+
+void fixBrokenSensor(struct TrainSetData *data, track_node *sensor) {
+    AcquireLock(data->trackLock);
+    sensor->type = NODE_NONE;
+    sensor->reverse->type = NODE_NONE;
+    ReleaseLock(data->trackLock);
+}
+
+void fixBrokenSwitch(struct TrainSetData *data, track_node *sw) {
+    int *swtable = data->swtable;
+    int corresSwNo = sw->num;   // branch number and switch number are 1-1
+    int wrongDirection = *(swtable + getSwitchIndex(corresSwNo));
+
+    AcquireLock(data->trackLock);
+    sw->type = NODE_NONE;
+
+    track_edge *correctDir = &(sw->edge[1 - wrongDirection]);
+
+    sw->edge[DIR_AHEAD].dest = correctDir->dest;
+    sw->edge[DIR_AHEAD].dist = correctDir->dist;
+    sw->edge[DIR_AHEAD].reverse = correctDir->reverse;
+
+    sw->reverse->type = NODE_NONE;
+    ReleaseLock(data->trackLock);
 }
 
 int findRouteDistance(track_node *start, track_node *end, track_node *end_alt, int endOffset, track_node *lastNode, int *result, int resultIndex) {
@@ -1651,7 +1706,7 @@ void init_tracka(track_node *track) {
     track[41].friction = 0.931;
     track[42].friction = 0.858;
     track[43].friction = 0.876;
-    track[44].friction = 1.1;
+    track[44].friction = 1.25;
     track[45].friction = 0.921;
     track[46].friction = 0.833;
     track[48].friction = 0.736;

@@ -175,6 +175,9 @@ void trainset_subscribeSensorFeeds() {
 int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum) {
     track_node *node = getSensorTrackNode(data, sensorGroup, sensorNum);
 
+    if (node->type == NODE_NONE) {
+        return 0;
+    }
     assert(node->type == NODE_SENSOR, "trainset_addToSensorTable: adding Node that is not a sensor.");
 
     /* Add to global sensor table */
@@ -196,7 +199,7 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
         }
 
         /* Only accept expect sensor */
-        if ((node != trdata->nextSensor) && (node != trdata->nextNextSensor)) {
+        if ((node != trdata->nextSensor) && (node != trdata->nextNextSensor) && (node != trdata->nextWrongSensor)) {
             continue;
         }
 
@@ -218,7 +221,12 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
                 }
             }
         }
-        else {
+        else if (node == trdata->nextNextSensor) {
+            /* Broken sensor detected */
+            PrintfAt(COM2, LOG_R, LOG_C, "%sSensor %s is broken. Removed from graph.%s%s",TCS_RED, trdata->nextSensor->name, TCS_RESET, TCS_DELETE_TO_EOL);
+            Log("Sensor %s is broken.", trdata->nextSensor->name);
+            fixBrokenSensor(data, trdata->nextSensor);
+
             trdata->estimateTimetickHittingLastSensor = trdata->expectTimetickHittingNextNextSensor;
             if (trdata->stopInProgress) {
                 trdata->distanceAfterLastLandmark -= nextSensorDistance(data, trdata->nextSensor);
@@ -230,12 +238,20 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
                 }
             }
         }
+        else {
+            /* Broken switch detected */
+            PrintfAt(COM2, LOG_R, LOG_C, "%sSwitch %s is broken. Removed from graph.%s%s",TCS_RED, trdata->nextSwitch->name, TCS_RESET, TCS_DELETE_TO_EOL);
+            Log("Switch %s is broken.", trdata->nextSwitch->name);
+            fixBrokenSwitch(data, trdata->nextSwitch);
+        }
 
         trdata->lastSensor = node;
         trdata->lastLandmark = node;
         trdata->numSensorPast = trdata->numSensorPast + 1;
         trdata->nextSensor = nextSensorOrExit(data, node);
         trdata->nextNextSensor = nextSensorOrExit(data, trdata->nextSensor);
+        trdata->nextWrongSensor = nextWrongDirSensorOrExit(data, node);
+        trdata->nextSwitch = nextBranchOrExit(data, node);
 
         /* Calibration */
         if ((trdata->estimateTimetickHittingLastSensor > 0) && ((timetick - trdata->actualTimetickHittingLastSensor) > 0)
@@ -313,19 +329,6 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
         trdata->lastSensor = node;
         trdata->numSensorPast = trdata->numSensorPast + 1;
 
-        if (nextSensorOrExit(data, node)->type != NODE_EXIT) {
-            trdata->lastLandmark = node;
-            if (trdata->reverse) {
-                trdata->distanceAfterLastLandmark = 20;
-            }
-            else {
-                trdata->distanceAfterLastLandmark = 140;
-            }
-            trdata->nextSensor = nextSensorOrExit(data, node);
-            trdata->nextNextSensor = nextSensorOrExit(data, trdata->nextSensor);
-            trdata->init = 1;
-        }
-
         int timetick = Time();
 
         /* Calibration */
@@ -337,6 +340,41 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
         /* Estimate timetick for next/nextNext sensor */
         trdata->expectTimetickHittingNextSensor = -1;
         trdata->expectTimetickHittingNextNextSensor = -1;
+
+        if (nextSensorOrExit(data, node)->type != NODE_EXIT) {
+            trdata->lastLandmark = node;
+            if (trdata->reverse) {
+                trdata->distanceAfterLastLandmark = 20;
+            }
+            else {
+                trdata->distanceAfterLastLandmark = 140;
+            }
+            trdata->nextSensor = nextSensorOrExit(data, node);
+            trdata->nextNextSensor = nextSensorOrExit(data, trdata->nextSensor);
+            trdata->nextWrongSensor = nextWrongDirSensorOrExit(data, node);
+            trdata->nextSwitch = nextBranchOrExit(data, node);
+
+            /* Estimate timetick for next/nextNext sensor */
+            int timeInterval = calculate_expectArrivalDuration(trdata, nextSensorDistance(data, node), trdata->nextSensor->friction);
+            if (timeInterval < 0) {
+                trdata->expectTimetickHittingNextSensor = -1;
+            }
+            else {
+                trdata->expectTimetickHittingNextSensor = trdata->actualTimetickHittingLastSensor + timeInterval;
+            }
+
+            timeInterval = calculate_expectArrivalDuration(trdata, nextSensorDistance(data, trdata->nextSensor), trdata->nextNextSensor->friction);
+            if ((trdata->expectTimetickHittingNextSensor < 0) || (timeInterval < 0)) {
+                trdata->expectTimetickHittingNextNextSensor = -1;
+            }
+            else {
+                trdata->expectTimetickHittingNextNextSensor = trdata->expectTimetickHittingNextSensor + timeInterval;
+            }
+
+            trdata->init = 1;
+        }
+
+
 
         ReleaseLock(trLock);
 

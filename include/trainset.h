@@ -20,6 +20,7 @@
 
 #define TRAIN_NUM 3
 #define TRAIN_LENGTH 210
+#define TIMEOUT 500
 
 #define REVERSE_GAP 300
 
@@ -58,6 +59,10 @@ typedef struct TrainData {
     int expectTimetickHittingNextSensor;
     struct track_node *nextNextSensor;
     int expectTimetickHittingNextNextSensor;
+
+    /* Broken switch detection */
+    struct track_node *nextWrongSensor;
+    struct track_node *nextSwitch;
 
     /* StopAt related */
     int needToStop;

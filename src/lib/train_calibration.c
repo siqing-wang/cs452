@@ -210,7 +210,7 @@ double calculate_stopDistance(int trainNum, int speed) {
     return -1;
 }
 
-double calculate_shortMoveDistance(int trainNum, int speed, int delay) {
+double calculate_shortMoveDistance(int trainNum, int speed, int tick) {
     if ((speed < 0) || (speed > 14)) {
         return -1;
     }
@@ -218,17 +218,17 @@ double calculate_shortMoveDistance(int trainNum, int speed, int delay) {
         return 0;
     }
 
-    return 0.00000008 * delay * delay * delay * delay - 0.00003 * delay * delay * delay + 0.0102 * delay * delay - 0.1962 * delay - 0.1681;
+    double delay = 1.0 * tick / 10;
 
-    // switch(trainNum) {
-    //     case 45:
-    //         return -0.0000001 * delay * delay * delay * delay + 0.0001 * delay * delay * delay - 0.0181 * delay * delay + 1.7116 * delay - 25.355;
-    //     case 49:
-    //         return -0.0000002 * delay * delay * delay * delay + 0.0001 * delay * delay * delay - 0.0224 * delay * delay + 1.9213 * delay - 25.844;
-    //     case 53:
-    //     default:
-    //         return -0.0000002 * delay * delay * delay * delay + 0.0001 * delay * delay * delay - 0.022 * delay * delay + 1.9532 * delay - 26.167;
-    // }
+    switch(trainNum) {
+        case 45:
+            return -0.001 * delay * delay * delay * delay + 0.0806 * delay * delay * delay - 1.0958 * delay * delay + 8.3359 * delay;
+        case 49:
+            return -0.0014 * delay * delay * delay * delay + 0.1053 * delay * delay * delay - 1.4764 * delay * delay + 10.146 * delay;
+        case 53:
+        default:
+            return -0.0014 * delay * delay * delay * delay + 0.1046 * delay * delay * delay - 1.4828 * delay * delay + 11.381 * delay;
+    }
 }
 
 int calculate_delayToAchieveSpeed(TrainData *trainData) {
@@ -369,44 +369,70 @@ int calculate_delayToStop(TrainSetData *trainSetData, TrainData *trainData, trac
     int minDelay = 400;
     double minDistance = calculate_shortMoveDistance(trainNum, targetSpeed, minDelay);
     double targetVelocity = calculate_trainVelocity(trainNum, targetSpeed);
-    double acDistance = minDistance - calculate_stopDistance(trainNum, targetSpeed);
+    double dcDistance = calculate_stopDistance(trainNum, targetSpeed);
+    double acDistance = minDistance - dcDistance;
     double currentDistance = 0;
     int passed = 0;
 
     int delay = 0;
     if (distance >= minDistance) {
         double acDistanceCopy = acDistance;
+        double dcDistanceCopy = dcDistance;
+
+        /* Acceleration */
         for(;;) {
             if (start->type == NODE_EXIT) {
                 break;
             }
             passed = nextSensorDistance(trainSetData, start);
+            start = nextSensorOrExit(trainSetData, start);
             if (passed > acDistanceCopy) {
                 currentDistance += acDistanceCopy * start->friction;
                 passed -= acDistanceCopy;
                 distance -= minDistance;
-                Log("minDist = %d, ac = %d, cur = %d", (int)minDistance, (int)acDistance, (int)currentDistance);
+                Log("ac = %d, cur = %d", (int)acDistance, (int)currentDistance);
                 delay += minDelay * acDistance / currentDistance;
                 break;
             }
             acDistanceCopy -= passed;
             currentDistance += passed * start->friction;
-            start = nextSensorOrExit(trainSetData, start);
         }
 
+        /* Constant */
         for(;;) {
             if (start->type == NODE_EXIT) {
                 break;
             }
-            if (distance < passed) {
+            if (passed > distance) {
                 delay += distance / (targetVelocity * start->friction);
                 break;
             }
             distance -= passed;
             delay += passed / (targetVelocity * start->friction);
+            start = nextSensorOrExit(trainSetData, start);
+            passed = nextSensorDistance(trainSetData, start);
+        }
+
+        /* Decelertion */
+        currentDistance = 0;
+        double friction = start->friction;
+        for(;;) {
+            if (start->type == NODE_EXIT) {
+                break;
+            }
+            if (passed > dcDistanceCopy) {
+                currentDistance += dcDistanceCopy * start->friction;
+                Log("dc = %d, cur = %d", (int)dcDistanceCopy, (int)currentDistance);
+                break;
+            }
+            dcDistanceCopy -= passed;
+            currentDistance += passed * start->friction;
             passed = nextSensorDistance(trainSetData, start);
             start = nextSensorOrExit(trainSetData, start);
         }
+
+        /* Adjust */
+        delay += (dcDistance - currentDistance) / (targetVelocity * friction);
     }
     else {
         trainData->shortMoveInProgress = 1;
@@ -417,15 +443,15 @@ int calculate_delayToStop(TrainSetData *trainSetData, TrainData *trainData, trac
                 break;
             }
             passed = nextSensorDistance(trainSetData, start);
+            start = nextSensorOrExit(trainSetData, start);
             if (passed > distanceCopy) {
                 currentDistance += distanceCopy * start->friction;
-                Log("ac = %d, cur = %d", (int)distanceCopy, (int)currentDistance);
+                Log("adc = %d, cur = %d", (int)distanceCopy, (int)currentDistance);
                 friction = distance / currentDistance;
                 break;
             }
             distanceCopy -= passed;
             currentDistance += passed * start->friction;
-            start = nextSensorOrExit(trainSetData, start);
         }
         for(;;delay++) {
             if ((calculate_shortMoveDistance(trainNum, targetSpeed, delay) * friction) >= distance) {
