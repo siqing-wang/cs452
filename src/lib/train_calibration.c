@@ -422,7 +422,7 @@ int calculate_delayToStop(TrainSetData *trainSetData, TrainData *trainData, trac
             }
             if (passed > dcDistanceCopy) {
                 currentDistance += dcDistanceCopy * start->friction;
-                Log("dc = %d, cur = %d", (int)dcDistanceCopy, (int)currentDistance);
+                Log("dc = %d, cur = %d", (int)dcDistance, (int)currentDistance);
                 break;
             }
             dcDistanceCopy -= passed;
@@ -446,7 +446,7 @@ int calculate_delayToStop(TrainSetData *trainSetData, TrainData *trainData, trac
             start = nextSensorOrExit(trainSetData, start);
             if (passed > distanceCopy) {
                 currentDistance += distanceCopy * start->friction;
-                Log("adc = %d, cur = %d", (int)distanceCopy, (int)currentDistance);
+                Log("adc = %d, cur = %d", (int)distance, (int)currentDistance);
                 friction = distance / currentDistance;
                 break;
             }

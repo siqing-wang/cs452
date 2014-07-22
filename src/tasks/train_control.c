@@ -257,9 +257,9 @@ void trainTask() {
                             trdata->needToStop = 1;
                             trdata->continueToStop = 1;
                             trdata->delayToStop = calculate_delayToStop(data, trdata, trdata->nextLocation, result);
+                            trainset_setSpeed(message.num, 8);
                             ReleaseLock(trLock);
 
-                            trainset_setSpeed(message.num, 8);
                             Log("Delay %d ticks", trdata->delayToStop);
                         }
                     }
@@ -269,13 +269,12 @@ void trainTask() {
                 reverseTrainSpeed(data, trainIndex);
                 break;
             case TRAINCTRL_TR_GO:
-                Log("Message : num = %d, location = %s, data = %d", message.num, message.location, message.data);
+                // Log("Message : num = %d, location = %s, data = %d", message.num, message.location, message.data);
                 updateTrainSpeed(data, trainIndex, 0);
                 trainset_setSpeed(message.num, 0);
                 PrintfAt(COM2, TR_R + trainIndex * 3, TRSPEED_C, "0 ");
                 Delay(trdata->delayRequiredToAchieveSpeed);
-                Log("type : %d", message.type);
-                Log("location : %s", message.location);
+                // Log("location : %s", message.location);
                 findAndStoreFinalLocation(data, trainIndex, message.location, message.data);
                 result = findRoute(data, trainIndex);
                 if (result >= 0) {
@@ -420,6 +419,7 @@ void trainCoordinator() {
     int reservInited = 0;
     TrainSetData *data;
 
+    Exit();
     Receive(&serverTid, &data, sizeof(data));
     Reply(serverTid, &msg, sizeof(msg));
 
@@ -591,7 +591,7 @@ void trainControlServer() {
     int switchTid = Create(6, &switchTask);                     // Task to turn switch
     Send(switchTid, &data, sizeof(data), &msg, sizeof(msg));
 
-    childTid = Create(7, &sensorTask);                          // Task to pull sensor feed.
+    childTid = Create(6, &sensorTask);                          // Task to pull sensor feed.
     Send(childTid, &data, sizeof(data), &msg, sizeof(msg));
 
     for (i = 0; i < TRAIN_NUM; i++) {
