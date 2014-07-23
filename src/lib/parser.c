@@ -199,7 +199,9 @@ int parseInitCommand(int trainCtrlTid, char* input){
     TrainControlMessage message;
     message.type = TRAINCTRL_INIT;
     message.num = train_number;
-    message.location = location;
+    for(i = 0; i < 6; i++) {
+        message.location[i] = location[i];
+    }
     int msg = 0;
     Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
 
@@ -352,7 +354,9 @@ int parseGoCommand(int trainCtrlTid, char* input) {
     TrainControlMessage message;
     message.type = TRAINCTRL_TR_GO;
     message.num = train_number;
-    message.location = location;
+    for(i = 0; i < 6; i++) {
+        message.location[i] = location[i];
+    }
     message.data = offset * 10; // cm -> mm
     int msg = 0;
     Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));

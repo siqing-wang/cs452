@@ -33,7 +33,7 @@ typedef struct TrainControlMessage
     int num;
     int data;
     int delay;
-    char *location;
+    char location[6];
 
 } TrainControlMessage;
 
