@@ -5,6 +5,9 @@
 #ifndef __IOSERVER_H__
 #define __IOSERVER_H__
 
+#define TRAINIOSERVER_TID           4
+#define TERMINALIOSERVER_TID        7
+
 /* IOserverMessage.type */
 #define IOServerMSG_SEND_NOTIFIER   1
 #define IOServerMSG_RECV_NOTIFIER   2

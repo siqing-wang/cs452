@@ -28,12 +28,15 @@ void firstUserTask() {
     assertEquals(NAMESERVER_TID, tid, "NameServer should be the first task.");
 
     // /* Create Clock Server. */
-    Create(13, &clockServer);
-
+    tid = Create(13, &clockServer);
+    assertEquals(CLOCKSERVER_TID, tid, "ClockServer should be the first task.");
 
     // /* Create IO Server. */
-    Create(11, &trainIOServer);
-    Create(11, &terminalIOServer);
+    tid = Create(11, &trainIOServer);
+    assertEquals(TRAINIOSERVER_TID, tid, "TrainIOServer should be the first task.");
+
+    tid = Create(11, &terminalIOServer);
+    assertEquals(TERMINALIOSERVER_TID, tid, "TerminalIOServer should be the first task.");
 
     Create(2, &train);
 

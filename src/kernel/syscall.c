@@ -203,10 +203,7 @@ int Delay(int ticks) {
     }
 
     /* Get clock server tid. */
-    int clockServerTid = WhoIs("Clock Server");
-    if (clockServerTid < 0) {
-        return clockServerTid;
-    }
+    int clockServerTid = CLOCKSERVER_TID;
 
     /* Send message to clock server. */
     ClockserverMessage message;
@@ -227,10 +224,7 @@ int Delay(int ticks) {
 
 int Time() {
     /* Get Clock Server tid. */
-    int clockServerTid = WhoIs("Clock Server");
-    if (clockServerTid < 0) {
-        return clockServerTid;
-    }
+    int clockServerTid = CLOCKSERVER_TID;
 
     /* Send message to Clock Server requesting time. */
     ClockserverMessage message;
@@ -250,10 +244,7 @@ int Time() {
 
 int DelayUntil(int ticks) {
     /* Get Clock Server tid. */
-    int clockServerTid = WhoIs("Clock Server");
-    if (clockServerTid < 0) {
-        return clockServerTid;
-    }
+    int clockServerTid = CLOCKSERVER_TID;
 
     /* Send message to Clock Server. */
     ClockserverMessage message;
@@ -278,10 +269,10 @@ int Getc(int channel) {
     int ioServerTid;
     switch(channel) {
         case 0:
-            ioServerTid = WhoIs("Train IO Server");
+            ioServerTid = TRAINIOSERVER_TID;
             break;
         case 1:
-            ioServerTid = WhoIs("Terminal IO Server");
+            ioServerTid = TERMINALIOSERVER_TID;
             break;
         default:
             return ERR_INVALID_TID;
@@ -304,10 +295,10 @@ int Putc(int channel, char ch) {
     int ioServerTid;
     switch(channel) {
         case 0:
-            ioServerTid = WhoIs("Train IO Server");
+            ioServerTid = TRAINIOSERVER_TID;
             break;
         case 1:
-            ioServerTid = WhoIs("Terminal IO Server");
+            ioServerTid = TERMINALIOSERVER_TID;
             break;
         default:
             return ERR_INVALID_TID;
@@ -331,10 +322,10 @@ int PutStr(int channel, char *str) {
     int ioServerTid;
     switch(channel) {
         case 0:
-            ioServerTid = WhoIs("Train IO Server");
+            ioServerTid = TRAINIOSERVER_TID;
             break;
         case 1:
-            ioServerTid = WhoIs("Terminal IO Server");
+            ioServerTid = TERMINALIOSERVER_TID;
             break;
         default:
             return ERR_INVALID_TID;
@@ -369,10 +360,10 @@ int PutSizedStr(int channel, char *str, int size) {
     int ioServerTid;
     switch(channel) {
         case 0:
-            ioServerTid = WhoIs("Train IO Server");
+            ioServerTid = TRAINIOSERVER_TID;
             break;
         case 1:
-            ioServerTid = WhoIs("Terminal IO Server");
+            ioServerTid = TERMINALIOSERVER_TID;
             break;
         default:
             return ERR_INVALID_TID;
@@ -400,10 +391,10 @@ void Printf(int channel, char *fmt, ...) {
     int ioServerTid;
     switch(channel) {
         case 0:
-            ioServerTid = WhoIs("Train IO Server");
+            ioServerTid = TRAINIOSERVER_TID;
             break;
         case 1:
-            ioServerTid = WhoIs("Terminal IO Server");
+            ioServerTid = TERMINALIOSERVER_TID;
             break;
         default:
             return;
@@ -419,10 +410,10 @@ int PrintfAt(int channel, int row, int col, char *fmt, ...) {
     int ioServerTid;
     switch(channel) {
         case 0:
-            ioServerTid = WhoIs("Train IO Server");
+            ioServerTid = TRAINIOSERVER_TID;
             break;
         case 1:
-            ioServerTid = WhoIs("Terminal IO Server");
+            ioServerTid = TERMINALIOSERVER_TID;
             break;
         default:
             return ERR_NOT_IOSERVER;
@@ -490,7 +481,7 @@ int Log(char *fmt, ...) {
         return 0;
     }
 
-    int ioServerTid = WhoIs("Terminal IO Server");
+    int ioServerTid = TERMINALIOSERVER_TID;
 
     char buf[PRINTF_MAX_LENGTH];
     char tmp[12];
@@ -577,10 +568,10 @@ int IOidle(int channel) {
     int ioServerTid;
     switch(channel) {
         case 0:
-            ioServerTid = WhoIs("Train IO Server");
+            ioServerTid = TRAINIOSERVER_TID;
             break;
         case 1:
-            ioServerTid = WhoIs("Terminal IO Server");
+            ioServerTid = TERMINALIOSERVER_TID;
             break;
         default:
             return ERR_INVALID_TID;
