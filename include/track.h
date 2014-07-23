@@ -63,8 +63,21 @@ void init_trackb(track_node *track);
 #define RESERV_SAFE_MARGIN 50
 #define RESERV_DELAY 10
 
-int reserv_getReservation(track_edge *edge, int low, int high);
+/* Helpers. */
+int reserv_checkReservation(track_edge *edge, int low, int high);
+void reserv_getReservation(track_edge *edge, int trainIndex, int *low, int *high);
+int reserv_isReserved(track_edge *edge, int trainIndex);
+track_edge* reserv_getReservedEdge(track_node *node, int trainIndex);
+void reserv_reserve(track_edge *edge, int trainIndex, int low, int high);
+void reserv_clearReservation(track_edge *edge, int trainIndex);
+
+void reserv_sendStop(int trainCtrlTid, TrainSetData *data, int trainIndex, int stopAtSwDirctions);
+void reserv_sendTurnSw(int trainCtrlTid, int swNum, int dir);
+
+/* Usage. */
 void reserv_init(TrainSetData *data, int trainIndex);
 int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainIndex);
 
+/* Debug Printing. */
+void printMyReservationRange(TrainSetData *data, int trainIndex);
 #endif

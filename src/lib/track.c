@@ -237,7 +237,7 @@ int findRouteDistance(track_node *start, track_node *end, track_node *end_alt, i
 /* Track Reservation. */
 
 unsigned int reserv_buildReservationNode(int low, int high) {
-    assert(low < 1024 && high < 1024 && low < high,
+    assert(low < 1024 && high < 1024 && low >= 0 && low < high,
         "reserv_buildReservationNode: low or high >= 1024 or low >= high");
     return (high << 10) + low;
 }
@@ -247,104 +247,124 @@ void reserv_extractReservationNode(unsigned int reserv, int *low, int *high) {
     *high = reserv >> 10;
 }
 
+void reserv_reserve(track_edge *edge, int trainIndex, int low, int high) {
+    edge->reservation[trainIndex] = reserv_buildReservationNode(low, high);
+}
+
+void reserv_clearReservation(track_edge *edge, int trainIndex) {
+    edge->reservation[trainIndex] = 0;
+    edge->reverse->reservation[trainIndex] = 0;
+}
+
 // Return ownership of landmark + 0 ~ landmark + offset, can have multiple owner
-int reserv_getReservation(track_edge *edge, int low, int high) {
+int reserv_checkReservation(track_edge *edge, int low, int high) {
     /* If low = high we are checking a point. */
     assert(low <= high && low >= 0 && high > 0 && high <= edge->dist,
-        "reserv_getReservation: invalid range.");
-    Log("Get reservation: at edge %s [%d %d]", edge->src->name, low, high);
+        "reserv_checkReservation: invalid range.");
     int owned = 0;
-    int i, c, low2, high2;
-    for (c = 0; c < 2; c++) {
-        /* Check this direction. */
-        for (i = 0; i < TRAIN_NUM; i++) {
-            reserv_extractReservationNode(edge->reservation[i], &low2, &high2);
-            Log("  train%d holds [%d %d]", i, low2, high2);
-            if (low >= high2 || high <= low2) {
-                continue;
-            } else {
-                // Return the train index holding (part of if not all) this range of track.
-                owned = owned | (1 << i);
-            }
+    int i, low2, high2;
+
+    for (i = 0; i < TRAIN_NUM; i++) {
+        reserv_getReservation(edge, i, &low2, &high2);
+        if (low >= high2 || high <= low2) {
+            continue;
+        } else {
+            // Return the train index holding (part of if not all) this range of track.
+            owned = owned | (1 << i);
         }
-        /* Check the reserve direction in second interation of loop. */
-        edge = edge->reverse;
-        int tmp = low;
-        low = edge->dist - high;
-        high = edge->dist - tmp;
-        Log("First direction checked, low, high fliped to: [%d %d]", low, high);
     }
+
     return owned;   // Nobody holds this track.
 }
 
+void reserv_getReservation(track_edge *edge, int trainIndex, int *low, int *high) {
 
-/* Adjust starting point so offset is positive. */
-void reserv_adjustStartingPoint(int trainIndex, track_node **nodeStart, int *startOffset) {
-    /* Adjust till startOffset is positive. */
-    if(*startOffset < 0) {
-        /* Go to last node. */
-        track_node *node = (*nodeStart)->reverse;  // face its back.
-        if (node->type == NODE_BRANCH) {
-            int offsetWrtRevNode = 0 - *startOffset;
-            track_edge *straightEdge = &(node->edge[DIR_STRAIGHT]);
-            track_edge *curvedEdge = &(node->edge[DIR_CURVED]);
-
-            if (reserv_getReservation(straightEdge, offsetWrtRevNode, offsetWrtRevNode)
-                & (1 << trainIndex)) {
-                /* Comes from the straight edge. */
-                *nodeStart = straightEdge->dest->reverse;
-                *startOffset = straightEdge->dist - offsetWrtRevNode;
-            } else if (reserv_getReservation(curvedEdge, offsetWrtRevNode, offsetWrtRevNode)
-                & (1 << trainIndex)) {
-                /* Comes from the curved edge. */
-                *nodeStart = curvedEdge->dest->reverse;
-                *startOffset = curvedEdge->dist - offsetWrtRevNode;
-            }
-        } else {
-            /* It is not a branch so go to its previous node. */
-            track_edge *aheadEdge = &(node->edge[DIR_AHEAD]);
-            *nodeStart = aheadEdge->dest->reverse; // point back to right direction.
-            *startOffset = aheadEdge->dist + *startOffset;
-        }
+    int reserv = edge->reservation[trainIndex];
+    if (reserv != 0) {
+        reserv_extractReservationNode(reserv, low, high);
+        return;
     }
 
-    assert(*startOffset >= 0, "reserv_adjustStartingPoint: start offset still -ve after adjustion.");
+    reserv = edge->reverse->reservation[trainIndex];
+    if (reserv != 0) {
+        int l, h;
+        reserv_extractReservationNode(reserv, &l, &h);
+        *low = edge->dist - h;
+        *high = edge->dist - l;
+        return;
+    }
+
+    *low = 0;
+    *high = 0;
 }
 
-void reserv_giveBackTailingTrack(TrainSetData *data, int trainIndex) {
-    TrainData *trdata = data->trtable[trainIndex];
-    track_node *nodeStart = trdata->lastLandmark->reverse;
-    int offsetStart = TRAIN_LENGTH - (int)trdata->distanceAfterLastLandmark;
-    reserv_adjustStartingPoint(trainIndex, &nodeStart, &offsetStart);
+int reserv_isReserved(track_edge *edge, int trainIndex) {
+    return (edge->reservation[trainIndex] != 0) ||
+        (edge->reverse->reservation[trainIndex] != 0);
+}
 
-    int maskMe = 1 << trainIndex;
+track_edge* reserv_getReservedEdge(track_node *node, int trainIndex) {
+    if (reserv_isReserved(&(node->edge[0]), trainIndex)) {
+        return &(node->edge[0]);
+    } else if (node->type == NODE_BRANCH && reserv_isReserved(&(node->edge[1]), trainIndex)) {
+        return &(node->edge[1]);
+    }
+    return (track_edge*)0;
+}
+
+
+/* Adjust starting point so offset is in correct range [0 dist]. */
+void reserv_adjustStartingPoint(int trainIndex, track_node **nodeStart, int *startOffset) {
+    // Log("adj_b %d + %d", (*nodeStart)->name, *startOffset);
+    track_edge *edge;
+
+    /* Adjust till startOffset is positive. */
+    track_node *node = (*nodeStart)->reverse;   // face backwards
+    while(*startOffset <= 0) {
+        /* Go to last node. */
+        edge = reserv_getReservedEdge(node, trainIndex);
+        assert(edge != 0, "reserv_adjustStartingPoint: not reserved edge");
+        *nodeStart = edge->dest->reverse;
+        *startOffset = edge->dist + *startOffset;
+        node = edge->dest;
+    }
+
+    assert(*startOffset > 0, "reserv_adjustStartingPoint: start offset still -ve after adjustion.");
+
+    /* Adjust till startOffset < edge->dist. */
+    edge = reserv_getReservedEdge(*nodeStart, trainIndex);
+    assert(edge != 0, "reserv_adjustStartingPoint: not reserved edge");
+    while (edge != 0 && *startOffset >= edge->dist) {
+        *nodeStart = edge->dest;
+        *startOffset = *startOffset - edge->dist;
+        edge = reserv_getReservedEdge(*nodeStart, trainIndex);
+    }
+    assert(*startOffset < edge->dist, "reserv_adjustStartingPoint: start offset still > edge dist after adjustion.");
+    // Log("adj_a %d + %d", (*nodeStart)->name, *startOffset);
+}
+
+
+void reserv_giveBackTrackBehind(int trainIndex, track_node *nodeStart, int offset) {
+
+    nodeStart = nodeStart->reverse;        // face backwards
+    offset = 0 - offset;
+    reserv_adjustStartingPoint(trainIndex, &nodeStart, &offset);
+
     track_node *node = nodeStart;
     track_edge *edge;
 
-    for (;;) {
+    while (node->type != NODE_EXIT) {
         /* Get edge in correct direction. */
-        if (node->type == NODE_BRANCH) {
-            /* Turn switch to desired direction. */
-            if (reserv_getReservation(&(node->edge[DIR_STRAIGHT]), 0, 1) & maskMe) {
-                edge = &(node->edge[DIR_STRAIGHT]);
-            } else if (reserv_getReservation(&(node->edge[DIR_CURVED]), 0, 1) & maskMe) {
-                edge = &(node->edge[DIR_CURVED]);
-            } else {
-                return;
-            }
-        } else {
-            edge = &(node->edge[DIR_AHEAD]);
-            if (!(reserv_getReservation(edge, 0, 1) & maskMe)) {
-                return;
-            }
+        edge = reserv_getReservedEdge(node, trainIndex);
+        if (edge == 0) {
+            return;
         }
 
-        if (node == nodeStart && offsetStart > 0) {
-            /* First ieration. */
-            edge->reverse->reservation[trainIndex] =
-                reserv_buildReservationNode(edge->dist - offsetStart, edge->dist);
+        if (node == nodeStart && offset > 0) {
+            /* First iteration. */
+            reserv_reserve(edge->reverse, trainIndex, edge->dist - offset, edge->dist);
         } else {
-            edge->reverse->reservation[trainIndex] = 0;
+            reserv_clearReservation(edge->reverse, trainIndex);
         }
         /* Update data for next ineration. */
         node = edge->dest;
@@ -356,87 +376,84 @@ void reserv_init(TrainSetData *data, int trainIndex) {
     TrainData *trdata = data->trtable[trainIndex];
     track_node *node = trdata->lastLandmark;
     Log("Init train %d, starting node name = %s", trainIndex, node->name);
+    track_edge *edge = &(node->edge[0]);
+
+    /* Forwards to next sensor. */
+    for (;;) {
+        reserv_reserve(edge, trainIndex, 0, edge->dist);
+        assert(edge->dest->type != NODE_BRANCH, "reserv_init: should not see branch");
+        if (edge->dest->type == NODE_SENSOR) {
+            break;
+        }
+        edge = &(edge->dest->edge[0]);
+    }
+
+    /* Backwards to exit. */
     node = node->reverse;
-    assert(node->type == NODE_SENSOR, "reserv_init: starting node not sensor.");
-    Log("0");
-    track_edge *edge;
     int i;
     for (i = 0; i < 2; i++) {
-        Log("1");
+        assert(node->type == NODE_SENSOR, "reserv_init: starting node not sensor.");
         edge = &(node->edge[DIR_AHEAD]);
-        Log("2");
-        int reserv = reserv_getReservation(edge, 0, edge->dist);
-        Log("Result of get reservation: %d", reserv);
+        int reserv = reserv_checkReservation(edge, 0, edge->dist);
 
         assert(reserv == 0, "reserv_init: track reserved already.");
         edge->reservation[trainIndex] = reserv_buildReservationNode(0, edge->dist);
+        node = edge->dest;
     }
     assert(edge->dest->type == NODE_EXIT, "reserv_init: invalid starting node.");
 }
 
-
 int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainIndex) {
     TrainData *trdata = data->trtable[trainIndex];
 
-    if ((trdata->targetSpeed == 0) && (trdata->timetickSinceSpeedChange >= trdata->delayRequiredToAchieveSpeed)) {
+    track_node *nodeStart = trdata->lastLandmark;
+    int offsetStart = (int)trdata->distanceAfterLastLandmark;
+
+    if ((trdata->targetSpeed == 0) && (trdata->timetickSinceSpeedChange > trdata->delayRequiredToAchieveSpeed)) {
         /* Train still. */
+        return 1;
+    } else if (trdata->targetSpeed == 0) {
+        /* In progress of stopping but not stopped yet. Clean up reservation behind. */
+        int timeleftToStop = trdata->delayRequiredToAchieveSpeed - trdata->timetickSinceSpeedChange;
+        // 2 assumptions:
+        //    1. Position jumps to the place ended up after stop completed as soon as stop cmd sent
+        //    2. For simplity assuming speed = lastspeed/2 consistently until stopped;
+
+        int lastVelocity = (int)calculate_trainVelocity(trdata->trainNum, trdata->lastSpeed / 2);
+        int estDistLeftToStop = timeleftToStop * lastVelocity / 2;
+        int offsetEnd = offsetStart - TRAIN_LENGTH - estDistLeftToStop;
+        reserv_giveBackTrackBehind(trainIndex, nodeStart, offsetEnd);
         return 1;
     }
 
-    track_node *nodeStart = trdata->lastLandmark;
-    int offsetStart = (int)trdata->distanceAfterLastLandmark;
     int maskMe = 1 << trainIndex, maskOthers = 0xffffffff & ~maskMe;
 
     /* Adjust to make offset positive. */
     reserv_adjustStartingPoint(trainIndex, &nodeStart, &offsetStart);
 
     /* Assure this train own this starting point. */
-    if (nodeStart->type == NODE_BRANCH) {
-        int reservedS, reservedC;
-        reservedS = maskMe &
-            reserv_getReservation(&(nodeStart->edge[DIR_STRAIGHT]), offsetStart, offsetStart);
-        reservedC = maskMe &
-            reserv_getReservation(&(nodeStart->edge[DIR_CURVED]), offsetStart, offsetStart);
-        assert((reservedS && !reservedC) || (reservedC && !reservedS),
-            "reserv_updateReservation: starting point not owned correctly.");
-    } else {
-        assert(maskMe &
-            reserv_getReservation(&(nodeStart->edge[DIR_AHEAD]), offsetStart, offsetStart),
-            "reserv_updateReservation: starting point not owned correctly.");
-    }
+    track_edge *edge;
+    edge = reserv_getReservedEdge(nodeStart, trainIndex);
+    assert(edge != 0, "reserv_updateReservation: starting point not owned correctly.");
 
     /* Reserve ahead stopping distance and turn switch if necessary. */
-    int reservDistSinceNode = calculate_stopDistance(trdata->trainNum, trdata->targetSpeed) +            // stopping dist
-        RESERV_DELAY * calculate_currentVelocity(trdata, trdata->timetickSinceSpeedChange) +    // est dist travelled till next fn call
-        RESERV_SAFE_MARGIN + offsetStart;
+    int stoppingDist = calculate_stopDistance(trdata->trainNum, trdata->targetSpeed) *
+                    nextSensorOrExit(data, nodeStart)->friction;
+    assert(stoppingDist > 0, "Train is still");
+    int travelDistUtilNextCall = RESERV_DELAY * calculate_currentVelocity(trdata, trdata->timetickSinceSpeedChange);
+    int reservDistAhead = stoppingDist + travelDistUtilNextCall + RESERV_SAFE_MARGIN;
     int stopAtSwDirctions = trdata->stopAtSwDirctions;
 
-    track_edge *edge;
     track_node *node = nodeStart;
     int high, low = offsetStart, reserv;
-    int stopatSwdir, msg = 0;
+    int stopatSwdir, dir, msg = 0, isNotFreeRunning = trdata->continueToStop;
     TrainControlMessage message;
-    while (reservDistSinceNode > 0) {
-        /* Get edge in correct direction. */
-        if (node->type == NODE_BRANCH) {
-            /* Turn switch to desired direction. */
-            stopatSwdir = stopAtSwDirctions >> 31;
-            stopAtSwDirctions = stopAtSwDirctions << 1;
-            edge = &(node->edge[stopatSwdir]);
-        } else {
-            edge = &(node->edge[DIR_AHEAD]);
-        }
+    while (reservDistAhead > 0) {
 
-        /* Reservation on this node. */
-        if (reservDistSinceNode > edge->dist) {
-            high = edge->dist;
-        } else {
-            high = reservDistSinceNode;
-        }
+        if (node->type == NODE_EXIT) {
+            /* Already owned by others (or is exit). Have to stop the train. */
+            Log("Stop %d, exit reached, Head at %s + %d", trdata->trainNum, nodeStart->name, offsetStart);
 
-        reserv = reserv_getReservation(edge, low, high);
-        if (maskOthers & reserv) {
-            /* Already owned by others. Have to stop the train. */
             message.type = TRAINCTRL_TR_STOP;
             message.num = trdata->trainNum;
 
@@ -446,17 +463,58 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
             ReleaseLock(data->trtableLock[trainIndex]);
 
             Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
-            reserv_giveBackTailingTrack(data, trainIndex);
+            reserv_giveBackTrackBehind(trainIndex, trdata->lastLandmark,
+                (int)trdata->distanceAfterLastLandmark - TRAIN_LENGTH);
             return 0;
-        } else if (maskMe & reserv) {
-            /* Reserved by me and only by me. */
-            continue;
+        }
+
+        /* Get edge in correct direction. */
+        if (node->type == NODE_BRANCH) {
+            if (isNotFreeRunning) {
+                /* In stop at process. */
+                /* Turn switch to desired direction. */
+                stopatSwdir = stopAtSwDirctions >> 31;
+                stopAtSwDirctions = stopAtSwDirctions << 1;
+                edge = &(node->edge[stopatSwdir]);
+            } else {
+                /* It is just free running, see switch table. */
+                dir = data->swtable[getSwitchIndex(node->num)];
+                edge = &(node->edge[dir]);
+            }
         } else {
-            /* Reserved by nobody. Take it. */
+            edge = &(node->edge[DIR_AHEAD]);
+        }
+
+        /* Reservation on this node. */
+        if ((low + reservDistAhead) <= edge->dist) {
+            high = reservDistAhead;
+        } else {
+            high = edge->dist;
+        }
+
+        reserv = reserv_checkReservation(edge, low, high);
+        if (maskOthers & reserv) {
+            /* Already owned by others (or is exit). Have to stop the train. */
+            Log("Stop %d, cannot reserv %s [%d %d], Head at %s + %d", trdata->trainNum, node->name, low, high,
+                nodeStart->name, offsetStart);
+            message.type = TRAINCTRL_TR_STOP;
+            message.num = trdata->trainNum;
+
+            AcquireLock(data->trtableLock[trainIndex]);
+            trdata->stopAtSwDirctions = stopAtSwDirctions;
+            trdata->continueToStop = 0;
+            ReleaseLock(data->trtableLock[trainIndex]);
+
+            Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
+
+            reserv_giveBackTrackBehind(trainIndex, nodeStart, TRAIN_LENGTH - offsetStart);
+            return 0;
+        } else {
+            /* Reserved by me or nobody. Take it. */
             edge->reservation[trainIndex] = reserv_buildReservationNode(low, high);
         }
 
-        if (node->type == NODE_BRANCH) {
+        if (node->type == NODE_BRANCH && isNotFreeRunning) {
             /* Now track over otherside of branch is reserved, turn switch. */
             message.type = TRAINCTRL_SW_CHANGE;
             message.num = node->num;
@@ -466,17 +524,109 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
 
         /* Update data for next ineration. */
         node = edge->dest;
+        reservDistAhead -= (high - low);
         low = 0;            // start from 0 other than first iteration.
-        reservDistSinceNode -= edge->dist;
     }
 
     AcquireLock(data->trtableLock[trainIndex]);
     trdata->stopAtSwDirctions = stopAtSwDirctions;
     ReleaseLock(data->trtableLock[trainIndex]);
 
-    reserv_giveBackTailingTrack(data, trainIndex);
+    reserv_giveBackTrackBehind(trainIndex, trdata->lastLandmark,
+        (int)trdata->distanceAfterLastLandmark - TRAIN_LENGTH);
     return 1;
 }
+
+// For debug.
+int findMyReservationRange(track_edge *edge, int trainIndex,
+    track_edge **starte, int *startoff, track_edge **ende, int *endoff) {
+    int low, high;
+    if (!reserv_isReserved(edge, trainIndex)) {
+        warning("findMyReservationRange: given edge not reserved.");
+        return 0;
+    }
+    reserv_getReservation(edge, trainIndex, &low, &high);
+    *startoff = low;
+    *endoff = high;
+
+    /* Extend forward. */
+    track_edge *e0, *e1, *e = edge;
+    track_node *node;
+    while (reserv_isReserved(e, trainIndex)) {
+        *ende = e;
+        if (e->dest->type == NODE_EXIT || e->dest->type == NODE_ENTER) {
+            break;
+        }
+
+        /* Get next edge. */
+        node = e->dest;
+        e0 = &(node->edge[0]);
+        e1 = &(node->edge[1]);
+        if (node->type == NODE_BRANCH && reserv_isReserved(e1, trainIndex)) {
+            e = e1;
+        } else {
+            e = e0;
+        }
+        if (e == edge) {
+            *starte = edge;
+            *ende = edge;
+            *startoff = high;
+            *endoff = high;
+            warning("findMyReservationRange: Circular reservation");
+            break;
+        }
+    }
+    reserv_getReservation(*ende, trainIndex, &low, endoff);
+
+    /* Extend backwad. */
+    e = edge->reverse;
+    while (reserv_isReserved(e, trainIndex)) {
+        *starte = e;
+        if (e->dest->type == NODE_EXIT || e->dest->type == NODE_ENTER) {
+            break;
+        }
+
+        /* Get next edge. */
+        node = e->dest;
+        e0 = &(node->edge[0]);
+        e1 = &(node->edge[1]);
+        if (node->type == NODE_BRANCH && reserv_isReserved(e1, trainIndex)) {
+            e = e1;
+        } else {
+            e = e0;
+        }
+    }
+    *starte = (*starte)->reverse;     // turn forward
+    reserv_getReservation(*starte, trainIndex, startoff, &high);
+    return 1;
+}
+
+void printMyReservationRange(TrainSetData *data, int trainIndex) {
+    track_edge *starte, *ende, *edge;
+    TrainData *trdata = data->trtable[trainIndex];
+    track_node *node = trdata->lastLandmark;
+
+    edge = reserv_getReservedEdge(node, trainIndex);
+    if (edge == 0) {
+        node = node->reverse;
+        edge = reserv_getReservedEdge(node, trainIndex);
+        if (edge == 0) {
+            IOidle(COM2);
+            Log("Not owned:%s + %d", node->reverse->name, (int)trdata->distanceAfterLastLandmark);
+            return;
+        } else {
+            edge = edge->reverse;
+        }
+    }
+
+    int startoff, endoff;
+    if (findMyReservationRange(edge, trainIndex, &starte, &startoff, &ende, &endoff)) {
+        Log("Train %d reserv: [%s->%s(%d) %s->%s(%d)]", trdata->trainNum,
+            starte->src->name, starte->dest->name, startoff,
+            ende->src->name, ende->dest->name, endoff);
+    }
+}
+
 
 /* Data. */
 

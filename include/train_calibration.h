@@ -9,6 +9,7 @@
 #include <trainset.h>
 #include <track.h>
 
+double calculate_trainVelocity(int trainNum, int speed);
 double calculate_stopDistance(int trainNum, int speed);
 double calculate_currentVelocity(TrainData *trainData, int timetick);
 int calculate_delayToAchieveSpeed(TrainData *trainData);

@@ -412,7 +412,6 @@ void updateTrainTable() {
 }
 
 void trainCoordinator() {
-    Exit();
     int serverTid;
     int msg = 0, i;
     int reservInited = 0;
@@ -508,7 +507,8 @@ void drawTrackGraph() {
     /* Forever. */
     TrainData *trdata;
     int color;
-    for (;;) {
+    int loopCount;
+    for (loopCount = 0; ; loopCount = (loopCount + 1) % 5) {
         /* Update switch table. */
         for (i = 0; i < SWITCH_TOTAL; i++) {
             trackGraph_redrawSw(data, i, swtableSnapShot[i], data->swtable[i]);
@@ -527,6 +527,11 @@ void drawTrackGraph() {
                 swtableSnapShot,
                 &(redrawSwNextTimeForTrain[i]),
                 color);
+
+                // Debug printing
+                if (loopCount == 0) {
+                    // printMyReservationRange(data, i);
+                }
         }
         Delay(20);
     }
