@@ -9,14 +9,21 @@
 
 void assert(int cond, char* msg) {
     if (!cond) {
-        Log("%sASSERTION FAILED: %s%s", TCS_RED, msg, TCS_RESET);
+        bwputstr(COM2, TCS_RED);
+        bwputstr(COM2, "Assertion Failed: ");
+        bwputstr(COM2, msg);
+        bwputstr(COM2, "\n\r");
+        bwputstr(COM2, TCS_RESET);
     }
 }
 
 void assertEquals(int expected, int actual, char* msg) {
     if (expected != actual) {
-        Log("%sASSERSION FAILED: %s; expected=%d, actual=%d%s", TCS_RED, msg,
-            expected, actual, TCS_RESET);
+        bwputstr(COM2, TCS_RED);
+        bwputstr(COM2, "Assertion Failed: ");
+        bwputstr(COM2, msg);
+        bwprintf(COM2, " expected = %d, actual = %d\n\r", expected, actual);
+        bwputstr(COM2, TCS_RESET);
     }
 }
 
@@ -28,7 +35,11 @@ void debug(char *msg) {
 }
 
 void warning(char *msg) {
-    Log("%sWARNING: %s%s", TCS_YELLOW, msg, TCS_RESET);
+    bwputstr(COM2, TCS_YELLOW);
+    bwputstr(COM2, "WARNING: ");
+    bwputstr(COM2, msg);
+    bwputstr(COM2, "\n\r");
+    bwputstr(COM2, TCS_RESET);
 }
 
 void displayTime(unsigned int timerCount, int row, int col) {
