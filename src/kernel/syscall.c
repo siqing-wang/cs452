@@ -607,6 +607,32 @@ int IOidle(int channel) {
     return SUCCESS;
 }
 
+int IOGetSize(int channel) {
+    int ioServerTid;
+    switch(channel) {
+        case 0:
+            ioServerTid = TRAINIOSERVER_TID;
+            break;
+        case 1:
+            ioServerTid = TERMINALIOSERVER_TID;
+            break;
+        default:
+            return ERR_INVALID_TID;
+    }
+
+     /* Send message to IO Server. */
+    IOserverMessage message;
+    message.type = IOServerMSG_CLIENT;
+    message.syscall = IOServerMSG_GETSIZE;
+
+    int data;
+    int result = Send(ioServerTid, &message, sizeof(message), &data, sizeof(data));
+    if (result < 0) {
+        return ERR_INVALID_TID;
+    }
+    return data;
+}
+
 /* Performance Monitor using idle task. */
 
 void IAmIdleTask() {

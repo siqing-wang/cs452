@@ -143,6 +143,7 @@ void trainset_setSpeed(int train_number, int train_speed) {
     cmd[0] = (char)train_speed;
     cmd[1] = (char)train_number;
     PutSizedStr(COM1, cmd, 2);
+    IOidle(COM1);
 }
 
 void trainset_reverse(int train_number) {
@@ -150,6 +151,7 @@ void trainset_reverse(int train_number) {
     cmd[0] = (char)REVERSE;
     cmd[1] = (char)train_number;
     PutSizedStr(COM1, cmd, 2);
+    IOidle(COM1);
 }
 
 void trainset_turnSwitch(int switch_number, int switch_direction) {
@@ -165,6 +167,7 @@ void trainset_turnSwitch(int switch_number, int switch_direction) {
     cmd[1] = (char)switch_number;
     cmd[2] = (char)SWITCH_TURN_OUT;
     PutSizedStr(COM1, cmd, 3);
+    IOidle(COM1);
 }
 
 void trainset_subscribeSensorFeeds() {

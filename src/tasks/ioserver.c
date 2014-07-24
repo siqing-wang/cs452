@@ -142,6 +142,10 @@ void terminalIOServer() {
                     case IOServerMSG_IOIDLE :
                         idleWaitingTid = requesterTid;
                         break;
+                    case IOServerMSG_GETSIZE :
+                        msg = sendQueue.size;
+                        Reply(requesterTid, &msg, sizeof(msg));
+                        break;
                     default :
                         warning("Unknown IOserver Syscall.");
                 }
@@ -241,6 +245,10 @@ void trainIOServer() {
                         break;
                     case IOServerMSG_IOIDLE :
                         idleWaitingTid = requesterTid;
+                        break;
+                    case IOServerMSG_GETSIZE :
+                        msg = sendQueue.size;
+                        Reply(requesterTid, &msg, sizeof(msg));
                         break;
                     default :
                         warning("Unknown IOserver Syscall.");

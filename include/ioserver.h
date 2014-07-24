@@ -19,6 +19,7 @@
 #define IOServerMSG_PUTSTR          3
 #define IOServerMSG_IOIDLE          4
 #define IOServerMSG_GETSENSORDATA   5
+#define IOServerMSG_GETSIZE         6
 
 /* Message sent/received by IO server. */
 typedef struct IOserverMessage

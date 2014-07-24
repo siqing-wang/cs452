@@ -803,7 +803,7 @@ void updateTrainSpeed(TrainSetData *data, int trainIndex, int newSpeed) {
     if (newSpeed == 0) {
         trdata->stopInProgress = 1;
         trdata->shortMoveInProgress = 0;
-        trdata->distanceAfterLastLandmark += calculate_stopDistance(trdata->trainNum, trdata->lastSpeed);
+        trdata->distanceAfterLastLandmark += calculate_stopDistance(trdata->trainNum, trdata->lastSpeed) * trdata->nextSensor->friction;
     }
     else {
         trdata->stopInProgress = 0;
