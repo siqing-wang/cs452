@@ -422,6 +422,50 @@ void reserv_init(TrainSetData *data, int trainIndex) {
     assert(edge->dest->type == NODE_EXIT, "reserv_init: invalid starting node.");
 }
 
+/*
+ * When two train's reservation overlap, or connects (no gap),
+ * determine if they are following or heading on.
+ * *ASSUME collding edge src->dest is same as direction of ME.
+ */
+int reserv_isHeadOn(TrainSetData *data, int trainIndex_me, int trainIndex_other,
+    track_edge *collidingEdgeInDirOfMe) {
+
+    TrainData *trdata_me = data->trtable[trainIndex_me];
+    TrainData *trdata_other = data->trtable[trainIndex_other];
+
+    /* Get location for the other train. */
+    track_node *nodeStart_other = trdata_other->lastLandmark;
+    int offsetStart_other = (int)trdata_other->distanceAfterLastLandmark;
+    reserv_adjustStartingPoint(trainIndex_other, &nodeStart_other, &offsetStart_other);
+    track_edge *lastReservedEdge_other;
+    track_edge *edge = reserv_getReservedEdge(nodeStart_other, trainIndex_other);
+
+    /* Turn back and find last reserved edge at tail. */
+    edge = edge->reverse;       // turn back.
+    track_node *node;
+    while(edge != 0) {
+        lastReservedEdge_other = edge;
+        node = edge->dest;
+        edge = reserv_getReservedEdge(node, trainIndex_other);
+    }
+
+    /* Now see if it connects with me */
+    int low_other, high_other;
+    reserv_getReservation(lastReservedEdge_other, trainIndex_other, &low_other, &high_other);
+    if (low_other == 0) {
+        /* Edge case: other train reserves to exactly end of this edge. */
+        return collidingEdgeInDirOfMe->dest == lastReservedEdge_other->dest->reverse;
+    }
+
+    int reserv = reserv_checkReservation(lastReservedEdge_other, low_other, low_other);
+    return reserv & (1 << trainIndex_me);
+}
+
+int reserv_minReservationAfterMovingTrain(TrainSetData *data) {
+    return 1;
+    // TODO: write this fn.
+}
+
 int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainIndex) {
     TrainData *trdata = data->trtable[trainIndex];
 
