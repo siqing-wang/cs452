@@ -390,32 +390,36 @@ int trainset_pullSensorFeeds(TrainSetData *data) {
     int sensorBit = 0;          // 0 (for 1-8) or 1 (for 9-16)
     int sensorGroup = 0;        // ABCDE
 
-    int changed = 0;            // do not reprint if not chanegd
+    int changed = 0;
     int verified = 0;           // do not redraw graph if no train touch that sensor
 
     int i;
-    for (i=0; i<10; i++) {
+    char results[10];
+    GetSensorData(results);
+    for (i = 0; i < 10; i++) {
+        if(data->lastByte[i] != results[i]) {
+            changed = 1;
+        }
+        data->lastByte[i] = results[i];
+    }
+    if (!changed) {
+        return 0;               // Sensor not changed
+    }
+    for (i = 0; i < 10; i++) {
         sensorBit = i % 2;
         sensorGroup = i / 2;
         int bitPosn = 0;
-        int result = (int) Getc(COM1);
-        if(data->lastByte[i] == result) {
-            continue;
-        }
-        data->lastByte[i] = result;
+        int result = (int) results[i];
         for ( ; bitPosn < 8; bitPosn++) {
             int mask = 1 << ( 7 - bitPosn );
             if (result & mask) {
                 /* Bit is set. */
-                changed = 1;
                 verified |= trainset_addToSensorTable(data, sensorGroup, sensorBit * 8 + bitPosn + 1);
             }
         }
     }
-    if (changed) {
-        printSensorTable(data);
-    }
 
+    printSensorTable(data);
     return verified;
 }
 

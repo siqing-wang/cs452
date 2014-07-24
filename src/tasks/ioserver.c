@@ -188,10 +188,13 @@ void trainIOServer() {
     int sendWaitingTid = -1;
     int recvWaitingTid = -1;
     int idleWaitingTid = -1;
+    int sensorWaitingTid = -1;
     IOserverMessage message;
     char ch;
     int strPut;
     char *str;
+    char *sensorDataArray;
+    int i;
     for(;;) {
         ch = 0;
         /* Receive msg. */
@@ -232,6 +235,10 @@ void trainIOServer() {
                             recvWaitingTid = requesterTid;
                         }
                         break;
+                    case IOServerMSG_GETSENSORDATA :
+                        sensorDataArray = message.str;
+                        sensorWaitingTid = requesterTid;
+                        break;
                     case IOServerMSG_IOIDLE :
                         idleWaitingTid = requesterTid;
                         break;
@@ -252,6 +259,14 @@ void trainIOServer() {
             ch = ioQueue_pop(&recvQueue);
             Reply(recvWaitingTid, &ch, sizeof(ch));
             recvWaitingTid = -1;
+        }
+        if ((recvQueue.size >= 10) && (sensorWaitingTid >= 0)) {
+            for(i = 0; i < 10; i++) {
+                ch = ioQueue_pop(&recvQueue);
+                sensorDataArray[i] = ch;
+            }
+            Reply(sensorWaitingTid, &msg, sizeof(msg));
+            sensorWaitingTid = -1;
         }
         if ((sendWaitingTid >= 0) && (idleWaitingTid >= 0)) {
             Reply(idleWaitingTid, &msg, sizeof(msg));

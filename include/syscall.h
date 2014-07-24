@@ -95,6 +95,7 @@ int PrintfAt(int channel, int row, int col, char *fmt, ...);
 int GetLogRow();
 int Log(char *fmt, ...);
 int IOidle(int channel);
+int GetSensorData(char *arr);
 
 // Performance Monitor using idle task.
 void IAmIdleTask();
