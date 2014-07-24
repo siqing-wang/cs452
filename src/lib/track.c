@@ -343,6 +343,20 @@ void reserv_adjustStartingPoint(int trainIndex, track_node **nodeStart, int *sta
     // Log("adj_a %d + %d", (*nodeStart)->name, *startOffset);
 }
 
+int reserv_updateStopAtSwDirections(unsigned int stopAtSwDirctions, unsigned int *stopAtSwInvolvedPtr, int switchIndex) {
+    int stopAtSwInvolved = *stopAtSwInvolvedPtr;
+    if ((stopAtSwInvolved & (1 << switchIndex)) == 0) {
+        return -1;
+    }
+    stopAtSwInvolved = stopAtSwInvolved & (~(1 << switchIndex));
+    *stopAtSwInvolvedPtr = stopAtSwInvolved;
+
+    if (stopAtSwDirctions & (1 << switchIndex)) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
 
 void reserv_giveBackTrackBehind(int trainIndex, track_node *nodeStart, int offset) {
 
@@ -442,7 +456,8 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
     assert(stoppingDist > 0, "Train is still");
     int travelDistUtilNextCall = RESERV_DELAY * calculate_currentVelocity(trdata, trdata->timetickSinceSpeedChange);
     int reservDistAhead = stoppingDist + travelDistUtilNextCall + RESERV_SAFE_MARGIN;
-    int stopAtSwDirctions = trdata->stopAtSwDirctions;
+    unsigned int stopAtSwDirctions = trdata->stopAtSwDirctions;
+    unsigned int stopAtSwInvolved = trdata->stopAtSwInvolved;
 
     track_node *node = nodeStart;
     int high, low = offsetStart, reserv;
@@ -459,6 +474,7 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
 
             AcquireLock(data->trtableLock[trainIndex]);
             trdata->stopAtSwDirctions = stopAtSwDirctions;
+            trdata->stopAtSwInvolved = stopAtSwInvolved;
             trdata->continueToStop = 0;
             ReleaseLock(data->trtableLock[trainIndex]);
 
@@ -470,13 +486,16 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
 
         /* Get edge in correct direction. */
         if (node->type == NODE_BRANCH) {
+            stopatSwdir = -1;
             if (isNotFreeRunning) {
                 /* In stop at process. */
-                /* Turn switch to desired direction. */
-                stopatSwdir = stopAtSwDirctions >> 31;
-                stopAtSwDirctions = stopAtSwDirctions << 1;
+                /* Turn switch to desired direction. NOTE: assume od not find route at same time. */
+                stopatSwdir = reserv_updateStopAtSwDirections(stopAtSwDirctions, &stopAtSwInvolved, getSwitchIndex(node->num));
+            }
+            if (stopatSwdir >= 0) {
                 edge = &(node->edge[stopatSwdir]);
-            } else {
+            }
+            else {
                 /* It is just free running, see switch table. */
                 dir = data->swtable[getSwitchIndex(node->num)];
                 edge = &(node->edge[dir]);
@@ -502,6 +521,7 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
 
             AcquireLock(data->trtableLock[trainIndex]);
             trdata->stopAtSwDirctions = stopAtSwDirctions;
+            trdata->stopAtSwInvolved = stopAtSwInvolved;
             trdata->continueToStop = 0;
             ReleaseLock(data->trtableLock[trainIndex]);
 
@@ -514,7 +534,7 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
             edge->reservation[trainIndex] = reserv_buildReservationNode(low, high);
         }
 
-        if (node->type == NODE_BRANCH && isNotFreeRunning) {
+        if (node->type == NODE_BRANCH && (stopatSwdir >= 0)) {
             /* Now track over otherside of branch is reserved, turn switch. */
             message.type = TRAINCTRL_SW_CHANGE;
             message.num = node->num;
@@ -530,6 +550,7 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
 
     AcquireLock(data->trtableLock[trainIndex]);
     trdata->stopAtSwDirctions = stopAtSwDirctions;
+    trdata->stopAtSwInvolved = stopAtSwInvolved;
     ReleaseLock(data->trtableLock[trainIndex]);
 
     reserv_giveBackTrackBehind(trainIndex, trdata->lastLandmark,
@@ -1850,8 +1871,8 @@ void init_tracka(track_node *track) {
     track[35].friction = 0.587;     // C4
     track[36].friction = 1.010;     // C5
     track[37].friction = 1.012;     // C6
-    track[38].friction = 0.821;
-    track[39].friction = 1.024;
+    track[38].friction = 0.821;     // C7
+    track[39].friction = 0.924;     // C8
     track[40].friction = 1.046;
 
     track[41].friction = 0.950;
@@ -1891,7 +1912,7 @@ void init_tracka(track_node *track) {
     track[73].friction = 1.010;
     track[74].friction = 0.971;
     track[75].friction = 0.923;
-    track[76].friction = 0.971;
+    track[76].friction = 1.171;
     track[77].friction = 0.682;
     track[78].friction = 0.785;
     track[79].friction = 1.033;

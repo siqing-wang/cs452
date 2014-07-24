@@ -417,7 +417,6 @@ void trainCoordinator() {
     int reservInited = 0;
     TrainSetData *data;
 
-    Exit();
     Receive(&serverTid, &data, sizeof(data));
     Reply(serverTid, &msg, sizeof(msg));
 
@@ -1024,7 +1023,9 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
     track_node *current = start;
     int nextLocationOffset = 0;
     distance = 0 - startOffset;
-    int switchNum, switchDir;
+    int switchDir, switchIndex;
+    unsigned int stopAtSwDirctions = 0;
+    unsigned int stopAtSwInvolved = 0;
 
     for(i = 0;;) {
         if (current == end) {
@@ -1048,18 +1049,10 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
             i++;
         }
         else if (current->type == NODE_BRANCH) {
-            switchNum = current->num;
+            switchIndex = getSwitchIndex(current->num);
             switchDir = result[i];
-            if (switchDir != *(data->swtable + getSwitchIndex(switchNum))) {
-                /* Update switch table. */
-                AcquireLock(data->swtableLock);
-                *(data->swtable + getSwitchIndex(switchNum)) = switchDir;
-                ReleaseLock(data->swtableLock);
-                /* Send message to train set to actually turn switch. */
-                trainset_turnSwitch(switchNum, switchDir);
-                /* Update terminal switch table. */
-                updateSwitchTable(switchNum, switchDir);
-            }
+            stopAtSwDirctions = stopAtSwDirctions | switchDir << switchIndex;
+            stopAtSwInvolved = stopAtSwInvolved | 1 << switchIndex;
             distance += current->edge[switchDir].dist;
             current = current->edge[switchDir].dest;
             i++;
@@ -1074,6 +1067,8 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
     AcquireLock(data->trtableLock[trainIndex]);
     data->trtable[trainIndex]->nextLocation = current;
     data->trtable[trainIndex]->nextLocationOffset = nextLocationOffset;
+    trdata->stopAtSwDirctions = stopAtSwDirctions;
+    trdata->stopAtSwInvolved = stopAtSwInvolved;
     ReleaseLock(data->trtableLock[trainIndex]);
 
     if (current == end) {

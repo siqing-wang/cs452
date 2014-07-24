@@ -69,6 +69,7 @@ typedef struct TrainData {
     int delayToStop;
     int continueToStop;
     unsigned int stopAtSwDirctions;
+    unsigned int stopAtSwInvolved;
     struct track_node *nextLocation;
     int nextLocationOffset;
     struct track_node *finalLocation;
