@@ -257,9 +257,10 @@ void trainTask() {
                             trdata->needToStop = 1;
                             trdata->continueToStop = 1;
                             trdata->delayToStop = calculate_delayToStop(data, trdata, trdata->nextLocation, result);
-                            trainset_setSpeed(message.num, 8);
                             ReleaseLock(trLock);
 
+                            trainset_setSpeed(message.num, 8);
+                            PrintfAt(COM2, TR_R + trainIndex * 3, TRSPEED_C, "8 ");
                             Log("Delay %d ticks", trdata->delayToStop);
                         }
                     }
@@ -269,12 +270,10 @@ void trainTask() {
                 reverseTrainSpeed(data, trainIndex);
                 break;
             case TRAINCTRL_TR_GO:
-                // Log("Message : num = %d, location = %s, data = %d", message.num, message.location, message.data);
                 updateTrainSpeed(data, trainIndex, 0);
                 trainset_setSpeed(message.num, 0);
                 PrintfAt(COM2, TR_R + trainIndex * 3, TRSPEED_C, "0 ");
                 Delay(trdata->delayRequiredToAchieveSpeed);
-                // Log("location : %s", message.location);
                 findAndStoreFinalLocation(data, trainIndex, message.location, message.data);
                 result = findRoute(data, trainIndex);
                 if (result >= 0) {
@@ -1072,7 +1071,15 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
     data->trtable[trainIndex]->nextLocationOffset = nextLocationOffset;
     ReleaseLock(data->trtableLock[trainIndex]);
 
-    Log("next location : %s + %d, distance = %d, final location : %s/%s", current->name, nextLocationOffset / 10, distance, end->name, end_alt->name);
+    if (current == end) {
+        Log("next location : %s + %d, distance = %d, final location : %s/%s", current->name, (finalLocationOffset + nextLocationOffset) / 10, distance, end->name, end_alt->name);
+    }
+    else if (current == end_alt) {
+        Log("next location : %s - %d, distance = %d, final location : %s/%s", current->name, (finalLocationOffset - nextLocationOffset) / 10, distance, end->name, end_alt->name);
+    }
+    else {
+        Log("next location : %s + %d, distance = %d, final location : %s/%s", current->name, (finalLocationOffset + nextLocationOffset) / 10, distance, end->name, end_alt->name);
+    }
 
     /* Highlight graph */
     for(i = 0; i < TRAIN_NUM; i++) {
