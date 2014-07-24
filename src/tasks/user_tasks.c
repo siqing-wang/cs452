@@ -35,7 +35,7 @@ void firstUserTask() {
     tid = Create(11, &trainIOServer);
     assertEquals(TRAINIOSERVER_TID, tid, "TrainIOServer should be the first task.");
 
-    tid = Create(11, &terminalIOServer);
+    tid = Create(9, &terminalIOServer);
     assertEquals(TERMINALIOSERVER_TID, tid, "TerminalIOServer should be the first task.");
 
     Create(2, &train);

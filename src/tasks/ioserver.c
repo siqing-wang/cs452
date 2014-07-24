@@ -78,9 +78,9 @@ void terminalIOServer() {
     int msg = 0;
     /* Create notifiers, and send a message to it. */
     int notifierTid;
-    notifierTid = Create(12, &terminalSendNotifier);
+    notifierTid = Create(10, &terminalSendNotifier);
     Send(notifierTid, &msg, sizeof(msg), &msg, sizeof(msg));
-    notifierTid = Create(12, &terminalRecvNotifier);
+    notifierTid = Create(10, &terminalRecvNotifier);
     Send(notifierTid, &msg, sizeof(msg), &msg, sizeof(msg));
 
     IOQueue sendQueue;
