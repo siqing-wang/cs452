@@ -222,7 +222,7 @@ double calculate_shortMoveDistance(int trainNum, int speed, int tick) {
 
     switch(trainNum) {
         case 45:
-            return -0.001 * delay * delay * delay * delay + 0.0806 * delay * delay * delay - 1.0958 * delay * delay + 8.3359 * delay;
+            return -0.0015 * delay * delay * delay * delay + 0.1076 * delay * delay * delay - 1.4875 * delay * delay + 9.6611 * delay;
         case 49:
             return -0.0014 * delay * delay * delay * delay + 0.1053 * delay * delay * delay - 1.4764 * delay * delay + 10.146 * delay;
         case 53:

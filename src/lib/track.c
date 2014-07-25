@@ -1861,12 +1861,12 @@ void init_tracka(track_node *track) {
     track[31].friction = 0.995;
     track[32].friction = 1.081;     // C1
     track[33].friction = 1.032;     // C2
-    track[34].friction = 1.030;     // C3
+    track[34].friction = 1.003;     // C3
     track[35].friction = 0.587;     // C4
     track[36].friction = 1.010;     // C5
     track[37].friction = 1.012;     // C6
-    track[38].friction = 0.821;     // C7
-    track[39].friction = 0.924;     // C8
+    track[38].friction = 0.974;     // C7
+    track[39].friction = 0.999;     // C8
     track[40].friction = 1.046;
 
     track[41].friction = 0.950;
