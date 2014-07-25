@@ -192,7 +192,7 @@ int parseInitCommand(int trainCtrlTid, char* input){
     PrintfAt(COM2, LOG_R + 1, LOG_C + 4, "%sInitialize train %u at location %s %s", TCS_GREEN, train_number, location, TCS_RESET);
 
     TrainControlMessage message;
-    message.type = TRAINCTRL_INIT;
+    message.type = TRAINCTRL_TR_INIT;
     message.num = train_number;
     for(i = 0; i < 6; i++) {
         message.location[i] = location[i];

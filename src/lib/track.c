@@ -237,8 +237,9 @@ int findRouteDistance(track_node *start, track_node *end, track_node *end_alt, i
 /* Track Reservation. */
 
 unsigned int reserv_buildReservationNode(int low, int high) {
-    assert(low < 1024 && high < 1024 && low >= 0 && low < high,
-        "reserv_buildReservationNode: low or high >= 1024 or low >= high");
+    assert(low < 1024 && high < 1024, "reserv_buildReservationNode: low or high >= 1024");
+    assert(low >= 0, "reserv_buildReservationNode: low < 0");
+    assert(low < high, "reserv_buildReservationNode: low >= high");
     return (high << 10) + low;
 }
 
@@ -259,8 +260,10 @@ void reserv_clearReservation(track_edge *edge, int trainIndex) {
 // Return ownership of landmark + 0 ~ landmark + offset, can have multiple owner
 int reserv_checkReservation(track_edge *edge, int low, int high) {
     /* If low = high we are checking a point. */
-    assert(low <= high && low >= 0 && high > 0 && high <= edge->dist,
-        "reserv_checkReservation: invalid range.");
+    assert(low >= 0 && high > 0, "reserv_checkReservation: invalid range (low < 0).");
+    assert(high > 0, "reserv_checkReservation: invalid range (high <= 0).");
+    assert(low <= high, "reserv_checkReservation: invalid range (low > high).");
+    assert(high <= edge->dist, "reserv_checkReservation: invalid range (high > edge->dist).");
     int owned = 0;
     int i, low2, high2;
 
@@ -278,7 +281,6 @@ int reserv_checkReservation(track_edge *edge, int low, int high) {
 }
 
 void reserv_getReservation(track_edge *edge, int trainIndex, int *low, int *high) {
-
     int reserv = edge->reservation[trainIndex];
     if (reserv != 0) {
         reserv_extractReservationNode(reserv, low, high);
@@ -312,7 +314,6 @@ track_edge* reserv_getReservedEdge(track_node *node, int trainIndex) {
     return (track_edge*)0;
 }
 
-
 /* Adjust starting point so offset is in correct range [0 dist]. */
 void reserv_adjustStartingPoint(int trainIndex, track_node **nodeStart, int *startOffset) {
     // Log("adj_b %d + %d", (*nodeStart)->name, *startOffset);
@@ -339,8 +340,12 @@ void reserv_adjustStartingPoint(int trainIndex, track_node **nodeStart, int *sta
         *startOffset = *startOffset - edge->dist;
         edge = reserv_getReservedEdge(*nodeStart, trainIndex);
     }
+    // Log("edge %s startOffset = %d, dist = %d", edge->src->name, *startOffset, edge->dist);
+    // Log("Start node = %s", (*nodeStart)->name);
     assert(*startOffset < edge->dist, "reserv_adjustStartingPoint: start offset still > edge dist after adjustion.");
-    // Log("adj_a %d + %d", (*nodeStart)->name, *startOffset);
+    // if (*startOffset >= edge->dist) {
+    //     Log("edge %s startOffset = %d, dist = %d", edge->src->name, *startOffset, edge->dist);
+    // }
 }
 
 int reserv_updateStopAtSwDirections(unsigned int stopAtSwDirctions, unsigned int *stopAtSwInvolvedPtr, int switchIndex) {
@@ -420,23 +425,15 @@ void reserv_init(TrainSetData *data, int trainIndex) {
 int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainIndex) {
     TrainData *trdata = data->trtable[trainIndex];
 
+    AcquireLock(data->trtableLock[trainIndex]);
     track_node *nodeStart = trdata->lastLandmark;
     int offsetStart = (int)trdata->distanceAfterLastLandmark;
+    ReleaseLock(data->trtableLock[trainIndex]);
 
-    if ((trdata->targetSpeed == 0) && (trdata->timetickSinceSpeedChange > trdata->delayRequiredToAchieveSpeed)) {
-        /* Train still. */
-        return 1;
-    } else if (trdata->targetSpeed == 0) {
-        /* In progress of stopping but not stopped yet. Clean up reservation behind. */
-        int timeleftToStop = trdata->delayRequiredToAchieveSpeed - trdata->timetickSinceSpeedChange;
-        // 2 assumptions:
-        //    1. Position jumps to the place ended up after stop completed as soon as stop cmd sent
-        //    2. For simplity assuming speed = lastspeed/2 consistently until stopped;
-
-        int lastVelocity = (int)calculate_trainVelocity(trdata->trainNum, trdata->lastSpeed / 2);
-        int estDistLeftToStop = timeleftToStop * lastVelocity / 2;
-        int offsetEnd = offsetStart - TRAIN_LENGTH - estDistLeftToStop;
-        reserv_giveBackTrackBehind(trainIndex, nodeStart, offsetEnd);
+    if (trdata->targetSpeed == 0) {
+        if (trdata->stopInProgress) {
+            reserv_giveBackTrackBehind(trainIndex, nodeStart, offsetStart - TRAIN_LENGTH - RESERV_SAFE_MARGIN);
+        }
         return 1;
     }
 
@@ -451,11 +448,10 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
     assert(edge != 0, "reserv_updateReservation: starting point not owned correctly.");
 
     /* Reserve ahead stopping distance and turn switch if necessary. */
-    int stoppingDist = calculate_stopDistance(trdata->trainNum, trdata->targetSpeed) *
-                    nextSensorOrExit(data, nodeStart)->friction;
+    int stoppingDist = calculate_stopDistance(trdata->trainNum, trdata->targetSpeed);
     assert(stoppingDist > 0, "Train is still");
     int travelDistUtilNextCall = RESERV_DELAY * calculate_currentVelocity(trdata, trdata->timetickSinceSpeedChange);
-    int reservDistAhead = stoppingDist + travelDistUtilNextCall + RESERV_SAFE_MARGIN;
+    int reservDistAhead = (stoppingDist + travelDistUtilNextCall) * nextSensorOrExit(data, nodeStart)->friction + RESERV_SAFE_MARGIN;
     unsigned int stopAtSwDirctions = trdata->stopAtSwDirctions;
     unsigned int stopAtSwInvolved = trdata->stopAtSwInvolved;
 
@@ -479,8 +475,7 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
             ReleaseLock(data->trtableLock[trainIndex]);
 
             Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
-            reserv_giveBackTrackBehind(trainIndex, trdata->lastLandmark,
-                (int)trdata->distanceAfterLastLandmark - TRAIN_LENGTH);
+            reserv_giveBackTrackBehind(trainIndex, nodeStart, offsetStart - TRAIN_LENGTH - RESERV_SAFE_MARGIN);
             return 0;
         }
 
@@ -527,7 +522,7 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
 
             Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
 
-            reserv_giveBackTrackBehind(trainIndex, nodeStart, TRAIN_LENGTH - offsetStart);
+            reserv_giveBackTrackBehind(trainIndex, nodeStart, offsetStart - TRAIN_LENGTH - RESERV_SAFE_MARGIN);
             return 0;
         } else {
             /* Reserved by me or nobody. Take it. */
@@ -553,8 +548,7 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
     trdata->stopAtSwInvolved = stopAtSwInvolved;
     ReleaseLock(data->trtableLock[trainIndex]);
 
-    reserv_giveBackTrackBehind(trainIndex, trdata->lastLandmark,
-        (int)trdata->distanceAfterLastLandmark - TRAIN_LENGTH);
+    reserv_giveBackTrackBehind(trainIndex, nodeStart, offsetStart - TRAIN_LENGTH - RESERV_SAFE_MARGIN);
     return 1;
 }
 

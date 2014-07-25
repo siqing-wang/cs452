@@ -310,9 +310,11 @@ double calculate_currentVelocity(TrainData *trainData, int timetick) {
 
     double velocity1 = lastVelocity;
     double velocityDiff = targetVelocity - lastVelocity;
-    double temp = timetick / delayRequiredToAchieveSpeed;
-    velocity1 += 3 * velocityDiff * temp * temp;
-    velocity1 -= 2 * velocityDiff * temp * temp * temp;
+
+    velocity1 += velocityDiff / delayRequiredToAchieveSpeed * timetick;
+    // double temp = timetick / delayRequiredToAchieveSpeed;
+    // velocity1 += 3 * velocityDiff * temp * temp;
+    // velocity1 -= 2 * velocityDiff * temp * temp * temp;
 
     // double velocity2 = lastVelocity;
     // int timeDiff = calculate_delayToAchieveSpeed(trainData);
@@ -390,7 +392,7 @@ int calculate_delayToStop(TrainSetData *trainSetData, TrainData *trainData, trac
                 currentDistance += acDistanceCopy * start->friction;
                 passed -= acDistanceCopy;
                 distance -= minDistance;
-                Log("ac = %d, cur = %d", (int)acDistance, (int)currentDistance);
+                // Log("ac = %d, cur = %d", (int)acDistance, (int)currentDistance);
                 delay += minDelay * acDistance / currentDistance;
                 break;
             }
@@ -422,7 +424,7 @@ int calculate_delayToStop(TrainSetData *trainSetData, TrainData *trainData, trac
             }
             if (passed > dcDistanceCopy) {
                 currentDistance += dcDistanceCopy * start->friction;
-                Log("dc = %d, cur = %d", (int)dcDistance, (int)currentDistance);
+                // Log("dc = %d, cur = %d", (int)dcDistance, (int)currentDistance);
                 break;
             }
             dcDistanceCopy -= passed;
@@ -446,7 +448,7 @@ int calculate_delayToStop(TrainSetData *trainSetData, TrainData *trainData, trac
             start = nextSensorOrExit(trainSetData, start);
             if (passed > distanceCopy) {
                 currentDistance += distanceCopy * start->friction;
-                Log("adc = %d, cur = %d", (int)distance, (int)currentDistance);
+                // Log("adc = %d, cur = %d", (int)distance, (int)currentDistance);
                 friction = distance / currentDistance;
                 break;
             }

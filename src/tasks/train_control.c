@@ -187,7 +187,7 @@ void trainTask() {
         Reply(courierTid, &msg, sizeof(msg));
 
         switch (message.type) {
-            case TRAINCTRL_INIT:
+            case TRAINCTRL_TR_INIT:
                 trdata->reverse = 0;
                 trdata->trainNum = message.num;
                 trdata->nextSensor = (track_node *)0;
@@ -364,23 +364,50 @@ void updateTrainTable() {
                 sendToServer = 1;
             }
 
-            if (!trdata->stopInProgress) {
-                trdata->distanceAfterLastLandmark += calculate_currentVelocity(trdata, trdata->timetickSinceSpeedChange) * (trdata->nextSensor->friction);
+            if ((trdata->stopInProgress) && (trdata->timetickSinceSpeedChange > trdata->delayRequiredToAchieveSpeed)) {
+                trdata->lastLandmark = trdata->targetStopLandmark;
+                trdata->distanceAfterLastLandmark = trdata->distanceAfterTargetStopLandmark;
             }
 
+            double distanceAfterLastLandmark = trdata->distanceAfterLastLandmark;
+            track_node *lastLandmark = trdata->lastLandmark;
+
+            distanceAfterLastLandmark += calculate_currentVelocity(trdata, trdata->timetickSinceSpeedChange) * (trdata->nextSensor->friction);
             for(;;) {
-                if (trdata->lastLandmark->type == NODE_EXIT) {
+                if (lastLandmark->type == NODE_EXIT) {
+                    distanceAfterLastLandmark = 0;
                     break;
                 }
-                if (trdata->lastLandmark == trdata->nextSensor) {
+                if (lastLandmark == trdata->nextSensor) {
+                    if ((trdata->reverse) && (distanceAfterLastLandmark > 20)) {
+                        distanceAfterLastLandmark = 20;
+                    }
+                    else if ((!trdata->reverse) && (distanceAfterLastLandmark > 140)) {
+                        distanceAfterLastLandmark = 140;
+                    }
                     break;
                 }
-                int distance = nextDistance(data, trdata->lastLandmark);
-                if (trdata->distanceAfterLastLandmark < distance) {
+                int distance = nextDistance(data, lastLandmark);
+                if (distanceAfterLastLandmark < distance) {
                     break;
                 }
-                trdata->distanceAfterLastLandmark -= distance;
-                trdata->lastLandmark = nextNode(data, trdata->lastLandmark);
+                distanceAfterLastLandmark -= distance;
+                lastLandmark = nextNode(data, lastLandmark);
+            }
+
+            trdata->distanceAfterLastLandmark = distanceAfterLastLandmark;
+            trdata->lastLandmark = lastLandmark;
+
+            if ((trdata->stopInProgress) && (trdata->timetickSinceSpeedChange > trdata->delayRequiredToAchieveSpeed)) {
+                trdata->stopInProgress = 0;
+                if (trdata->lastLandmark == trdata->lastSensor) {
+                    if ((trdata->reverse) && (distanceAfterLastLandmark < 20)) {
+                        distanceAfterLastLandmark = 20;
+                    }
+                    else if ((!trdata->reverse) && (distanceAfterLastLandmark < 140)) {
+                        distanceAfterLastLandmark = 140;
+                    }
+                }
             }
 
             ReleaseLock(data->trtableLock[i]);
@@ -455,14 +482,6 @@ void displayCurrentPosition() {
                 AcquireLock(data->trtableLock[i]);
                 lastLandmark = trdata->lastLandmark;
                 distanceAfterLastLandmark = trdata->distanceAfterLastLandmark;
-                if (lastLandmark == trdata->nextSensor) {
-                    if ((trdata->reverse) && (distanceAfterLastLandmark > 20)) {
-                        distanceAfterLastLandmark = 20;
-                    }
-                    else if (!(trdata->reverse) && (distanceAfterLastLandmark > 140)) {
-                        distanceAfterLastLandmark = 140;
-                    }
-                }
                 ReleaseLock(data->trtableLock[i]);
 
                 PrintfAt(COM2, TR_R + i * 3, TRLOCATION_SENSOR_C, "%s   ", lastLandmark->name);
@@ -534,8 +553,6 @@ void drawTrackGraph() {
         }
         Delay(20);
     }
-
-
 }
 
 void trainControlServer() {
@@ -647,18 +664,9 @@ void trainControlServer() {
         }
 
         switch (message.type) {
-            case TRAINCTRL_INIT:
-                Reply(requesterTid, &msg, sizeof(msg));
-                sentTo(trainTid, &message, &couriersStatus);
-                break;
+            case TRAINCTRL_TR_INIT:
             case TRAINCTRL_TR_SETSPEED:
-                Reply(requesterTid, &msg, sizeof(msg));
-                sentTo(trainTid, &message, &couriersStatus);
-                break;
             case TRAINCTRL_TR_REVERSE:
-                Reply(requesterTid, &msg, sizeof(msg));
-                sentTo(trainTid, &message, &couriersStatus);
-                break;
             case TRAINCTRL_TR_STOP:
                 Reply(requesterTid, &msg, sizeof(msg));
                 sentTo(trainTid, &message, &couriersStatus);
@@ -782,17 +790,6 @@ void updateTrainSpeed(TrainSetData *data, int trainIndex, int newSpeed) {
 
     AcquireLock(data->trtableLock[trainIndex]);
 
-    if ((trdata->targetSpeed != newSpeed) &&
-        (trdata->init > 0) && (trdata->lastSpeed == 0) &&
-        (trdata->lastLandmark == trdata->nextSensor)) {
-        if ((trdata->reverse) && (trdata->distanceAfterLastLandmark > 20)) {
-            trdata->distanceAfterLastLandmark = 20;
-        }
-        else if (!(trdata->reverse) && (trdata->distanceAfterLastLandmark > 140)) {
-            trdata->distanceAfterLastLandmark = 140;
-        }
-    }
-
     trdata->lastSpeed = trdata->targetSpeed;
     trdata->targetSpeed = newSpeed;
     trdata->timetickSinceSpeedChange = 0;
@@ -801,11 +798,15 @@ void updateTrainSpeed(TrainSetData *data, int trainIndex, int newSpeed) {
 
     if (newSpeed == 0) {
         trdata->stopInProgress = 1;
+        if (trdata->shortMoveInProgress) {
+            trdata->targetStopLandmark = trdata->nextLocation;
+            trdata->distanceAfterTargetStopLandmark = trdata->nextLocationOffset;
+        }
+        else {
+            trdata->targetStopLandmark = trdata->lastLandmark;
+            trdata->distanceAfterTargetStopLandmark = trdata->distanceAfterLastLandmark + calculate_stopDistance(trdata->trainNum, trdata->lastSpeed) * trdata->nextSensor->friction;
+        }
         trdata->shortMoveInProgress = 0;
-        trdata->distanceAfterLastLandmark += calculate_stopDistance(trdata->trainNum, trdata->lastSpeed) * trdata->nextSensor->friction;
-    }
-    else {
-        trdata->stopInProgress = 0;
     }
 
     ReleaseLock(data->trtableLock[trainIndex]);
@@ -824,14 +825,7 @@ void reverseTrainSpeed(TrainSetData *data, int trainIndex) {
     trainset_setSpeed(trainNum, 0);
     PrintfAt(COM2, TR_R + trainIndex * 3, TRSPEED_C, "0 ");
     Delay(trdata->delayRequiredToAchieveSpeed);
-    if ((trdata->init > 0) && (trdata->lastLandmark == trdata->nextSensor)) {
-        if ((trdata->reverse) && (trdata->distanceAfterLastLandmark > 20)) {
-            trdata->distanceAfterLastLandmark = 20;
-        }
-        else if (!(trdata->reverse) && (trdata->distanceAfterLastLandmark > 140)) {
-            trdata->distanceAfterLastLandmark = 140;
-        }
-    }
+
     trainset_reverse(trainNum);
 
     AcquireLock(trLock);
@@ -840,8 +834,19 @@ void reverseTrainSpeed(TrainSetData *data, int trainIndex) {
         trdata->expectTimetickHittingNextNextSensor = -1;
         trdata->lastLandmark = trdata->lastLandmark->reverse;
         trdata->distanceAfterLastLandmark = TRAIN_LENGTH - trdata->distanceAfterLastLandmark;
+        for(;;) {
+            if (trdata->lastLandmark->type == NODE_EXIT) {
+                trdata->distanceAfterLastLandmark = 0;
+                break;
+            }
+            int distance = nextDistance(data, trdata->lastLandmark);
+            if (trdata->distanceAfterLastLandmark < distance) {
+                break;
+            }
+            trdata->distanceAfterLastLandmark -= distance;
+            trdata->lastLandmark = nextNode(data, trdata->lastLandmark);
+        }
     }
-
     trdata->reverseInProgress = 1;
     trdata->reverse = 1 - trdata->reverse;
 
