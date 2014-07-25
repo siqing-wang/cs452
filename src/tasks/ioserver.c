@@ -140,6 +140,7 @@ void terminalIOServer() {
                         }
                         break;
                     case IOServerMSG_IOIDLE :
+                        assert(idleWaitingTid < 0, "ioserver: IOidle conflict");
                         idleWaitingTid = requesterTid;
                         break;
                     case IOServerMSG_GETSIZE :
@@ -191,7 +192,8 @@ void trainIOServer() {
     int requesterTid;
     int sendWaitingTid = -1;
     int recvWaitingTid = -1;
-    int idleWaitingTid = -1;
+    int idleWaitingTids[5];
+    int idleWaitingTidCount = 0;
     int sensorWaitingTid = -1;
     IOserverMessage message;
     char ch;
@@ -244,7 +246,9 @@ void trainIOServer() {
                         sensorWaitingTid = requesterTid;
                         break;
                     case IOServerMSG_IOIDLE :
-                        idleWaitingTid = requesterTid;
+                        assert(idleWaitingTidCount < 4, "ioserver: IOidle waiting list full");
+                        idleWaitingTids[idleWaitingTidCount] = requesterTid;
+                        idleWaitingTidCount = idleWaitingTidCount + 1;
                         break;
                     case IOServerMSG_GETSIZE :
                         msg = sendQueue.size;
@@ -276,9 +280,11 @@ void trainIOServer() {
             Reply(sensorWaitingTid, &msg, sizeof(msg));
             sensorWaitingTid = -1;
         }
-        if ((sendWaitingTid >= 0) && (idleWaitingTid >= 0)) {
-            Reply(idleWaitingTid, &msg, sizeof(msg));
-            idleWaitingTid = -1;
+        if ((sendWaitingTid >= 0) && (idleWaitingTidCount > 0)) {
+            for (i = 0; i < idleWaitingTidCount; i++) {
+                Reply(idleWaitingTids[i], &msg, sizeof(msg));
+            }
+            idleWaitingTidCount = 0;
         }
     }
 }

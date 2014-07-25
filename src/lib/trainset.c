@@ -172,6 +172,7 @@ void trainset_turnSwitch(int switch_number, int switch_direction) {
 
 void trainset_subscribeSensorFeeds() {
     Putc(COM1, (char)SENSOR_SUBSCRIBE_ALL);
+    IOidle(COM1);
 }
 
 /* Return if table has been changed. */
