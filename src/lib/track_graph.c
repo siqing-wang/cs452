@@ -71,6 +71,10 @@ void trackGraph_redrawTrainLoc(TrainSetData *data, unsigned int *oldGraphNodes, 
         newn = edge->dest;
     }
 
+    if (newn->type == NODE_EXIT) {
+        /* Cannot draw beyond exit. */
+        return;
+    }
 
     /* Find leading node. */
     double ratio = (double)newoff / (double)edge->dist;
@@ -81,12 +85,15 @@ void trackGraph_redrawTrainLoc(TrainSetData *data, unsigned int *oldGraphNodes, 
     /* Draw 2 nodes ahead. */
     track_node *node = newn;
     for (i = 1; i < 3; i++) {
+
         nodeIndex++;
         if (nodeIndex >= edge->numGraphNodes) {
             node = edge->dest;
             /* Go to last edge. */
             if (node->type == NODE_BRANCH) {
                 dir = snapSwtable[getSwitchIndex(node->num)];
+            } else if (node->type == NODE_EXIT) {
+                return;
             } else {
                 dir = DIR_AHEAD;
             }
