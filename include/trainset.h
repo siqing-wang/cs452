@@ -70,6 +70,8 @@ typedef struct TrainData {
     int needToStop;
     int delayToStop;
     int continueToStop;
+    int diffDistBtwTargetAndEstimation;
+    int needToCleanTrackAhead;
     unsigned int stopAtSwDirctions;
     unsigned int stopAtSwInvolved;
     struct track_node *nextLocation;
@@ -77,6 +79,11 @@ typedef struct TrainData {
     struct track_node *finalLocation;
     struct track_node *finalLocationAlt;
     int finalLocationOffset;
+
+    /* Reservation related */
+    int needToCleanTrack;
+    int shortMoveReserved;
+    int shortMoveTotalDistance;
 } TrainData;
 
 typedef struct TrainSetData {

@@ -94,6 +94,72 @@ int nextSensorDistance(struct TrainSetData *data, track_node *node) {
     return dist;
 }
 
+int distanceBetweenTwoNodes(struct TrainSetData *data, TrainData *trdata, track_node *startNode, track_node *endNode, int *distance) {
+    unsigned int stopAtSwDirctions = trdata->stopAtSwDirctions;
+    unsigned int stopAtSwInvolved = trdata->stopAtSwInvolved;
+
+    int dir, switchIndex;
+    int dist = 0;
+    track_node *start = startNode;
+    track_node *end = endNode;
+    for(;;) {
+        if ((start == end) || (start == end->reverse)) {
+            *distance = dist;
+            return 1;
+        }
+        if (start->type == NODE_EXIT) {
+            break;
+        }
+        if (dist > 1000) {
+            break;
+        }
+
+        dir = DIR_AHEAD;
+        if (start->type == NODE_BRANCH) {
+            switchIndex = getSwitchIndex(start->num);
+            if ((stopAtSwInvolved & (1 << switchIndex)) == 0) {
+                dir = data->swtable[switchIndex];
+            }
+            else if (stopAtSwDirctions & (1 << switchIndex)) {
+                dir = DIR_CURVED;
+            }
+        }
+
+        dist += start->edge[dir].dist;
+        start = start->edge[dir].dest;
+    }
+    dist = 0;
+    start = endNode;
+    end = startNode;
+    for(;;) {
+        if ((start == end) || (start == end->reverse)) {
+            *distance = 0 - dist;
+            return 1;
+        }
+        if (start->type == NODE_EXIT) {
+            break;
+        }
+        if (dist > 1000) {
+            break;
+        }
+
+        dir = DIR_AHEAD;
+        if (start->type == NODE_BRANCH) {
+            switchIndex = getSwitchIndex(start->num);
+            if ((stopAtSwInvolved & (1 << switchIndex)) == 0) {
+                dir = data->swtable[switchIndex];
+            }
+            else if (stopAtSwDirctions & (1 << switchIndex)) {
+                dir = DIR_CURVED;
+            }
+        }
+
+        dist += start->edge[dir].dist;
+        start = start->edge[dir].dest;
+    }
+    return 0;
+}
+
 void fixBrokenSensor(struct TrainSetData *data, track_node *sensor) {
     AcquireLock(data->trackLock);
     sensor->type = NODE_NONE;
@@ -388,13 +454,37 @@ void reserv_giveBackTrackBehind(int trainIndex, track_node *nodeStart, int offse
         /* Update data for next ineration. */
         node = edge->dest;
     }
+}
 
+void reserv_giveBackTrackAhead(int trainIndex, track_node *nodeStart, int offset) {
+
+    reserv_adjustStartingPoint(trainIndex, &nodeStart, &offset);
+
+    track_node *node = nodeStart;
+    track_edge *edge;
+
+    while (node->type != NODE_EXIT) {
+        /* Get edge in correct direction. */
+        edge = reserv_getReservedEdge(node, trainIndex);
+        if (edge == 0) {
+            return;
+        }
+
+        if (node == nodeStart && offset > 0) {
+            /* First iteration. */
+            reserv_reserve(edge->reverse, trainIndex, 0, offset);
+        } else {
+            reserv_clearReservation(edge->reverse, trainIndex);
+        }
+        /* Update data for next ineration. */
+        node = edge->dest;
+    }
 }
 
 void reserv_init(TrainSetData *data, int trainIndex) {
     TrainData *trdata = data->trtable[trainIndex];
     track_node *node = trdata->lastLandmark;
-    Log("Init train %d, starting node name = %s", trainIndex, node->name);
+    Log("Init train %d, starting node %s", trdata->trainNum, node->name);
     track_edge *edge = &(node->edge[0]);
 
     /* Forwards to next sensor. */
@@ -430,7 +520,7 @@ void reserv_init(TrainSetData *data, int trainIndex) {
 int reserv_isHeadOn(TrainSetData *data, int trainIndex_me, int trainIndex_other,
     track_edge *collidingEdgeInDirOfMe) {
 
-    TrainData *trdata_me = data->trtable[trainIndex_me];
+    // TrainData *trdata_me = data->trtable[trainIndex_me];
     TrainData *trdata_other = data->trtable[trainIndex_other];
 
     /* Get location for the other train. */
@@ -474,9 +564,21 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
     int offsetStart = (int)trdata->distanceAfterLastLandmark;
     ReleaseLock(data->trtableLock[trainIndex]);
 
+    if (trdata->shortMoveReserved) {
+        return 1;
+    }
+
     if (trdata->targetSpeed == 0) {
-        if (trdata->stopInProgress) {
+        if ((trdata->stopInProgress) && (!trdata->shortMoveInProgress)) {
             reserv_giveBackTrackBehind(trainIndex, nodeStart, offsetStart - TRAIN_LENGTH - RESERV_SAFE_MARGIN);
+        }
+        if (trdata->needToCleanTrack) {
+            reserv_giveBackTrackBehind(trainIndex, nodeStart, offsetStart - TRAIN_LENGTH - RESERV_SAFE_MARGIN);
+            trdata->needToCleanTrack = 0;
+        }
+        if (trdata->needToCleanTrackAhead) {
+            reserv_giveBackTrackAhead(trainIndex, nodeStart, offsetStart + RESERV_SAFE_MARGIN);
+            trdata->needToCleanTrackAhead = 0;
         }
         return 1;
     }
@@ -492,10 +594,18 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
     assert(edge != 0, "reserv_updateReservation: starting point not owned correctly.");
 
     /* Reserve ahead stopping distance and turn switch if necessary. */
-    int stoppingDist = calculate_stopDistance(trdata->trainNum, trdata->targetSpeed);
-    assert(stoppingDist > 0, "Train is still");
-    int travelDistUtilNextCall = RESERV_DELAY * calculate_currentVelocity(trdata, trdata->timetickSinceSpeedChange);
-    int reservDistAhead = (stoppingDist + travelDistUtilNextCall) * nextSensorOrExit(data, nodeStart)->friction + RESERV_SAFE_MARGIN;
+    int reservDistAhead = 0;
+    if (trdata->shortMoveInProgress) {
+        reservDistAhead = trdata->shortMoveTotalDistance + RESERV_SAFE_MARGIN;
+        trdata->shortMoveReserved = 1;
+    }
+    else {
+        int stoppingDist = calculate_stopDistance(trdata->trainNum, trdata->targetSpeed);
+        assert(stoppingDist > 0, "Train is still");
+        int travelDistUtilNextCall = RESERV_DELAY * calculate_currentVelocity(trdata, trdata->timetickSinceSpeedChange);
+        reservDistAhead = (stoppingDist + travelDistUtilNextCall) * nextSensorOrExit(data, nodeStart)->friction + RESERV_SAFE_MARGIN;
+    }
+
     unsigned int stopAtSwDirctions = trdata->stopAtSwDirctions;
     unsigned int stopAtSwInvolved = trdata->stopAtSwInvolved;
 
@@ -519,7 +629,9 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
             ReleaseLock(data->trtableLock[trainIndex]);
 
             Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
-            reserv_giveBackTrackBehind(trainIndex, nodeStart, offsetStart - TRAIN_LENGTH - RESERV_SAFE_MARGIN);
+            if (!trdata->shortMoveInProgress) {
+                reserv_giveBackTrackBehind(trainIndex, nodeStart, offsetStart - TRAIN_LENGTH - RESERV_SAFE_MARGIN);
+            }
             return 0;
         }
 
@@ -566,7 +678,9 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
 
             Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
 
-            reserv_giveBackTrackBehind(trainIndex, nodeStart, offsetStart - TRAIN_LENGTH - RESERV_SAFE_MARGIN);
+            if (!trdata->shortMoveInProgress) {
+                reserv_giveBackTrackBehind(trainIndex, nodeStart, offsetStart - TRAIN_LENGTH - RESERV_SAFE_MARGIN);
+            }
             return 0;
         } else {
             /* Reserved by me or nobody. Take it. */
@@ -592,7 +706,9 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
     trdata->stopAtSwInvolved = stopAtSwInvolved;
     ReleaseLock(data->trtableLock[trainIndex]);
 
-    reserv_giveBackTrackBehind(trainIndex, nodeStart, offsetStart - TRAIN_LENGTH - RESERV_SAFE_MARGIN);
+    if (!trdata->shortMoveInProgress) {
+        reserv_giveBackTrackBehind(trainIndex, nodeStart, offsetStart - TRAIN_LENGTH - RESERV_SAFE_MARGIN);
+    }
     return 1;
 }
 
@@ -1886,12 +2002,12 @@ void init_tracka(track_node *track) {
         track[i].friction = 1;
     }
     track[0].friction = 1.000;      // A1
-    track[1].friction = 0.900;
+    track[1].friction = 1.000;
     track[2].friction = 1.036;
     track[3].friction = 1.025;
     track[4].friction = 0.957;
     track[5].friction = 0.966;
-    track[6].friction = 1.151;
+    track[6].friction = 1.000;
     track[16].friction = 1.090;     // B1
     track[17].friction = 1.050;
     track[18].friction = 1.080;
@@ -1916,7 +2032,7 @@ void init_tracka(track_node *track) {
     track[41].friction = 0.950;
     track[42].friction = 0.940;
     track[43].friction = 0.998;
-    track[44].friction = 0.783;
+    track[44].friction = 1.000;
     track[45].friction = 0.937;
     track[46].friction = 0.833;
     track[48].friction = 1.03;     // D1

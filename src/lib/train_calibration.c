@@ -328,41 +328,28 @@ double calculate_currentVelocity(TrainData *trainData, int timetick) {
 }
 
 int calculate_expectArrivalDuration(TrainData *trainData, int distance, double friction) {
-    // This will be calculated only when changing speed or trigger sensor
-    // In both case, timetickSinceSpeedChange = timetickWhenHittingSensor
-
     int trainNum = trainData->trainNum;
     int targetSpeed = trainData->targetSpeed;
+    double targetVelocity = calculate_trainVelocity(trainNum, targetSpeed);
+
     int timetickSinceSpeedChange = trainData->timetickSinceSpeedChange;
     int delayRequiredToAchieveSpeed = trainData->delayRequiredToAchieveSpeed;
 
-    double currentVelocity = 0;
-    double currentDistance = 0;
-    double targetVelocity = calculate_trainVelocity(trainNum, targetSpeed);
-
-    currentDistance = 0;
-
-    int tick = 0;
-    for(;;) {
-        if (currentDistance >= distance) {
-            break;
-        }
-        if ((timetickSinceSpeedChange + tick) >= delayRequiredToAchieveSpeed) {
-            break;
-        }
-        currentVelocity = calculate_currentVelocity(trainData, (timetickSinceSpeedChange+ tick)) * friction;
-        currentDistance += currentVelocity;
-        tick ++;
+    if (timetickSinceSpeedChange > delayRequiredToAchieveSpeed) {
+        return distance / (targetVelocity * friction);
     }
 
-    if (currentDistance < distance) {
-        if (targetVelocity == 0) {
-            return -1;
-        }
-        tick += ((distance - currentDistance) / (targetVelocity * friction));
-    }
+    int minDelay = 400;
+    double minDistance = calculate_shortMoveDistance(trainNum, targetSpeed, minDelay);
+    double dcDistance = calculate_stopDistance(trainNum, targetSpeed);
+    double acDistance = minDistance - dcDistance;
 
-    return tick;
+    if (distance > acDistance) {
+        return minDelay + (distance - acDistance) / (targetVelocity * friction);
+    }
+    else {
+        return -1;
+    }
 }
 
 int calculate_delayToStop(TrainSetData *trainSetData, TrainData *trainData, track_node *start, int distance) {
@@ -438,6 +425,7 @@ int calculate_delayToStop(TrainSetData *trainSetData, TrainData *trainData, trac
     }
     else {
         trainData->shortMoveInProgress = 1;
+        trainData->shortMoveTotalDistance = distance;
         double distanceCopy = distance;
         double friction = 1;
         for(;;) {

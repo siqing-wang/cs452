@@ -431,11 +431,16 @@ void trainset_init(TrainSetData *data) {
         data->trtable[i]->needToStop = 0;
         data->trtable[i]->delayToStop = 0;
         data->trtable[i]->continueToStop = 0;
+        data->trtable[i]->diffDistBtwTargetAndEstimation = 0;
+        data->trtable[i]->needToCleanTrackAhead = 0;
         data->trtable[i]->nextLocation = (track_node *)0;
         data->trtable[i]->nextLocationOffset = 0;
         data->trtable[i]->finalLocation = (track_node *)0;
         data->trtable[i]->finalLocationAlt = (track_node *)0;
         data->trtable[i]->finalLocationOffset = 0;
+
+        data->trtable[i]->needToCleanTrack = 0;
+        data->trtable[i]->shortMoveReserved = 0;
 
         lock_init(data->trtableLock[i]);
     }
