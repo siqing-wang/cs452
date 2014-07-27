@@ -39,10 +39,10 @@ track_node *nextBranchOrExit(struct TrainSetData *data, track_node *node) {
         if (next->type == NODE_EXIT) {
             break;
         }
+        next = nextNode(data, next);
         if (next->type == NODE_BRANCH) {
             break;
         }
-        next = nextNode(data, next);
     }
     return next;
 }
@@ -57,8 +57,15 @@ track_node *nextWrongDirSensorOrExit(struct TrainSetData *data, track_node *node
     int corresSwNo = next->num;   // branch number and switch number are 1-1
     int direction = *(swtable + getSwitchIndex(corresSwNo));
     next = next->edge[1 - direction].dest;
-    next = nextSensorOrExit(data, next);
-
+    for (;;) {
+        if (next->type == NODE_EXIT) {
+            break;
+        }
+        if (next->type == NODE_SENSOR) {
+            break;
+        }
+        next = nextNode(data, next);
+    }
     return next;
 }
 
@@ -94,72 +101,6 @@ int nextSensorDistance(struct TrainSetData *data, track_node *node) {
     return dist;
 }
 
-int distanceBetweenTwoNodes(struct TrainSetData *data, TrainData *trdata, track_node *startNode, track_node *endNode, int *distance) {
-    unsigned int stopAtSwDirctions = trdata->stopAtSwDirctions;
-    unsigned int stopAtSwInvolved = trdata->stopAtSwInvolved;
-
-    int dir, switchIndex;
-    int dist = 0;
-    track_node *start = startNode;
-    track_node *end = endNode;
-    for(;;) {
-        if ((start == end) || (start == end->reverse)) {
-            *distance = dist;
-            return 1;
-        }
-        if (start->type == NODE_EXIT) {
-            break;
-        }
-        if (dist > 1000) {
-            break;
-        }
-
-        dir = DIR_AHEAD;
-        if (start->type == NODE_BRANCH) {
-            switchIndex = getSwitchIndex(start->num);
-            if ((stopAtSwInvolved & (1 << switchIndex)) == 0) {
-                dir = data->swtable[switchIndex];
-            }
-            else if (stopAtSwDirctions & (1 << switchIndex)) {
-                dir = DIR_CURVED;
-            }
-        }
-
-        dist += start->edge[dir].dist;
-        start = start->edge[dir].dest;
-    }
-    dist = 0;
-    start = endNode;
-    end = startNode;
-    for(;;) {
-        if ((start == end) || (start == end->reverse)) {
-            *distance = 0 - dist;
-            return 1;
-        }
-        if (start->type == NODE_EXIT) {
-            break;
-        }
-        if (dist > 1000) {
-            break;
-        }
-
-        dir = DIR_AHEAD;
-        if (start->type == NODE_BRANCH) {
-            switchIndex = getSwitchIndex(start->num);
-            if ((stopAtSwInvolved & (1 << switchIndex)) == 0) {
-                dir = data->swtable[switchIndex];
-            }
-            else if (stopAtSwDirctions & (1 << switchIndex)) {
-                dir = DIR_CURVED;
-            }
-        }
-
-        dist += start->edge[dir].dist;
-        start = start->edge[dir].dest;
-    }
-    return 0;
-}
-
 void fixBrokenSensor(struct TrainSetData *data, track_node *sensor) {
     AcquireLock(data->trackLock);
     sensor->type = NODE_NONE;
@@ -185,14 +126,94 @@ void fixBrokenSwitch(struct TrainSetData *data, track_node *sw) {
     ReleaseLock(data->trackLock);
 }
 
-int findRouteDistance(track_node *start, track_node *end, track_node *end_alt, int endOffset, track_node *lastNode, int *result, int resultIndex) {
+int isRouteBlocked(TrainSetData *data, track_edge *edge, int trainIndex, int low, int high) {
+    for(;;) {
+        int adjustedHigh = high;
+        if (edge->dist < high) {
+            adjustedHigh = edge->dist;
+        }
+        if (low >= high) {
+            /* high <= 0, or low >= high(edge.dist) */
+            break;
+        }
+        int reserv = reserv_checkReservation(edge, low, adjustedHigh);
+        int i = 0;
+        for(i = 0; i < TRAIN_NUM; i++) {
+            if (i == trainIndex) {
+                continue;
+            }
+            if (reserv & (1 << i)) {
+                TrainData *trdata = data->trtable[i];
+                if ((trdata->targetSpeed == 0) && (!trdata->stopInProgress)) {
+                    return 1;
+                }
+            }
+        }
+        low = 0;
+        high -= edge->dist;
+        if (high <= 0) {
+            break;
+        }
+        track_node *node = edge->dest;
+        if (node->type == NODE_BRANCH) {
+            int dir = data->swtable[getSwitchIndex(node->num)];
+            edge = &(node->edge[dir]);
+        }
+        else {
+            edge = &(node->edge[DIR_AHEAD]);
+        }
+    }
+    return 0;
+}
+
+int findRouteDistance(TrainSetData *data, int trainIndex, track_node *start, track_node *end, track_node *end_alt, int endOffset, track_node *lastNode, int *result, int resultIndex) {
     // A hacky way to calculate total distance
     // bcz we want to return non-negative number to indicate it is reachable.
     // just minus endOffset to find real distance
     if (start == end) {
+        int isBlcoked = 1;
+        if (start->type == NODE_BRANCH) {
+            isBlcoked = isRouteBlocked(data, &(start->edge[DIR_STRAIGHT]), trainIndex, 0, endOffset);
+            if (isBlcoked) {
+                isBlcoked = isRouteBlocked(data, &(start->edge[DIR_CURVED]), trainIndex, 0, endOffset);
+                if (isBlcoked) {
+                    return -1;
+                }
+                else {
+                    result[resultIndex] = DIR_CURVED;
+                }
+            }
+            else {
+                result[resultIndex] = DIR_STRAIGHT;
+            }
+        }
+        else {
+            isBlcoked = isRouteBlocked(data, &(start->edge[DIR_AHEAD]), trainIndex, 0, endOffset);
+            if (isBlcoked) {
+                return -1;
+            }
+        }
         return 2 * endOffset;
     }
     if (start == end_alt) {
+        int isBlcoked = 1;
+        if (end->type == NODE_MERGE) {
+            if (end->edge[DIR_STRAIGHT].dest == lastNode->reverse) {
+                isBlcoked = isRouteBlocked(data, &(end->edge[DIR_STRAIGHT]), trainIndex, endOffset, end->edge[DIR_STRAIGHT].dist);
+            }
+            else if (end->edge[DIR_CURVED].dest == lastNode->reverse) {
+                isBlcoked = isRouteBlocked(data, &(end->edge[DIR_CURVED]), trainIndex, endOffset, end->edge[DIR_CURVED].dist);
+            }
+            else {
+                warning("findRouteDistance: cannot find last edge.");
+            }
+        }
+        else {
+            isBlcoked = isRouteBlocked(data, &(end->edge[DIR_AHEAD]), trainIndex, endOffset, end->edge[DIR_AHEAD].dist);
+        }
+        if (isBlcoked) {
+            return -1;
+        }
         return 0;
     }
     if (start->type == NODE_EXIT) {
@@ -214,14 +235,20 @@ int findRouteDistance(track_node *start, track_node *end, track_node *end_alt, i
 
     if (start->type == NODE_BRANCH) {
         dir1[resultIndex] = DIR_STRAIGHT;
-        result1 = findRouteDistance(start->edge[DIR_STRAIGHT].dest, end, end_alt, endOffset, start, dir1, resultIndex + 1);
+        result1 = findRouteDistance(data, trainIndex, start->edge[DIR_STRAIGHT].dest, end, end_alt, endOffset, start, dir1, resultIndex + 1);
         if (result1 >= 0) {
             result1 += start->edge[DIR_STRAIGHT].dist;
+            if (isRouteBlocked(data, &(start->edge[DIR_STRAIGHT]), trainIndex, 0, start->edge[DIR_STRAIGHT].dist)) {
+                result1 = -1;
+            }
         }
         dir2[resultIndex] = DIR_CURVED;
-        result2 = findRouteDistance(start->edge[DIR_CURVED].dest, end, end_alt, endOffset, start, dir2, resultIndex + 1);
+        result2 = findRouteDistance(data, trainIndex, start->edge[DIR_CURVED].dest, end, end_alt, endOffset, start, dir2, resultIndex + 1);
         if (result2 >= 0) {
             result2 += start->edge[DIR_CURVED].dist;
+            if (isRouteBlocked(data, &(start->edge[DIR_CURVED]), trainIndex, 0, start->edge[DIR_CURVED].dist)) {
+                result2 = -1;
+            }
         }
 
         start->visited = 0;
@@ -247,18 +274,27 @@ int findRouteDistance(track_node *start, track_node *end, track_node *end_alt, i
     }
     else if ((start->type == NODE_MERGE) && (lastNode != (track_node *)0)) {
         dir1[resultIndex] = DIR_AHEAD;
-        result1 = findRouteDistance(start->edge[DIR_AHEAD].dest, end, end_alt, endOffset, start, dir1, resultIndex + 1);
+        result1 = findRouteDistance(data, trainIndex, start->edge[DIR_AHEAD].dest, end, end_alt, endOffset, start, dir1, resultIndex + 1);
         if (result1 >= 0) {
             result1 += start->edge[DIR_STRAIGHT].dist;
+            if (isRouteBlocked(data, &(start->edge[DIR_AHEAD]), trainIndex, 0, start->edge[DIR_AHEAD].dist)) {
+                result1 = -1;
+            }
         }
 
         track_node *reverse = start->reverse;
         dir2[resultIndex] = DIR_REVERSE;
         if (reverse->edge[DIR_STRAIGHT].dest == lastNode->reverse) {
-            result2 = findRouteDistance(reverse->edge[DIR_CURVED].dest, end, end_alt, endOffset, reverse, dir2, resultIndex + 1);
+            result2 = findRouteDistance(data, trainIndex, reverse->edge[DIR_CURVED].dest, end, end_alt, endOffset, reverse, dir2, resultIndex + 1);
+            if (isRouteBlocked(data, &(start->edge[DIR_AHEAD]), trainIndex, 0, REVERSE_GAP)) {
+                result2 = -1;
+            }
         }
         else if (reverse->edge[DIR_CURVED].dest == lastNode->reverse) {
-            result2 = findRouteDistance(reverse->edge[DIR_STRAIGHT].dest, end, end_alt, endOffset, reverse, dir2, resultIndex + 1);
+            result2 = findRouteDistance(data, trainIndex, reverse->edge[DIR_STRAIGHT].dest, end, end_alt, endOffset, reverse, dir2, resultIndex + 1);
+            if (isRouteBlocked(data, &(start->edge[DIR_AHEAD]), trainIndex, 0, REVERSE_GAP)) {
+                result2 = -1;
+            }
         }
         else {
             warning("findRouteDistance: cannot find another edge.");
@@ -290,11 +326,14 @@ int findRouteDistance(track_node *start, track_node *end, track_node *end_alt, i
         return -1;
     }
     else {
-        result1 = findRouteDistance(start->edge[DIR_AHEAD].dest, end, end_alt, endOffset, start, result, resultIndex);
+        result1 = findRouteDistance(data, trainIndex, start->edge[DIR_AHEAD].dest, end, end_alt, endOffset, start, result, resultIndex);
         if (result1 >= 0) {
             result1 += start->edge[DIR_AHEAD].dist;
         }
         start->visited = 0;
+        if (isRouteBlocked(data, &(start->edge[DIR_AHEAD]), trainIndex, 0, start->edge[DIR_AHEAD].dist)) {
+            return -1;
+        }
         return result1;
     }
 }
@@ -326,7 +365,10 @@ void reserv_clearReservation(track_edge *edge, int trainIndex) {
 // Return ownership of landmark + 0 ~ landmark + offset, can have multiple owner
 int reserv_checkReservation(track_edge *edge, int low, int high) {
     /* If low = high we are checking a point. */
-    assert(low >= 0 && high > 0, "reserv_checkReservation: invalid range (low < 0).");
+    if (low < 0 || high <= 0 || high > edge->dist) {
+        Log("invalid range : %s [%d - %d]", edge->src->name, low, high);
+    }
+    assert(low >= 0, "reserv_checkReservation: invalid range (low < 0).");
     assert(high > 0, "reserv_checkReservation: invalid range (high <= 0).");
     assert(low <= high, "reserv_checkReservation: invalid range (low > high).");
     assert(high <= edge->dist, "reserv_checkReservation: invalid range (high > edge->dist).");
@@ -390,6 +432,9 @@ void reserv_adjustStartingPoint(int trainIndex, track_node **nodeStart, int *sta
     while(*startOffset <= 0) {
         /* Go to last node. */
         edge = reserv_getReservedEdge(node, trainIndex);
+        if (edge == 0) {
+            Log("Node %s + %d", (*nodeStart)->name, *startOffset);
+        }
         assert(edge != 0, "reserv_adjustStartingPoint: not reserved edge");
         *nodeStart = edge->dest->reverse;
         *startOffset = edge->dist + *startOffset;
@@ -400,6 +445,9 @@ void reserv_adjustStartingPoint(int trainIndex, track_node **nodeStart, int *sta
 
     /* Adjust till startOffset < edge->dist. */
     edge = reserv_getReservedEdge(*nodeStart, trainIndex);
+    if (edge == 0) {
+        Log("Node %s + %d", (*nodeStart)->name, *startOffset);
+    }
     assert(edge != 0, "reserv_adjustStartingPoint: not reserved edge");
     while (edge != 0 && *startOffset >= edge->dist) {
         *nodeStart = edge->dest;
@@ -456,31 +504,6 @@ void reserv_giveBackTrackBehind(int trainIndex, track_node *nodeStart, int offse
     }
 }
 
-void reserv_giveBackTrackAhead(int trainIndex, track_node *nodeStart, int offset) {
-
-    reserv_adjustStartingPoint(trainIndex, &nodeStart, &offset);
-
-    track_node *node = nodeStart;
-    track_edge *edge;
-
-    while (node->type != NODE_EXIT) {
-        /* Get edge in correct direction. */
-        edge = reserv_getReservedEdge(node, trainIndex);
-        if (edge == 0) {
-            return;
-        }
-
-        if (node == nodeStart && offset > 0) {
-            /* First iteration. */
-            reserv_reserve(edge->reverse, trainIndex, 0, offset);
-        } else {
-            reserv_clearReservation(edge->reverse, trainIndex);
-        }
-        /* Update data for next ineration. */
-        node = edge->dest;
-    }
-}
-
 void reserv_init(TrainSetData *data, int trainIndex) {
     TrainData *trdata = data->trtable[trainIndex];
     track_node *node = trdata->lastLandmark;
@@ -506,7 +529,7 @@ void reserv_init(TrainSetData *data, int trainIndex) {
         int reserv = reserv_checkReservation(edge, 0, edge->dist);
 
         assert(reserv == 0, "reserv_init: track reserved already.");
-        edge->reservation[trainIndex] = reserv_buildReservationNode(0, edge->dist);
+        reserv_reserve(edge, trainIndex, 0, edge->dist);
         node = edge->dest;
     }
     assert(edge->dest->type == NODE_EXIT, "reserv_init: invalid starting node.");
@@ -575,10 +598,6 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
         if (trdata->needToCleanTrack) {
             reserv_giveBackTrackBehind(trainIndex, nodeStart, offsetStart - TRAIN_LENGTH - RESERV_SAFE_MARGIN);
             trdata->needToCleanTrack = 0;
-        }
-        if (trdata->needToCleanTrackAhead) {
-            reserv_giveBackTrackAhead(trainIndex, nodeStart, offsetStart + RESERV_SAFE_MARGIN);
-            trdata->needToCleanTrackAhead = 0;
         }
         return 1;
     }
@@ -673,7 +692,7 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
             AcquireLock(data->trtableLock[trainIndex]);
             trdata->stopAtSwDirctions = stopAtSwDirctions;
             trdata->stopAtSwInvolved = stopAtSwInvolved;
-            trdata->continueToStop = 0;
+            trdata->blockedByOthers = 1;
             ReleaseLock(data->trtableLock[trainIndex]);
 
             Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
@@ -684,7 +703,7 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
             return 0;
         } else {
             /* Reserved by me or nobody. Take it. */
-            edge->reservation[trainIndex] = reserv_buildReservationNode(low, high);
+            reserv_reserve(edge, trainIndex, low, high);
         }
 
         if (node->type == NODE_BRANCH && (stopatSwdir >= 0)) {

@@ -339,12 +339,8 @@ int parseGoCommand(int trainCtrlTid, char* input) {
     /* read location offset */
     int offset = 0;
     if(readToken(&input, "+")) {
-        offset = 1;
+        offset = readNum(&input);
     }
-    else if (readToken(&input, "-")) {
-        offset = -1;
-    }
-    offset *= readNum(&input);
 
     TrainControlMessage message;
     message.type = TRAINCTRL_TR_GO;

@@ -261,7 +261,6 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
             Log("Delay + %d ticks at sensor %s", diff, node->name);
         }
 
-        trdata->reverseInProgress = 0;
         if (trdata->reverse) {
             trdata->distanceAfterLastLandmark = 20;
         }
@@ -320,14 +319,7 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
         trdata->expectTimetickHittingNextSensor = -1;
         trdata->expectTimetickHittingNextNextSensor = -1;
 
-        if (nextSensorOrExit(data, node)->type != NODE_EXIT) {
-            trdata->lastLandmark = node;
-            if (trdata->reverse) {
-                trdata->distanceAfterLastLandmark = 20;
-            }
-            else {
-                trdata->distanceAfterLastLandmark = 140;
-            }
+        if (node == trdata->lastLandmark) {
             trdata->nextSensor = nextSensorOrExit(data, node);
             trdata->nextNextSensor = nextSensorOrExit(data, trdata->nextSensor);
             trdata->nextWrongSensor = nextWrongDirSensorOrExit(data, node);
@@ -408,7 +400,6 @@ void trainset_init(TrainSetData *data) {
     int i = 0;
     for( ; i<TRAIN_NUM; i++) {
         data->trtable[i]->reverse = 0;
-        data->trtable[i]->reverseInProgress = 0;
         data->trtable[i]->stopInProgress = 0;
         data->trtable[i]->shortMoveInProgress = 0;
         data->trtable[i]->init = -1;
@@ -431,8 +422,7 @@ void trainset_init(TrainSetData *data) {
         data->trtable[i]->needToStop = 0;
         data->trtable[i]->delayToStop = 0;
         data->trtable[i]->continueToStop = 0;
-        data->trtable[i]->diffDistBtwTargetAndEstimation = 0;
-        data->trtable[i]->needToCleanTrackAhead = 0;
+        data->trtable[i]->blockedByOthers = 0;
         data->trtable[i]->nextLocation = (track_node *)0;
         data->trtable[i]->nextLocationOffset = 0;
         data->trtable[i]->finalLocation = (track_node *)0;
@@ -459,7 +449,7 @@ void trainset_init(TrainSetData *data) {
 
     /* Train Speed Table init. */
     i = 40;
-    for ( ; i<55; i++) {
+    for ( ; i<60; i++) {
         trainset_setSpeed(i, 0);
     }
 

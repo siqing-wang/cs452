@@ -33,7 +33,6 @@ typedef struct TrainData {
     /* General*/
     int trainNum;
     int reverse;
-    int reverseInProgress;
     int stopInProgress;
     int shortMoveInProgress;
     int init;
@@ -70,8 +69,7 @@ typedef struct TrainData {
     int needToStop;
     int delayToStop;
     int continueToStop;
-    int diffDistBtwTargetAndEstimation;
-    int needToCleanTrackAhead;
+    int blockedByOthers;
     unsigned int stopAtSwDirctions;
     unsigned int stopAtSwInvolved;
     struct track_node *nextLocation;

@@ -53,10 +53,9 @@ track_node *nextBranchOrExit(struct TrainSetData *data, track_node *node);
 track_node *nextWrongDirSensorOrExit(struct TrainSetData *data, track_node *node);
 int nextDistance(struct TrainSetData *data, track_node *node);
 int nextSensorDistance(struct TrainSetData *data, track_node *node);
-int distanceBetweenTwoNodes(struct TrainSetData *data, TrainData *trdata, track_node *startNode, track_node *endNode, int *distance);
 void fixBrokenSensor(struct TrainSetData *data, track_node *sensor);
 void fixBrokenSwitch(struct TrainSetData *data, track_node *sw);
-int findRouteDistance(track_node *start, track_node *end, track_node *end_alt, int endOffset, track_node *lastNode, int *result, int resultIndex);
+int findRouteDistance(TrainSetData *data, int trainIndex, track_node *start, track_node *end, track_node *end_alt, int endOffset, track_node *lastNode, int *result, int resultIndex);
 void init_tracka(track_node *track);
 void init_trackb(track_node *track);
 
@@ -71,9 +70,6 @@ int reserv_isReserved(track_edge *edge, int trainIndex);
 track_edge* reserv_getReservedEdge(track_node *node, int trainIndex);
 void reserv_reserve(track_edge *edge, int trainIndex, int low, int high);
 void reserv_clearReservation(track_edge *edge, int trainIndex);
-
-void reserv_sendStop(int trainCtrlTid, TrainSetData *data, int trainIndex, int stopAtSwDirctions);
-void reserv_sendTurnSw(int trainCtrlTid, int swNum, int dir);
 
 /* Usage. */
 void reserv_init(TrainSetData *data, int trainIndex);

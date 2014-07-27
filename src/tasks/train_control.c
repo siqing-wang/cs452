@@ -242,7 +242,28 @@ void trainTask() {
                     //     PrintfAt(COM2, LOG_R, LOG_C, "%sTrain %d is lost. .%s",TCS_RED, trdata->trainNum, TCS_RESET, TCS_DELETE_TO_EOL);
                     //     Log("Train %d is lost.", trdata->trainNum);
                     // }
-                    if ((trdata->nextLocation == trdata->finalLocation) || (trdata->nextLocation == trdata->finalLocationAlt)) {
+                    if (trdata->blockedByOthers) {
+                        result = findRoute(data, trainIndex);
+                        if (result >= 0) {
+                            updateTrainSpeed(data, trainIndex, 8);
+
+                            AcquireLock(trLock);
+                            trdata->needToStop = 1;
+                            trdata->delayToStop = calculate_delayToStop(data, trdata, trdata->lastLandmark, result);
+                            ReleaseLock(trLock);
+
+                            trainset_setSpeed(message.num, 8);
+                            PrintfAt(COM2, TR_R + trainIndex * 3, TRSPEED_C, "8 ");
+                            Log("Delay %d ticks", trdata->delayToStop);
+                        }
+                        else {
+                            AcquireLock(trLock);
+                            trdata->continueToStop = 0;
+                            ReleaseLock(trLock);
+                        }
+                        trdata->blockedByOthers = 0;
+                    }
+                    else if ((trdata->nextLocation == trdata->finalLocation) || (trdata->nextLocation == trdata->finalLocationAlt)) {
                         AcquireLock(trLock);
                         trdata->continueToStop = 0;
                         ReleaseLock(trLock);
@@ -254,8 +275,7 @@ void trainTask() {
 
                             AcquireLock(trLock);
                             trdata->needToStop = 1;
-                            trdata->continueToStop = 1;
-                            trdata->delayToStop = calculate_delayToStop(data, trdata, trdata->nextLocation, result);
+                            trdata->delayToStop = calculate_delayToStop(data, trdata, trdata->lastLandmark, result);
                             ReleaseLock(trLock);
 
                             trainset_setSpeed(message.num, 8);
@@ -346,13 +366,11 @@ void updateTrainTable() {
 
             AcquireLock(data->trtableLock[i]);
             trdata->timetickSinceSpeedChange = trdata->timetickSinceSpeedChange + 1;
-            ReleaseLock(data->trtableLock[i]);
 
             if (trdata->init == 0) {
+                ReleaseLock(data->trtableLock[i]);
                 continue;
             }
-
-            AcquireLock(data->trtableLock[i]);
 
             if (trdata->needToStop) {
                 trdata->delayToStop = trdata->delayToStop - 1;
@@ -422,7 +440,6 @@ void updateTrainTable() {
                         trdata->distanceAfterLastLandmark = 140;
                     }
                 }
-                trdata->needToCleanTrackAhead = 1;
             }
 
             ReleaseLock(data->trtableLock[i]);
@@ -874,7 +891,6 @@ void reverseTrainSpeed(TrainSetData *data, int trainIndex) {
             trdata->lastLandmark = nextNode(data, trdata->lastLandmark);
         }
     }
-    trdata->reverseInProgress = 1;
     trdata->reverse = 1 - trdata->reverse;
 
     ReleaseLock(trLock);
@@ -936,9 +952,13 @@ void findAndStoreFinalLocation(struct TrainSetData *data, int trainIndex, char *
     for(i = 0; i < TRACK_MAX; i++) {
         if (stringEquals(track[i].name, location)) {
             end = &track[i];
+            end_alt = end->reverse;
+            break;
         }
         if (stringEquals(track[i].reverse->name, location)) {
             end_alt = &track[i];
+            end = end_alt->reverse;
+            break;
         }
     }
 
@@ -966,14 +986,8 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
     track_node *start;
     int startOffset;
     AcquireLock(data->trtableLock[trainIndex]);
-    if (trdata->nextLocation == (track_node *)0) {
-        start = trdata->lastLandmark;
-        startOffset = (int)trdata->distanceAfterLastLandmark;
-    }
-    else {
-        start = trdata->nextLocation;
-        startOffset = trdata->nextLocationOffset;
-    }
+    start = trdata->lastLandmark;
+    startOffset = (int)trdata->distanceAfterLastLandmark;
     ReleaseLock(data->trtableLock[trainIndex]);
 
     track_node *end = trdata->finalLocation;
@@ -991,14 +1005,14 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
 
     if (startOffset > 0) {
         /* Straight ahead */
-        distance1 = findRouteDistance(nextNode(data, start), end, end_alt, finalLocationOffset, start, result1, 0) - finalLocationOffset;
+        distance1 = findRouteDistance(data, trainIndex, nextNode(data, start), end, end_alt, finalLocationOffset, start, result1, 0) - finalLocationOffset;
         if (distance1 >= 0) {
             distance1 += nextDistance(data, start) - startOffset;
         }
     }
     else {
         /* Straight behind */
-        distance1 = findRouteDistance(start, end, end_alt, finalLocationOffset, (track_node *)0, result1, 0) - finalLocationOffset;
+        distance1 = findRouteDistance(data, trainIndex, start, end, end_alt, finalLocationOffset, (track_node *)0, result1, 0) - finalLocationOffset;
         if (distance1 >= 0) {
             distance1 -= startOffset;
         }
@@ -1006,14 +1020,14 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
 
     if ((TRAIN_LENGTH - startOffset) > 0) {
         /* Reverse ahead */
-        distance2 = findRouteDistance(nextNode(data, start->reverse), end, end_alt, finalLocationOffset, start->reverse, result2, 0) - finalLocationOffset;
+        distance2 = findRouteDistance(data, trainIndex, nextNode(data, start->reverse), end, end_alt, finalLocationOffset, start->reverse, result2, 0) - finalLocationOffset;
         if (distance2 >= 0) {
             distance2 += nextDistance(data, start->reverse) - (TRAIN_LENGTH - startOffset);
         }
     }
     else {
         /* Reverse behind */
-        distance2 = findRouteDistance(start->reverse, end, end_alt, finalLocationOffset, (track_node *)0, result2, 0) - finalLocationOffset;
+        distance2 = findRouteDistance(data, trainIndex, start->reverse, end, end_alt, finalLocationOffset, (track_node *)0, result2, 0) - finalLocationOffset;
         if (distance2 >= 0) {
             distance2 -= (TRAIN_LENGTH - startOffset);
         }
@@ -1061,6 +1075,13 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
 
     for(i = 0;;) {
         if (current == end) {
+            if (current->type == NODE_BRANCH) {
+                switchIndex = getSwitchIndex(current->num);
+                switchDir = result[i];
+                stopAtSwDirctions = stopAtSwDirctions | switchDir << switchIndex;
+                stopAtSwInvolved = stopAtSwInvolved | 1 << switchIndex;
+                i++;
+            }
             distance += finalLocationOffset;
             break;
         }
