@@ -152,8 +152,10 @@ void kernel_run() {
         }
         period = debugTimer_getVal() - totalStartTime;
 
-        if ((sharedVariables.idlePercent >= 0) && (period >= (DEBUG_TIMER_HZ / 10))) {
-            sharedVariables.idlePercent = idleCount * 1000 / period;
+        if (period >= (DEBUG_TIMER_HZ / 10)) {
+            if (sharedVariables.idlePercent >= 0) {
+                sharedVariables.idlePercent = idleCount * 1000 / period;
+            }
             totalStartTime = debugTimer_getVal();
             idleCount = 0;
         }
