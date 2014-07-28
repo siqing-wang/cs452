@@ -611,8 +611,8 @@ void trainControlServer() {
     /* TrainIndex array */
     int trainNums[TRAIN_NUM];
     trainNums[0] = 45;
-    trainNums[1] = 49;
-    trainNums[2] = 53;
+    trainNums[1] = 54;
+    trainNums[2] = 56;
     int trainTids[TRAIN_NUM];
 
     /* Create children tasks. */

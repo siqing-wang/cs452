@@ -13,6 +13,7 @@ double calculate_trainVelocity(int trainNum, int speed) {
 
     switch (trainNum) {
         case 45:
+        case 56:                    // train56 is similiar as train45
             if (speed == 1) {
                 velocity = 0.140815433; // wrong data
             }
@@ -68,6 +69,20 @@ double calculate_trainVelocity(int trainNum, int speed) {
                 velocity = 6.210763089;
             }
             break;
+        case 54:
+            if (speed == 1) {
+                velocity = 0.1236024218;    // wrong data
+            }
+            else if (speed >= 2 && speed <= 12) {
+                velocity =  0.46157 * speed - 0.043054;
+            }
+            else if (speed == 13) {
+                velocity = 6.460102431;     // wrong data
+            }
+            else if (speed == 14) {
+                velocity = 6.210763089;     // wrong data
+            }
+            break;
     }
 
     return velocity;
@@ -83,6 +98,7 @@ double calculate_stopDistance(int trainNum, int speed) {
 
     switch(trainNum) {
         case 45:
+        case 56:                    // train56 is similiar as train45
             switch(speed) {
                 case 1:
                     return 7.25;    // wrong data
@@ -176,6 +192,7 @@ double calculate_stopDistance(int trainNum, int speed) {
                     return 735.875;
             }
         case 53:
+        case 54:
             switch(speed) {
                 case 1:
                     return 6;
@@ -222,10 +239,12 @@ double calculate_shortMoveDistance(int trainNum, int speed, int tick) {
 
     switch(trainNum) {
         case 45:
+        case 56:                    // train56 is similiar as train45
             return -0.0015 * delay * delay * delay * delay + 0.1076 * delay * delay * delay - 1.4875 * delay * delay + 9.6611 * delay;
         case 49:
             return -0.0014 * delay * delay * delay * delay + 0.1053 * delay * delay * delay - 1.4764 * delay * delay + 10.146 * delay;
         case 53:
+        case 54:
         default:
             return -0.0014 * delay * delay * delay * delay + 0.1046 * delay * delay * delay - 1.4828 * delay * delay + 11.381 * delay;
     }
