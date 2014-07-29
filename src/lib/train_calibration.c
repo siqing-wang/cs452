@@ -27,6 +27,20 @@ double calculate_trainVelocity(int trainNum, int speed) {
                 velocity = 5.960918512; // wrong data
             }
             break;
+        case 48:
+            if (speed == 1) {
+                velocity = 0.140815433; // wrong data
+            }
+            else if (speed >= 2 && speed <= 12) {
+                velocity = 0.4521 * speed + 0.12254;
+            }
+            else if (speed == 13) {
+                velocity = 6.091978731; // wrong data
+            }
+            else if (speed == 14) {
+                velocity = 5.960918512; // wrong data
+            }
+            break;
         case 49:
             if (speed == 1) {
                 velocity = 0.1408154331;
@@ -129,6 +143,37 @@ double calculate_stopDistance(int trainNum, int speed) {
                 case 14:
                     return 801;     // wrong data
             }
+        case 48:
+            switch(speed) {
+                case 1:
+                    return 7.25;    // wrong data
+                case 2:
+                    return 64.125;  // wrong data
+                case 3:
+                    return 139.875; // wrong data
+                case 4:
+                    return 208;     // wrong data
+                case 5:
+                    return 269.625; // wrong data
+                case 6:
+                    return 335.625; // wrong data
+                case 7:
+                    return 425.625; // wrong data
+                case 8:
+                    return 517.25;
+                case 9:
+                    return 594.125;
+                case 10:
+                    return 659.625;
+                case 11:
+                    return 749.5;
+                case 12:
+                    return 719.125; // wrong data
+                case 13:
+                    return 817.375; // wrong data
+                case 14:
+                    return 801;     // wrong data
+            }
         case 49:
             switch(speed) {
                 case 1:
@@ -192,7 +237,7 @@ double calculate_stopDistance(int trainNum, int speed) {
                     return 735.875;
             }
         case 53:
-        case 54:
+        case 54:                    // train54 is similiar as train53
             switch(speed) {
                 case 1:
                     return 6;
@@ -241,6 +286,8 @@ double calculate_shortMoveDistance(int trainNum, int speed, int tick) {
         case 45:
         case 56:                    // train56 is similiar as train45
             return -0.0015 * delay * delay * delay * delay + 0.1076 * delay * delay * delay - 1.4875 * delay * delay + 9.6611 * delay;
+        case 48:
+            return -0.0007 * delay * delay * delay * delay + 0.056 * delay * delay * delay - 0.6256 * delay * delay + 5.875 * delay;
         case 49:
             return -0.0014 * delay * delay * delay * delay + 0.1053 * delay * delay * delay - 1.4764 * delay * delay + 10.146 * delay;
         case 53:
@@ -254,39 +301,6 @@ int calculate_delayToAchieveSpeed(TrainData *trainData) {
     int trainNum = trainData->trainNum;
     int lastSpeed = trainData->lastSpeed;
     int targetSpeed = trainData->targetSpeed;
-
-    // if (trainNum == 45) {
-    //     if (targetSpeed == 0) {
-    //         switch (lastSpeed) {
-    //             case 8:
-    //                 return 311;
-    //             case 9:
-    //                 return 311;
-    //             case 10:
-    //                 return 298;
-    //             case 11:
-    //                 return 316;
-    //             case 12:
-    //                 return 319;
-    //         }
-    //     }
-    // }
-    // if (trainNum == 49) {
-    //     if (targetSpeed == 0) {
-    //         switch (lastSpeed) {
-    //             case 8:
-    //                 return 294;
-    //             case 9:
-    //                 return 297;
-    //             case 10:
-    //                 return 299;
-    //             case 11:
-    //                 return 298;
-    //             case 12:
-    //                 return 304;
-    //         }
-    //     }
-    // }
 
     double lastVelocity = calculate_trainVelocity(trainNum, lastSpeed);
     double targetVelocity = calculate_trainVelocity(trainNum, targetSpeed);
