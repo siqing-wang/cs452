@@ -628,7 +628,7 @@ void trainControlServer() {
     /* TrainIndex array */
     int trainNums[TRAIN_NUM];
     trainNums[0] = 45;
-    trainNums[1] = 54;
+    trainNums[1] = 48;
     trainNums[2] = 56;
     int trainTids[TRAIN_NUM];
 
