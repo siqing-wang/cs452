@@ -403,6 +403,7 @@ void trainset_init(TrainSetData *data) {
         data->trtable[i]->stopInProgress = 0;
         data->trtable[i]->shortMoveInProgress = 0;
         data->trtable[i]->init = -1;
+        data->trtable[i]->identity = -1;
 
         data->trtable[i]->lastSpeed = 0;
         data->trtable[i]->targetSpeed = 0;

@@ -70,6 +70,8 @@ int reserv_isReserved(track_edge *edge, int trainIndex);
 track_edge* reserv_getReservedEdge(track_node *node, int trainIndex);
 void reserv_reserve(track_edge *edge, int trainIndex, int low, int high);
 void reserv_clearReservation(track_edge *edge, int trainIndex);
+void reserv_adjustStartingPoint(int trainIndex, track_node **nodeStart, int *startOffset);
+
 
 /* Usage. */
 void reserv_init(TrainSetData *data, int trainIndex);

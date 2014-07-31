@@ -15,6 +15,11 @@
 // A or B
 #define TRACK_USED 'A'
 
+
+#define TR_INDEX_45 0
+#define TR_INDEX_48 1
+#define TR_INDEX_56 2
+
 void initializeUI(TrainSetData *data);
 void sentTo(int destTid, TrainControlMessage *message, CouriersStatus *courierStatus);
 void updateTrainSpeed(TrainSetData *data, int trainIndex, int newSpeed);
@@ -22,6 +27,11 @@ void reverseTrainSpeed(TrainSetData *data, int trainIndex);
 void updateAndPrintSensorEstimation(TrainSetData *data, int trainIndex);
 void findAndStoreFinalLocation(struct TrainSetData *data, int trainIndex, char *location, int finalLocationOffset);
 int findRoute(struct TrainSetData *data, int trainIndex);
+void getLocationRightBeforeThiefReservation(TrainData *trdata_thief,
+    track_node **node, int *offset);
+void getLocationRightAfterThiefReservation(TrainData *trdata_thief,
+    track_node **node, int *offset);
+
 
 void courier() {
     int serverTid;
@@ -220,6 +230,14 @@ void trainTask() {
                     if (nextSensorOrExit(data, node)->type == NODE_EXIT) {
                         trainset_setSpeed(message.num, 15);
                     }
+                }
+                break;
+            case TRAINCTRL_TR_IDENTITY:
+                trdata->identity = message.data;
+                if (trdata->identity == TR_IDENTITY_THIEF) {
+                    Log("Train %d is set to be thief.", trdata->trainNum);
+                } else if (trdata->identity == TR_IDENTITY_POLICE) {
+                    Log("Train %d is set to be police.", trdata->trainNum);
                 }
                 break;
             case TRAINCTRL_TR_SETSPEED:
@@ -494,6 +512,71 @@ void trainCoordinator() {
 
 }
 
+void policeCoordinator() {
+    int serverTid;
+    int msg = 0, i;
+    TrainSetData *data;
+
+    Receive(&serverTid, &data, sizeof(data));
+    Reply(serverTid, &msg, sizeof(msg));
+
+    TrainControlMessage message;
+    message.type = TRAINCTRL_TR_GO;
+
+    TrainData *trdata_thief = 0;
+    /* Get Thief train data */
+    while (trdata_thief == 0) {
+        Delay(100);
+        for (i = 0; i< TRAIN_NUM; i++) {
+            if ((data->trtable[i]->identity == TR_IDENTITY_THIEF)
+                && data->trtable[i]->trainNum > 40 && data->trtable[i]->trainNum < 70) {
+                trdata_thief = data->trtable[i];
+            }
+        }
+    }
+
+    Log("Police recognizes thief (train %d).", trdata_thief->trainNum);
+
+    /* Coordinator police. */
+    TrainData *trdata_police = 0;
+    track_node *node;
+    int offset;
+    int policeCount;
+    for (;;) {
+
+
+        policeCount = 0;
+        for (i = 0; i < TRAIN_NUM; i++) {
+            if (data->trtable[i]->identity != TR_IDENTITY_POLICE) {
+                continue;
+            }
+            trdata_police = data->trtable[i];
+            if (trdata_police->shortMoveInProgress || trdata_police->init < 0) {
+                continue;
+            }
+            policeCount = (policeCount + 1) % 2;
+            IOidle(COM2);///
+            Log("MP%d->%s", trdata_police->trainNum, trdata_thief->lastLandmark->name);
+            /* Half police go to head of thief, and half to its tail. */
+            // if (policeCount % 2 == 0) {
+                getLocationRightBeforeThiefReservation(trdata_thief, &node, &offset);
+            // } else {
+            //     getLocationRightAfterThiefReservation(trdata_thief, &node, &offset);
+            // }
+
+
+            Log("go P%d %s + %d", data->trtable[i]->trainNum, (char*)node->name, offset);
+
+            // message.num = trdata_police->trainNum;
+            // memcopy((char*)&(message.location), (char*)node->name, 6);
+            // message.data = offset;
+            // Send(serverTid, &message, sizeof(message), &msg, sizeof(msg));
+
+        }
+        Delay(50);
+    }
+}
+
 void displayCurrentPosition() {
     int serverTid;
     int msg = 0;
@@ -627,9 +710,9 @@ void trainControlServer() {
 
     /* TrainIndex array */
     int trainNums[TRAIN_NUM];
-    trainNums[0] = 45;
-    trainNums[1] = 48;
-    trainNums[2] = 56;
+    trainNums[TR_INDEX_45] = 45;
+    trainNums[TR_INDEX_48] = 48;
+    trainNums[TR_INDEX_56] = 56;
     int trainTids[TRAIN_NUM];
 
     /* Create children tasks. */
@@ -657,6 +740,9 @@ void trainControlServer() {
     Send(childTid, &data, sizeof(data), &msg, sizeof(msg));
 
     childTid = Create(7, &trainCoordinator);                    // Reservation Task.
+    Send(childTid, &data, sizeof(data), &msg, sizeof(msg));
+
+    childTid = Create(6, &policeCoordinator);                    // AI police
     Send(childTid, &data, sizeof(data), &msg, sizeof(msg));
 
     childTid = Create(3, &displayCurrentPosition);              // Task to display train location
@@ -700,6 +786,7 @@ void trainControlServer() {
             case TRAINCTRL_TR_SETSPEED:
             case TRAINCTRL_TR_REVERSE:
             case TRAINCTRL_TR_STOP:
+            case TRAINCTRL_TR_IDENTITY:
                 Reply(requesterTid, &msg, sizeof(msg));
                 sentTo(trainTid, &message, &couriersStatus);
                 break;
@@ -1145,4 +1232,87 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
     }
 
     return distance;
+}
+
+
+void getLocationRightBeforeThiefReservation(TrainData *trdata_thief, track_node **nodeRet, int *offsetRet) {
+    assert(trdata_thief != 0, "getLocationRightBeforeThiefReservation: null thief data");
+    track_node *nodeStart = trdata_thief->lastLandmark;
+    int off = trdata_thief->distanceAfterLastLandmark;
+    int trIndex = -1;
+    switch (trdata_thief->trainNum) {
+        case 45:    trIndex = TR_INDEX_45; break;
+        case 48:    trIndex = TR_INDEX_48; break;
+        case 56:    trIndex = TR_INDEX_56; break;
+        default:
+            warning("getLocationRightBeforeThiefReservation: invalid trIndex");
+    }
+
+    reserv_adjustStartingPoint(trIndex, &nodeStart, &off);
+
+    track_node *node = nodeStart;
+    track_edge *edge, *tmp;
+
+    while (node->type != NODE_EXIT) {
+        /* Get edge in correct direction. */
+        tmp = reserv_getReservedEdge(node, trIndex);
+        if (tmp == 0) {
+            break;
+        }
+        edge = tmp;
+        node = edge->dest;
+    }
+
+
+    int low, high;
+    reserv_getReservation(edge, trIndex, &low, &high);
+    if (high + RESERV_SAFE_MARGIN + 1 >= edge->dist) {
+        *nodeRet = edge->dest;
+        *offsetRet = high + RESERV_SAFE_MARGIN + 1 - edge->dist;
+        return;
+    }
+
+    *nodeRet = node;
+    *offsetRet = high + RESERV_SAFE_MARGIN + 1;
+}
+
+void getLocationRightAfterThiefReservation(TrainData *trdata_thief, track_node **nodeRet, int *offsetRet) {
+     assert(trdata_thief != 0, "getLocationRightAfterThiefReservation: null thief data");
+    track_node *nodeStart = trdata_thief->lastLandmark->reverse;
+    int off = 0 - trdata_thief->distanceAfterLastLandmark;
+
+    int trIndex = -1;
+    switch (trdata_thief->trainNum) {
+        case 45:    trIndex = TR_INDEX_45; break;
+        case 48:    trIndex = TR_INDEX_48; break;
+        case 56:    trIndex = TR_INDEX_56; break;
+        default:
+            warning("getLocationRightAfterThiefReservation: invalid trIndex");
+    }
+
+    reserv_adjustStartingPoint(trIndex, &nodeStart, &off);
+
+
+    track_node *node = nodeStart;
+    track_edge *edge;
+
+    while (node->type != NODE_EXIT) {
+        /* Get edge in correct direction. */
+        edge = reserv_getReservedEdge(node, trIndex);
+        if (edge == 0) {
+            break;
+        }
+        node = edge->dest;
+    }
+
+    int low, high;
+    reserv_getReservation(edge, trIndex, &low, &high);
+    if (high + RESERV_SAFE_MARGIN + 1 >= edge->dist) {
+        *nodeRet = edge->dest;
+        *offsetRet = high + RESERV_SAFE_MARGIN + 1 - edge->dist;
+        return;
+    }
+
+    *nodeRet = node;
+    *offsetRet = high + RESERV_SAFE_MARGIN + 1;
 }

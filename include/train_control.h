@@ -8,6 +8,9 @@
 #define COURIER_NUM_MAX     30
 #define TIME_INTERVAL       5
 
+#define TR_IDENTITY_POLICE  2
+#define TR_IDENTITY_THIEF   1
+
 typedef enum {
     TRAINCTRL_TR_INIT,
     TRAINCTRL_TR_SETSPEED,
@@ -18,6 +21,7 @@ typedef enum {
     TRAINCTRL_HALT,
     TRAINCTRL_HALT_COMPLETE,
     TRAINCTRL_COURIER_FREE,
+    TRAINCTRL_TR_IDENTITY,
 } trainControl_type;
 
 /* Message sent/received by IO server. */

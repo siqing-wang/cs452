@@ -36,6 +36,7 @@ typedef struct TrainData {
     int stopInProgress;
     int shortMoveInProgress;
     int init;
+    int identity;
 
     /* Speed */
     int lastSpeed;

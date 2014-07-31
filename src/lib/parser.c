@@ -24,6 +24,9 @@ int parseGoCommand(int trainCtrlTid, char* input);
 int parseStopCommand(int trainCtrlTid, char* input);
 int parseHaltCommand(int trainCtrlTid, char* input);
 int parsePerformanceMonitor(char* input);
+int parsePoliceCommand(int trainCtrlTid, char *input);
+int parseThiefCommand(int trainCtrlTid, char *input);
+
 
 /* Parser Helper */
 int readNum(char** input) {
@@ -136,7 +139,14 @@ int parseCommand(int trainCtrlTid, char* input) {
         case 'i':
             return parseInitCommand(trainCtrlTid, input);
         case 'p':
-            return parsePerformanceMonitor(input);
+            switch (input[1]) {
+                case 'm':
+                    return parsePerformanceMonitor(input);
+                case 'o':
+                    return parsePoliceCommand(trainCtrlTid, input);
+                default:
+                    return CMD_FAILED;
+            }
         case 'q':
             return parseHaltCommand(trainCtrlTid, input);
         case 'r':
@@ -144,7 +154,14 @@ int parseCommand(int trainCtrlTid, char* input) {
         case 's':
             return parseTurnSwitchCommand(trainCtrlTid, input);
         case 't':
-            return parseSetSpeedCommand(trainCtrlTid, input);
+            switch (input[1]) {
+                case 'r':
+                    return parseSetSpeedCommand(trainCtrlTid, input);
+                case 'h':
+                    return parseThiefCommand(trainCtrlTid, input);
+                default:
+                    return CMD_FAILED;
+            }
         default:
             return CMD_FAILED;
     }
@@ -389,3 +406,42 @@ int parsePerformanceMonitor(char* input) {
     }
     return CMD_HALT;
 }
+
+int parsePoliceCommand(int trainCtrlTid, char *input) {
+    if (!readToken(&input, "police")) {
+        return CMD_FAILED;
+    }
+
+    int train_number = readNum(&input);
+    if (train_number < 0) {
+        return CMD_FAILED;
+    }
+
+    TrainControlMessage message;
+    message.type = TRAINCTRL_TR_IDENTITY;
+    message.num = train_number;
+    message.data = TR_IDENTITY_POLICE;
+    int msg = 0;
+    Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
+    return CMD_SUCCEED;
+}
+
+int parseThiefCommand(int trainCtrlTid, char *input) {
+    if (!readToken(&input, "thief")) {
+        return CMD_FAILED;
+    }
+
+    int train_number = readNum(&input);
+    if (train_number < 0) {
+        return CMD_FAILED;
+    }
+
+    TrainControlMessage message;
+    message.type = TRAINCTRL_TR_IDENTITY;
+    message.num = train_number;
+    message.data = TR_IDENTITY_THIEF;
+    int msg = 0;
+    Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
+    return CMD_SUCCEED;
+}
+
