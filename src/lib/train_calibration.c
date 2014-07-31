@@ -491,6 +491,7 @@ int calculate_delayToStop(TrainSetData *trainSetData, TrainData *trainData, trac
 
         /* Adjust */
         delay += (dcDistance - currentDistance) / (targetVelocity * friction);
+        Log("LM Delay %d tks", delay);
     }
     else {
         trainData->shortMoveInProgress = 1;
@@ -517,6 +518,7 @@ int calculate_delayToStop(TrainSetData *trainSetData, TrainData *trainData, trac
                 break;
             }
         }
+        Log("SM Delay %d tks", delay);
     }
     return delay;
 }

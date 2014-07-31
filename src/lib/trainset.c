@@ -203,7 +203,7 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
         }
 
         /* Only accept expect sensor */
-        if ((node != trdata->nextSensor) && (node != trdata->nextNextSensor) && (node != trdata->nextWrongSensor)) {
+        if ((node != trdata->nextSensor) && (node != trdata->nextNextSensor)) {
             continue;
         }
 
@@ -249,7 +249,7 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
             int friction = (int)(node->friction * 700) * (1.0 *
                 (trdata->estimateTimetickHittingLastSensor - trdata->actualTimetickHittingLastSensor) /
                 (timetick - trdata->actualTimetickHittingLastSensor));
-            // node->friction = 1.0 * ((int)(node->friction * 300) + friction) / 1000;
+            node->friction = 1.0 * ((int)(node->friction * 300) + friction) / 1000;
         }
         trdata->actualTimetickHittingLastSensor = timetick;
 
@@ -364,12 +364,14 @@ int trainset_pullSensorFeeds(TrainSetData *data) {
 
     int i;
     char results[10];
+    char needToProcess[10];
     GetSensorData(results);
     for (i = 0; i < 10; i++) {
-        if(data->lastByte[i] != results[i]) {
+        needToProcess[i] = (~(data->lastByte[i])) & (results[i]);
+        data->lastByte[i] = results[i];
+        if(needToProcess[i]) {
             changed = 1;
         }
-        data->lastByte[i] = results[i];
     }
     if (!changed) {
         return 0;               // Sensor not changed
@@ -378,7 +380,7 @@ int trainset_pullSensorFeeds(TrainSetData *data) {
         sensorBit = i % 2;
         sensorGroup = i / 2;
         int bitPosn = 0;
-        int result = (int) results[i];
+        int result = (int) needToProcess[i];
         for ( ; bitPosn < 8; bitPosn++) {
             int mask = 1 << ( 7 - bitPosn );
             if (result & mask) {
