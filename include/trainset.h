@@ -49,8 +49,8 @@ typedef struct TrainData {
     double distanceAfterLastLandmark;
     struct track_node *targetStopLandmark;
     double distanceAfterTargetStopLandmark;
-
-    int timetickWhenHittingSensor;
+    struct track_node *startLandmark;
+    double distanceAfterStartLandmark;
 
     /* Sensor */
     int numSensorPast;

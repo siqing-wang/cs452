@@ -144,7 +144,7 @@ int isRouteBlocked(TrainSetData *data, track_edge *edge, int trainIndex, int low
             }
             if (reserv & (1 << i)) {
                 TrainData *trdata = data->trtable[i];
-                if ((trdata->targetSpeed == 0) && (!trdata->stopInProgress)) {
+                if (trdata->targetSpeed == 0) {
                     return 1;
                 }
             }
@@ -611,6 +611,7 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
     track_edge *edge;
     edge = reserv_getReservedEdge(nodeStart, trainIndex);
     assert(edge != 0, "reserv_updateReservation: starting point not owned correctly.");
+    edge = 0;
 
     /* Reserve ahead stopping distance and turn switch if necessary. */
     int reservDistAhead = 0;
@@ -645,6 +646,7 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
             trdata->stopAtSwDirctions = stopAtSwDirctions;
             trdata->stopAtSwInvolved = stopAtSwInvolved;
             trdata->continueToStop = 0;
+            trdata->needToStop = 0;
             ReleaseLock(data->trtableLock[trainIndex]);
 
             Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
@@ -670,11 +672,31 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
                 dir = data->swtable[getSwitchIndex(node->num)];
                 edge = &(node->edge[dir]);
             }
+        } else if (node->type == NODE_MERGE) {
+            if (edge == 0) {
+                dir = DIR_CURVED;
+            }
+            else if (&(node->reverse->edge[DIR_STRAIGHT]) == edge->reverse) {
+                dir = DIR_STRAIGHT;
+            }
+            else if (&(node->reverse->edge[DIR_CURVED]) == edge->reverse) {
+                dir = DIR_CURVED;
+            }
+            else {
+                Log("Node : %s, Edge src : %s", node->name, edge->src->name);
+                warning("reserv_updateReservation : cannot find corresponding direction for NODE_MERGE.");
+            }
+            edge = &(node->edge[DIR_AHEAD]);
         } else {
             edge = &(node->edge[DIR_AHEAD]);
         }
 
         /* Reservation on this node. */
+        if ((low + reservDistAhead) <= edge->dist) {
+            if (edge->dest->type == NODE_MERGE) {
+                reservDistAhead += 240;
+            }
+        }
         if ((low + reservDistAhead) <= edge->dist) {
             high = reservDistAhead;
         } else {
@@ -693,6 +715,7 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
             trdata->stopAtSwDirctions = stopAtSwDirctions;
             trdata->stopAtSwInvolved = stopAtSwInvolved;
             trdata->blockedByOthers = 1;
+            trdata->needToStop = 0;
             ReleaseLock(data->trtableLock[trainIndex]);
 
             Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
@@ -712,6 +735,14 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
             message.num = node->num;
             message.data = stopatSwdir;
             Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
+        }
+        else if (node->type == NODE_MERGE) {
+            if (dir != *(data->swtable + getSwitchIndex(node->num))) {
+                message.type = TRAINCTRL_SW_CHANGE;
+                message.num = node->num;
+                message.data = dir;
+                Send(trainCtrlTid, &message, sizeof(message), &msg, sizeof(msg));
+            }
         }
 
         /* Update data for next ineration. */

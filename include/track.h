@@ -55,6 +55,7 @@ int nextDistance(struct TrainSetData *data, track_node *node);
 int nextSensorDistance(struct TrainSetData *data, track_node *node);
 void fixBrokenSensor(struct TrainSetData *data, track_node *sensor);
 void fixBrokenSwitch(struct TrainSetData *data, track_node *sw);
+int isRouteBlocked(TrainSetData *data, track_edge *edge, int trainIndex, int low, int high);
 int findRouteDistance(TrainSetData *data, int trainIndex, track_node *start, track_node *end, track_node *end_alt, int endOffset, track_node *lastNode, int *result, int resultIndex);
 void init_tracka(track_node *track);
 void init_trackb(track_node *track);

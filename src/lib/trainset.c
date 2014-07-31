@@ -207,6 +207,10 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
             continue;
         }
 
+        if ((trdata->targetSpeed == 0) && (trdata->timetickSinceSpeedChange > (trdata->delayRequiredToAchieveSpeed + 50))) {
+            continue;
+        }
+
         AcquireLock(trLock);
 
         int timetick = Time();
@@ -245,12 +249,11 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
             int friction = (int)(node->friction * 700) * (1.0 *
                 (trdata->estimateTimetickHittingLastSensor - trdata->actualTimetickHittingLastSensor) /
                 (timetick - trdata->actualTimetickHittingLastSensor));
-            node->friction = 1.0 * ((int)(node->friction * 300) + friction) / 1000;
+            // node->friction = 1.0 * ((int)(node->friction * 300) + friction) / 1000;
         }
         trdata->actualTimetickHittingLastSensor = timetick;
 
         /* Update location info */
-        trdata->timetickWhenHittingSensor = trdata->timetickSinceSpeedChange;
         if ((trdata->needToStop)
             && (trdata->estimateTimetickHittingLastSensor > 0)
             && (trdata->timetickSinceSpeedChange > 400)
@@ -311,9 +314,6 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
 
         /* Calibration */
         trdata->actualTimetickHittingLastSensor = timetick;
-
-        /* Update location info */
-        trdata->timetickWhenHittingSensor = 0;
 
         /* Estimate timetick for next/nextNext sensor */
         trdata->expectTimetickHittingNextSensor = -1;
@@ -410,10 +410,10 @@ void trainset_init(TrainSetData *data) {
         data->trtable[i]->delayRequiredToAchieveSpeed = 0;
 
         data->trtable[i]->distanceAfterLastLandmark = 0;
-        data->trtable[i]->timetickWhenHittingSensor = 0;
 
         data->trtable[i]->numSensorPast = 0;
         data->trtable[i]->nextSensor = (track_node *)0;
+        data->trtable[i]->nextNextSensor = (track_node *)0;
         data->trtable[i]->estimateTimetickHittingLastSensor = -1;
         data->trtable[i]->actualTimetickHittingLastSensor = 0;
         data->trtable[i]->expectTimetickHittingNextSensor = -1;

@@ -243,6 +243,7 @@ void trainTask() {
                     //     Log("Train %d is lost.", trdata->trainNum);
                     // }
                     if (trdata->blockedByOthers) {
+                        trdata->blockedByOthers = 0;
                         result = findRoute(data, trainIndex);
                         if (result >= 0) {
                             updateTrainSpeed(data, trainIndex, 8);
@@ -261,7 +262,6 @@ void trainTask() {
                             trdata->continueToStop = 0;
                             ReleaseLock(trLock);
                         }
-                        trdata->blockedByOthers = 0;
                     }
                     else if ((trdata->nextLocation == trdata->finalLocation) || (trdata->nextLocation == trdata->finalLocationAlt)) {
                         AcquireLock(trLock);
@@ -422,8 +422,10 @@ void updateTrainTable() {
                     trdata->shortMoveInProgress = 0;
                     trdata->needToCleanTrack = 1;
                 }
+                Log("Before Adjust : %s + %d", trdata->lastLandmark->name, (int)trdata->distanceAfterLastLandmark);
                 trdata->lastLandmark = trdata->targetStopLandmark;
                 trdata->distanceAfterLastLandmark = trdata->distanceAfterTargetStopLandmark;
+                Log("After Adjust : %s + %d", trdata->lastLandmark->name, (int)trdata->distanceAfterLastLandmark);
                 if (trdata->lastLandmark == trdata->nextSensor) {
                     if ((trdata->reverse) && (trdata->distanceAfterLastLandmark > 20)) {
                         trdata->distanceAfterLastLandmark = 20;
@@ -822,11 +824,19 @@ void updateTrainSpeed(TrainSetData *data, int trainIndex, int newSpeed) {
 
     AcquireLock(data->trtableLock[trainIndex]);
 
+    int timetickSinceSpeedChange = trdata->timetickSinceSpeedChange;
+    int trainNum = trdata->trainNum;
+    int lastSpeed = trdata->targetSpeed;
+
     trdata->lastSpeed = trdata->targetSpeed;
     trdata->targetSpeed = newSpeed;
     trdata->timetickSinceSpeedChange = 0;
-    trdata->timetickWhenHittingSensor = 0;
     trdata->delayRequiredToAchieveSpeed = calculate_delayToAchieveSpeed(trdata);
+
+    if (lastSpeed == 0) {
+        trdata->startLandmark = trdata->lastLandmark;
+        trdata->distanceAfterStartLandmark = trdata->distanceAfterLastLandmark;
+    }
 
     if (newSpeed == 0) {
         trdata->stopInProgress = 1;
@@ -835,9 +845,13 @@ void updateTrainSpeed(TrainSetData *data, int trainIndex, int newSpeed) {
             trdata->targetStopLandmark = trdata->nextLocation;
             trdata->distanceAfterTargetStopLandmark = trdata->nextLocationOffset;
         }
+        else if (timetickSinceSpeedChange < 400) {
+            trdata->targetStopLandmark = trdata->startLandmark;
+            trdata->distanceAfterTargetStopLandmark = trdata->distanceAfterStartLandmark + calculate_shortMoveDistance(trainNum, lastSpeed, timetickSinceSpeedChange) * trdata->nextSensor->friction;
+        }
         else {
             trdata->targetStopLandmark = trdata->lastLandmark;
-            trdata->distanceAfterTargetStopLandmark = trdata->distanceAfterLastLandmark + calculate_stopDistance(trdata->trainNum, trdata->lastSpeed) * trdata->nextSensor->friction;
+            trdata->distanceAfterTargetStopLandmark = trdata->distanceAfterLastLandmark + calculate_stopDistance(trainNum, lastSpeed) * trdata->nextSensor->friction;
         }
         for(;;) {
             if (trdata->targetStopLandmark->type == NODE_EXIT) {
@@ -852,6 +866,9 @@ void updateTrainSpeed(TrainSetData *data, int trainIndex, int newSpeed) {
             trdata->targetStopLandmark = nextNode(data, trdata->targetStopLandmark);
         }
     }
+
+    trdata->startLandmark = trdata->lastLandmark;
+    trdata->distanceAfterStartLandmark = trdata->distanceAfterLastLandmark;
 
     ReleaseLock(data->trtableLock[trainIndex]);
 
@@ -892,7 +909,10 @@ void reverseTrainSpeed(TrainSetData *data, int trainIndex) {
         }
     }
     trdata->reverse = 1 - trdata->reverse;
+    trdata->startLandmark = trdata->lastLandmark;
+    trdata->distanceAfterStartLandmark = trdata->distanceAfterLastLandmark;
 
+    Log("Landmark after reverse : %s + %d", trdata->lastLandmark->name, (int)trdata->distanceAfterLastLandmark);
     ReleaseLock(trLock);
 
     updateTrainSpeed(data, trainIndex, speed);
@@ -1002,34 +1022,96 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
     Log("Routing...");
     int distance1 = -1;
     int distance2 = -1;
+    int isBlcoked = 0;
+    track_edge *edge;
 
     if (startOffset > 0) {
-        /* Straight ahead */
-        distance1 = findRouteDistance(data, trainIndex, nextNode(data, start), end, end_alt, finalLocationOffset, start, result1, 0) - finalLocationOffset;
-        if (distance1 >= 0) {
-            distance1 += nextDistance(data, start) - startOffset;
+        if (start->type == NODE_BRANCH) {
+            edge = &(start->edge[DIR_STRAIGHT]);
+            isBlcoked |= isRouteBlocked(data, edge, trainIndex, startOffset, edge->dist);
+            edge = &(start->edge[DIR_CURVED]);
+            isBlcoked |= isRouteBlocked(data, edge, trainIndex, startOffset, edge->dist);
+        }
+        else {
+            edge = &(start->edge[DIR_AHEAD]);
+            isBlcoked = isRouteBlocked(data, edge, trainIndex, startOffset, edge->dist);
+        }
+        if (isBlcoked) {
+            distance1 = -1;
+        }
+        else {
+            /* Straight ahead */
+            distance1 = findRouteDistance(data, trainIndex, nextNode(data, start), end, end_alt, finalLocationOffset, start, result1, 0) - finalLocationOffset;
+            if (distance1 >= 0) {
+                distance1 += nextDistance(data, start) - startOffset;
+            }
         }
     }
     else {
-        /* Straight behind */
-        distance1 = findRouteDistance(data, trainIndex, start, end, end_alt, finalLocationOffset, (track_node *)0, result1, 0) - finalLocationOffset;
-        if (distance1 >= 0) {
-            distance1 -= startOffset;
+        if (start->type == NODE_MERGE) {
+            edge = &(start->reverse->edge[DIR_STRAIGHT]);
+            isBlcoked |= isRouteBlocked(data, edge, trainIndex, 0, 0 - startOffset);
+            edge = &(start->reverse->edge[DIR_CURVED]);
+            isBlcoked |= isRouteBlocked(data, edge, trainIndex, 0, 0 - startOffset);
+        }
+        else {
+            edge = &(start->reverse->edge[DIR_AHEAD]);
+            isBlcoked = isRouteBlocked(data, edge, trainIndex, 0, 0 - startOffset);
+        }
+        if (isBlcoked) {
+            distance1 = -1;
+        }
+        else {
+            /* Straight behind */
+            distance1 = findRouteDistance(data, trainIndex, start, end, end_alt, finalLocationOffset, (track_node *)0, result1, 0) - finalLocationOffset;
+            if (distance1 >= 0) {
+                distance1 -= startOffset;
+            }
         }
     }
 
     if ((TRAIN_LENGTH - startOffset) > 0) {
-        /* Reverse ahead */
-        distance2 = findRouteDistance(data, trainIndex, nextNode(data, start->reverse), end, end_alt, finalLocationOffset, start->reverse, result2, 0) - finalLocationOffset;
-        if (distance2 >= 0) {
-            distance2 += nextDistance(data, start->reverse) - (TRAIN_LENGTH - startOffset);
+        if (start->type == NODE_MERGE) {
+            edge = &(start->reverse->edge[DIR_STRAIGHT]);
+            isBlcoked |= isRouteBlocked(data, edge, trainIndex, TRAIN_LENGTH - startOffset, edge->dist);
+            edge = &(start->reverse->edge[DIR_CURVED]);
+            isBlcoked |= isRouteBlocked(data, edge, trainIndex, TRAIN_LENGTH - startOffset, edge->dist);
+        }
+        else {
+            edge = &(start->reverse->edge[DIR_AHEAD]);
+            isBlcoked = isRouteBlocked(data, edge, trainIndex, TRAIN_LENGTH - startOffset, edge->dist);
+        }
+        if (isBlcoked) {
+            distance2 = -1;
+        }
+        else {
+            /* Reverse ahead */
+            distance2 = findRouteDistance(data, trainIndex, nextNode(data, start->reverse), end, end_alt, finalLocationOffset, start->reverse, result2, 0) - finalLocationOffset;
+            if (distance2 >= 0) {
+                distance2 += nextDistance(data, start->reverse) - (TRAIN_LENGTH - startOffset);
+            }
         }
     }
     else {
-        /* Reverse behind */
-        distance2 = findRouteDistance(data, trainIndex, start->reverse, end, end_alt, finalLocationOffset, (track_node *)0, result2, 0) - finalLocationOffset;
-        if (distance2 >= 0) {
-            distance2 -= (TRAIN_LENGTH - startOffset);
+        if (start->type == NODE_BRANCH) {
+            edge = &(start->edge[DIR_STRAIGHT]);
+            isBlcoked |= isRouteBlocked(data, edge, trainIndex, 0, startOffset - TRAIN_LENGTH);
+            edge = &(start->edge[DIR_CURVED]);
+            isBlcoked |= isRouteBlocked(data, edge, trainIndex, 0, startOffset - TRAIN_LENGTH);
+        }
+        else {
+            edge = &(start->edge[DIR_AHEAD]);
+            isBlcoked = isRouteBlocked(data, edge, trainIndex, 0, startOffset - TRAIN_LENGTH);
+        }
+        if (isBlcoked) {
+            distance2 = -1;
+        }
+        else {
+            /* Reverse behind */
+            distance2 = findRouteDistance(data, trainIndex, start->reverse, end, end_alt, finalLocationOffset, (track_node *)0, result2, 0) - finalLocationOffset;
+            if (distance2 >= 0) {
+                distance2 -= (TRAIN_LENGTH - startOffset);
+            }
         }
     }
 
