@@ -65,6 +65,10 @@ int request_handle(SharedVariables *sharedVariables, Task *active, Request *requ
             sharedVariables->idleTid = active->tid;
             request->retVal = SUCCESS;
             break;
+        case SYS_SET_IDLE_TASK:
+            sharedVariables->idleTid = request->intArg1;
+            request->retVal = SUCCESS;
+            break;
         case SYS_IDLE_PERCENT:
             request->retVal = sharedVariables->idlePercent;
             break;

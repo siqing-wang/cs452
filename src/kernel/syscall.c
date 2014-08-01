@@ -641,6 +641,13 @@ void IAmIdleTask() {
     sendRequest(&request);
 }
 
+void SetIdleTask(int tid) {
+    Request request;
+    request.syscall = SYS_SET_IDLE_TASK;
+    request.intArg1 = tid;
+    sendRequest(&request);
+}
+
 int IdlePercent() {
     Request request;
     request.syscall = SYS_IDLE_PERCENT;

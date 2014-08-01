@@ -29,6 +29,7 @@
 #define SYS_ACQUIRE_LOCK 13
 #define SYS_RELEASE_LOCK 14
 #define SYS_GET_LOG_ROW 15
+#define SYS_SET_IDLE_TASK 16
 
 #define ERR_UNKNOWN_SYSCALL -1
 #define ERR_CREATE_TASK_FAIL -2
@@ -65,6 +66,7 @@ typedef struct Request
 
     /* Other arguments */
     void *ptrArg1;
+    int intArg1;
 } Request;
 
 int request_handle(SharedVariables* sharedVariables, Task* active, Request *request);

@@ -6,6 +6,7 @@
 #include <syscall.h>
 #include <track.h>
 #include <train_control.h>
+#include <ioserver.h>
 
 /* Parser Helper */
 int readNum(char** input);
@@ -24,6 +25,8 @@ int parseGoCommand(int trainCtrlTid, char* input);
 int parseStopCommand(int trainCtrlTid, char* input);
 int parseHaltCommand(int trainCtrlTid, char* input);
 int parsePerformanceMonitor(char* input);
+int parseIdleCommand(char *input);
+int parseIOSizeQueryCommand(char *input);
 
 /* Parser Helper */
 int readNum(char** input) {
@@ -134,7 +137,16 @@ int parseCommand(int trainCtrlTid, char* input) {
         case 'g':
             return parseGoCommand(trainCtrlTid, input);
         case 'i':
-            return parseInitCommand(trainCtrlTid, input);
+            switch (input[1]) {
+                case 'd':
+                    return parseIdleCommand(input);
+                case 'n':
+                    return parseInitCommand(trainCtrlTid, input);
+                case 'o':
+                    return parseIOSizeQueryCommand(input);
+                default:
+                    return CMD_FAILED;
+            }
         case 'p':
             return parsePerformanceMonitor(input);
         case 'q':
@@ -388,4 +400,33 @@ int parsePerformanceMonitor(char* input) {
         return CMD_FAILED;
     }
     return CMD_HALT;
+}
+
+int parseIdleCommand(char *input) {
+    if(!readToken(&input, "idle")) {
+        return CMD_FAILED;
+    }
+
+    /* read tid */
+    int tid = readNum(&input);
+    if(tid < 0) {
+        return CMD_FAILED;
+    }
+
+    SetIdleTask(tid);
+    return CMD_SUCCEED;
+}
+
+int parseIOSizeQueryCommand(char *input) {
+    if(!readToken(&input, "iosize")) {
+        return CMD_FAILED;
+    }
+
+    IOserverMessage message;
+    message.type = IOServerMSG_CLIENT;
+    message.syscall = IOServerMSG_GETSIZE;
+    int msg = 0;
+    Send(TRAINIOSERVER_TID, &message, sizeof(message), &msg, sizeof(msg));
+    Log("IO SendQ size : %d", msg);
+    return CMD_SUCCEED;
 }

@@ -67,7 +67,7 @@ void Exit();
 void ExitProgram();
 
 // Inter-task Communication
-int Send(int Tid, void *msg, int msglen, void *reply, int replylen);
+int Send(int tid, void *msg, int msglen, void *reply, int replylen);
 int Receive(int *tid, void *msg, int msglen);
 int Reply(int tid, void *reply, int replylen);
 
@@ -100,6 +100,7 @@ int GetSensorData(char *arr);
 
 // Performance Monitor using idle task.
 void IAmIdleTask();
+void SetIdleTask(int tid);
 int IdlePercent();
 void TurnMonitor(int onOrOff);
 
