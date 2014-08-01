@@ -139,14 +139,21 @@ void printSensorTable(TrainSetData *data) {
 /* execute commands */
 
 void trainset_setSpeed(int train_number, int train_speed) {
+    // Log("trainset_setSpeed %d %d", train_number, train_speed);
     char cmd[2];
-    cmd[0] = (char)train_speed;
+    if (train_speed > 0) {
+        cmd[0] = (char)(train_speed + 16);
+    }
+    else {
+        cmd[0] = (char)train_speed;
+    }
     cmd[1] = (char)train_number;
     PutSizedStr(COM1, cmd, 2);
     IOidle(COM1);
 }
 
 void trainset_reverse(int train_number) {
+    // Log("trainset_reverse %d", train_number);
     char cmd[2];
     cmd[0] = (char)REVERSE;
     cmd[1] = (char)train_number;
@@ -155,6 +162,7 @@ void trainset_reverse(int train_number) {
 }
 
 void trainset_turnSwitch(int switch_number, int switch_direction) {
+    // Log("trainset_turnSwitch %d %d", switch_number, switch_direction);
     char cmd[4];
     if (switch_direction == DIR_STRAIGHT) {
         cmd[0] = (char)SWITCH_STRAIGHT;

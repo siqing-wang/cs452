@@ -272,7 +272,7 @@ int findRouteDistance(TrainSetData *data, int trainIndex, track_node *start, tra
         warning("findRouteDistance : This case should not happen!");
         return -1;
     }
-    else if ((start->type == NODE_MERGE) && (lastNode != (track_node *)0)) {
+    else if (start->type == NODE_MERGE) {
         dir1[resultIndex] = DIR_AHEAD;
         result1 = findRouteDistance(data, trainIndex, start->edge[DIR_AHEAD].dest, end, end_alt, endOffset, start, dir1, resultIndex + 1);
         if (result1 >= 0) {
@@ -694,7 +694,7 @@ int reserv_updateReservation(int trainCtrlTid, TrainSetData *data, int trainInde
         /* Reservation on this node. */
         if ((low + reservDistAhead) <= edge->dist) {
             if (edge->dest->type == NODE_MERGE) {
-                reservDistAhead += 240;
+                reservDistAhead += RESERV_MERGE_SAFE_MARGIN - RESERV_SAFE_MARGIN;
             }
         }
         if ((low + reservDistAhead) <= edge->dist) {

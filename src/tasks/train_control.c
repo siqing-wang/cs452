@@ -262,7 +262,7 @@ void trainTask() {
                             ReleaseLock(trLock);
                         }
                     }
-                    else if ((trdata->nextLocation == trdata->finalLocation) || (trdata->nextLocation == trdata->finalLocationAlt)) {
+                    if ((trdata->nextLocation == trdata->finalLocation) || (trdata->nextLocation == trdata->finalLocationAlt)) {
                         AcquireLock(trLock);
                         trdata->continueToStop = 0;
                         ReleaseLock(trLock);
@@ -420,10 +420,10 @@ void updateTrainTable() {
                     trdata->shortMoveInProgress = 0;
                     trdata->needToCleanTrack = 1;
                 }
-                Log("Train%d Before : %s + %d", trdata->trainNum, trdata->lastLandmark->name, (int)trdata->distanceAfterLastLandmark / 10);
+                // Log("Train%d Before : %s + %d", trdata->trainNum, trdata->lastLandmark->name, (int)trdata->distanceAfterLastLandmark / 10);
                 trdata->lastLandmark = trdata->targetStopLandmark;
                 trdata->distanceAfterLastLandmark = trdata->distanceAfterTargetStopLandmark;
-                Log("Train%d After : %s + %d", trdata->trainNum, trdata->lastLandmark->name, (int)trdata->distanceAfterLastLandmark / 10);
+                // Log("Train%d After : %s + %d", trdata->trainNum, trdata->lastLandmark->name, (int)trdata->distanceAfterLastLandmark / 10);
                 if (trdata->lastLandmark == trdata->nextSensor) {
                     if ((trdata->reverse) && (trdata->distanceAfterLastLandmark > 20)) {
                         trdata->distanceAfterLastLandmark = 20;
@@ -531,7 +531,7 @@ void drawTrackGraph() {
 
     Receive(&serverTid, &data, sizeof(data));
     Reply(serverTid, &msg, sizeof(msg));
-
+Exit();
     /* Initialize switch. */
     int swtableSnapShot[SWITCH_TOTAL];
     for (i = 0; i < SWITCH_TOTAL; i++) {
@@ -1034,13 +1034,15 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
         }
         assert(startOffset < 0, "findRoute : startOffset is still greater than 0");
         if (start->type == NODE_MERGE) {
-            int dir = *(data->swtable + getSwitchIndex(start->num));
-            edge = &(start->reverse->edge[dir]);
+            edge = &(start->reverse->edge[DIR_STRAIGHT]);
+            isBlcoked |= isRouteBlocked(data, edge, trainIndex, 0, 0 - startOffset);
+            edge = &(start->reverse->edge[DIR_CURVED]);
+            isBlcoked |= isRouteBlocked(data, edge, trainIndex, 0, 0 - startOffset);
         }
         else {
             edge = &(start->reverse->edge[DIR_AHEAD]);
+            isBlcoked = isRouteBlocked(data, edge, trainIndex, 0, 0 - startOffset);
         }
-        isBlcoked = isRouteBlocked(data, edge, trainIndex, 0, 0 - startOffset);
         if (isBlcoked) {
             distances[i] = -1;
         }
@@ -1049,7 +1051,7 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
             for(j = 0; j < TRACK_MAX; j++) {
                 track[j].visited = 0;
             }
-            distances[i] = findRouteDistance(data, trainIndex, start, end, end_alt, finalLocationOffset, (track_node *)0, results[i], 0) - finalLocationOffset;
+            distances[i] = findRouteDistance(data, trainIndex, start, end, end_alt, finalLocationOffset, nextNode(data, start->reverse)->reverse, results[i], 0) - finalLocationOffset;
             if (distances[i] >= 0) {
                 distances[i] -= startOffset;
             }
@@ -1109,7 +1111,6 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
 
     /* Go thru path, turn switch, recalculate distance, break at end point or reverse point */
     track_node *current = start;
-    int nextLocationOffset = 0;
     distance = 0 - startOffset;
     int switchDir, switchIndex;
     unsigned int stopAtSwDirctions = 0;
@@ -1132,11 +1133,11 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
             break;
         }
 
+        assert(current->type != NODE_EXIT, "findRoute : Route run to EXIT");
         if (current->type == NODE_MERGE) {
             if (result[i] == DIR_REVERSE) {
                 /* Add gap ahead of merge node */
                 distance += REVERSE_GAP;
-                nextLocationOffset = REVERSE_GAP;
                 break;
             }
             distance += current->edge[DIR_AHEAD].dist;
@@ -1148,6 +1149,16 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
             switchDir = result[i];
             stopAtSwDirctions = stopAtSwDirctions | switchDir << switchIndex;
             stopAtSwInvolved = stopAtSwInvolved | 1 << switchIndex;
+                                    // if (switchDir != *(data->swtable + switchIndex)) {
+                                    //     /* Update switch table. */
+                                    //     AcquireLock(data->swtableLock);
+                                    //     *(data->swtable + switchIndex) = switchDir;
+                                    //     ReleaseLock(data->swtableLock);
+                                    //     /* Send message to train set to actually turn switch. */
+                                    //     trainset_turnSwitch(current->num, switchDir);
+                                    //     /* Update terminal switch table. */
+                                    //     updateSwitchTable(current->num, switchDir);
+                                    // }
             distance += current->edge[switchDir].dist;
             current = current->edge[switchDir].dest;
             i++;
@@ -1163,13 +1174,13 @@ int findRoute(struct TrainSetData *data, int trainIndex) {
     data->trtable[trainIndex]->nextLocation = current;
 
     if (current == end) {
-        data->trtable[trainIndex]->nextLocationOffset = finalLocationOffset + nextLocationOffset;
+        data->trtable[trainIndex]->nextLocationOffset = finalLocationOffset;
     }
     else if (current == end_alt) {
-        data->trtable[trainIndex]->nextLocationOffset = finalLocationOffset - nextLocationOffset;
+        data->trtable[trainIndex]->nextLocationOffset = 0 - finalLocationOffset;
     }
     else {
-        data->trtable[trainIndex]->nextLocationOffset = nextLocationOffset;
+        data->trtable[trainIndex]->nextLocationOffset = REVERSE_GAP;
     }
 
     trdata->stopAtSwDirctions = stopAtSwDirctions;
