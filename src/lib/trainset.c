@@ -257,7 +257,7 @@ int trainset_addToSensorTable(TrainSetData *data, int sensorGroup, int sensorNum
             int friction = (int)(node->friction * 700) * (1.0 *
                 (trdata->estimateTimetickHittingLastSensor - trdata->actualTimetickHittingLastSensor) /
                 (timetick - trdata->actualTimetickHittingLastSensor));
-            node->friction = 1.0 * ((int)(node->friction * 300) + friction) / 1000;
+            // node->friction = 1.0 * ((int)(node->friction * 300) + friction) / 1000;
         }
         trdata->actualTimetickHittingLastSensor = timetick;
 
