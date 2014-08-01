@@ -21,7 +21,7 @@ ASMSOURCES = $(wildcard src/lib/*.asm) $(wildcard src/kernel/*.asm)
 ASMFILES = $(CSOURCES:.c=.s)
 OBJECTS = $(CSOURCES:.c=.o) $(ASMSOURCES:.asm=.o)
 MAIN = main
-EXEC = demo2
+EXEC = final2
 
 all: clean $(ASMFILES) $(OBJECTS) $(EXEC).elf
 
