@@ -61,7 +61,7 @@ void init_tracka(track_node *track);
 void init_trackb(track_node *track);
 
 /* Track Reservation */
-#define RESERV_SAFE_MARGIN 50
+#define RESERV_SAFE_MARGIN 30
 #define RESERV_MERGE_SAFE_MARGIN 260
 #define RESERV_DELAY 10
 

@@ -531,7 +531,7 @@ void drawTrackGraph() {
 
     Receive(&serverTid, &data, sizeof(data));
     Reply(serverTid, &msg, sizeof(msg));
-Exit();
+
     /* Initialize switch. */
     int swtableSnapShot[SWITCH_TOTAL];
     for (i = 0; i < SWITCH_TOTAL; i++) {

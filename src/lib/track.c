@@ -462,6 +462,46 @@ void reserv_adjustStartingPoint(int trainIndex, track_node **nodeStart, int *sta
     // }
 }
 
+/* Adjust starting point so offset is in correct range [0 dist]. */
+void reserv_adjustStartingPointBehind(int trainIndex, track_node **nodeStart, int *startOffset) {
+    // Log("adj_b %d + %d", (*nodeStart)->name, *startOffset);
+    track_edge *edge;
+
+    /* Adjust till startOffset is positive. */
+    track_node *node = (*nodeStart)->reverse;   // face backwards
+    while(*startOffset <= 0) {
+        /* Go to last node. */
+        edge = reserv_getReservedEdge(node, trainIndex);
+        if (edge == 0) {
+            Log("Node %s + %d", (*nodeStart)->name, *startOffset);
+        }
+        // assert(edge != 0, "reserv_adjustStartingPointBehind: not reserved edge");
+        *nodeStart = edge->dest->reverse;
+        *startOffset = edge->dist + *startOffset;
+        node = edge->dest;
+    }
+
+    // assert(*startOffset > 0, "reserv_adjustStartingPointBehind: start offset still -ve after adjustion.");
+
+    /* Adjust till startOffset < edge->dist. */
+    edge = reserv_getReservedEdge(*nodeStart, trainIndex);
+    if (edge == 0) {
+        Log("Node %s + %d", (*nodeStart)->name, *startOffset);
+    }
+    // assert(edge != 0, "reserv_adjustStartingPointBehind: not reserved edge");
+    while (edge != 0 && *startOffset >= edge->dist) {
+        *nodeStart = edge->dest;
+        *startOffset = *startOffset - edge->dist;
+        edge = reserv_getReservedEdge(*nodeStart, trainIndex);
+    }
+    // Log("edge %s startOffset = %d, dist = %d", edge->src->name, *startOffset, edge->dist);
+    // Log("Start node = %s", (*nodeStart)->name);
+    // assert(*startOffset < edge->dist, "reserv_adjustStartingPointBehind: start offset still > edge dist after adjustion.");
+    // if (*startOffset >= edge->dist) {
+    //     Log("edge %s startOffset = %d, dist = %d", edge->src->name, *startOffset, edge->dist);
+    // }
+}
+
 int reserv_updateStopAtSwDirections(unsigned int stopAtSwDirctions, unsigned int *stopAtSwInvolvedPtr, int switchIndex) {
     int stopAtSwInvolved = *stopAtSwInvolvedPtr;
     if ((stopAtSwInvolved & (1 << switchIndex)) == 0) {
@@ -481,7 +521,8 @@ void reserv_giveBackTrackBehind(int trainIndex, track_node *nodeStart, int offse
 
     nodeStart = nodeStart->reverse;        // face backwards
     offset = 0 - offset;
-    reserv_adjustStartingPoint(trainIndex, &nodeStart, &offset);
+    reserv_adjustStartingPointBehind(trainIndex, &nodeStart, &offset);
+    if (offset < 0) return; ///
 
     track_node *node = nodeStart;
     track_edge *edge;
