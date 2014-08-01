@@ -13,7 +13,6 @@ double calculate_trainVelocity(int trainNum, int speed) {
 
     switch (trainNum) {
         case 45:
-        case 56:                    // train56 is similiar as train45
             if (speed == 1) {
                 velocity = 0.140815433; // wrong data
             }
@@ -97,6 +96,35 @@ double calculate_trainVelocity(int trainNum, int speed) {
                 velocity = 6.210763089;     // wrong data
             }
             break;
+        case 56:
+            if (speed == 1) {
+                velocity = 0.1236024218;    // wrong data
+            }
+            else if (speed >= 2 && speed <= 7) {
+                velocity =  0.46157 * speed - 0.043054;     // wrong data
+            }
+            else if (speed == 8) {
+                velocity = 3.803708894;
+            }
+            else if (speed == 9) {
+                velocity = 4.305956707;
+            }
+            else if (speed == 10) {
+                velocity = 4.455797436;
+            }
+            else if (speed == 11) {
+                velocity = 4.550491166;
+            }
+            else if (speed == 12) {
+                velocity = 4.626706111;
+            }
+            else if (speed == 13) {
+                velocity = 6.460102431;     // wrong data
+            }
+            else if (speed == 14) {
+                velocity = 6.210763089;     // wrong data
+            }
+            break;
     }
 
     return velocity;
@@ -112,7 +140,6 @@ double calculate_stopDistance(int trainNum, int speed) {
 
     switch(trainNum) {
         case 45:
-        case 56:                    // train56 is similiar as train45
             switch(speed) {
                 case 1:
                     return 7.25;    // wrong data
@@ -263,6 +290,37 @@ double calculate_stopDistance(int trainNum, int speed) {
                     return 677;
                 case 12:
                     return 758;
+                case 13:
+                    return 817.375; // wrong data
+                case 14:
+                    return 801;     // wrong data
+            }
+        case 56:
+            switch(speed) {
+                case 1:
+                    return 6;       // wrong data
+                case 2:
+                    return 58;      // wrong data
+                case 3:
+                    return 138;     // wrong data
+                case 4:
+                    return 206.5;   // wrong data
+                case 5:
+                    return 273;     // wrong data
+                case 6:
+                    return 342.5;   // wrong data
+                case 7:
+                    return 421.875; // wrong data
+                case 8:
+                    return 517.25;
+                case 9:
+                    return 594.125;
+                case 10:
+                    return 659.625;
+                case 11:
+                    return 749.5;
+                case 12:
+                    return 758;     // wrong data
                 case 13:
                     return 817.375; // wrong data
                 case 14:
